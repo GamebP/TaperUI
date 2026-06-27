@@ -240,7 +240,7 @@ local Sidebar = create("Frame", {
         Size = UDim2.new(0, 130, 0, 40),
         Position = UDim2.new(0, 20, 0, 5),
         BackgroundTransparency = 1,
-        Image = TaperAssets.logo_transparent,
+        Image = TaperAssets.logo_img,
         ScaleType = Enum.ScaleType.Fit
     })
 })
@@ -257,7 +257,7 @@ if LogoImage then
         
         fadeOutTween.Completed:Connect(function()
             -- 2. Swap to the normal logo for the menu
-            LogoImage.Image = TaperAssets.logo_img
+            LogoImage.Image = TaperAssets.logo_transparent
             
             -- 3. Fade in
             local fadeInTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -372,33 +372,6 @@ local homeContainer = create("Frame", {
         Size = UDim2.new(0.9, 0, 0, 24),
         BackgroundTransparency = 1,
         Text = "Executor: Loading",
-        TextColor3 = Color3.fromRGB(180, 180, 180),
-        TextSize = 13,
-        Font = Enum.Font.GothamMedium
-    }),
-    create("TextLabel", {
-        Name = "bugsLabel",
-        Size = UDim2.new(0.9, 0, 0, 24),
-        BackgroundTransparency = 1,
-        Text = "Report bugs inside redacted",
-        TextColor3 = Color3.fromRGB(180, 180, 180),
-        TextSize = 13,
-        Font = Enum.Font.GothamMedium
-    }),
-    create("TextLabel", {
-        Name = "discan",
-        Size = UDim2.new(0.9, 0, 0, 24),
-        BackgroundTransparency = 1,
-        Text = "Discord: redacted",
-        TextColor3 = Color3.fromRGB(180, 180, 180),
-        TextSize = 13,
-        Font = Enum.Font.GothamMedium
-    }),
-    create("TextLabel", {
-        Name = "ythead",
-        Size = UDim2.new(0.9, 0, 0, 24),
-        BackgroundTransparency = 1,
-        Text = "Tutorial on redacted",
         TextColor3 = Color3.fromRGB(180, 180, 180),
         TextSize = 13,
         Font = Enum.Font.GothamMedium
@@ -529,11 +502,8 @@ end)
 -- Initialize dynamic placeholder values on Home
 local function replaceRedacted()
     local c = Sections.Home.Content
-    c.bugsLabel.Text = c.bugsLabel.Text:gsub("redacted", "")
-    c.discan.Text = c.discan.Text:gsub("redacted", "")
-    c.ythead.Text = c.ythead.Text:gsub("redacted", "YouTube")
     c.execLabel.Text = "Executor: " .. getexec()
-    c.versionLabel.Text = "Version: 1.0 | " .. (data.updatedDate or "N/A")
+    c.versionLabel.Text = "Ver: " .. (data.version or "N/A") .. " | Updated: " .. (data.updatedDate or "N/A")
 end
 replaceRedacted()
 

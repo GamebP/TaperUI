@@ -1,5 +1,6 @@
 {
   "updatedDate": "27.06.2026",
+  "version": "v1.0",
   "gameList": [
     { "game": "Cross road for brainrots", "id": "89072926726733", "status": "🟢" },
     { "game": "Survive flood for brainrots", "id": "100070667273689", "status": "🟢" },
