@@ -318,7 +318,7 @@ Sidebar.Parent = MainFrame
 
 local TabButtonContainer = create("Frame", {
     Name = "TabButtonContainer",
-    Size = UDim2.new(1, -16, 1, -60),
+    Size = UDim2.new(1, -16, 1, -120),
     Position = UDim2.new(0, 8, 0, 55),
     BackgroundTransparency = 1
 }, {
@@ -328,6 +328,57 @@ local TabButtonContainer = create("Frame", {
     })
 })
 TabButtonContainer.Parent = Sidebar
+
+local player = Players.LocalPlayer
+local userId = player.UserId
+local displayName = player.DisplayName or player.Name
+
+local UserProfileWidget = create("Frame", {
+    Name = "UserProfileWidget",
+    Size = UDim2.new(1, -16, 0, 48),
+    Position = UDim2.new(0, 8, 1, -56),
+    BackgroundTransparency = 1,
+    Parent = Sidebar
+}, {
+    create("ImageLabel", {
+        Name = "Avatar",
+        Size = UDim2.new(0, 36, 0, 36),
+        Position = UDim2.new(0, 4, 0.5, -18),
+        BackgroundColor3 = Color3.fromRGB(24, 24, 28),
+        Image = "rbxthumb://type=AvatarHeadShot&id=" .. tostring(userId) .. "&w=150&h=150",
+        ImageTransparency = 1,
+        BorderSizePixel = 0
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+        create("UIStroke", { Name = "Stroke", Color = Color3.fromRGB(45, 45, 50), Thickness = 1.2, Transparency = 1 })
+    }),
+    create("TextLabel", {
+        Name = "DisplayName",
+        Size = UDim2.new(1, -52, 0, 18),
+        Position = UDim2.new(0, 48, 0.5, -15),
+        BackgroundTransparency = 1,
+        Text = displayName,
+        TextColor3 = Color3.fromRGB(240, 240, 245),
+        TextSize = 12,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Bottom,
+        TextTransparency = 1
+    }),
+    create("TextLabel", {
+        Name = "Subtitle",
+        Size = UDim2.new(1, -52, 0, 14),
+        Position = UDim2.new(0, 48, 0.5, 2),
+        BackgroundTransparency = 1,
+        Text = "bum lad",
+        TextColor3 = Color3.fromRGB(150, 150, 155),
+        TextSize = 10,
+        Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Top,
+        TextTransparency = 1 -- Fades in with menu
+    })
+})
 
 local ContentArea = create("Frame", {
     Name = "ContentArea",
@@ -773,6 +824,38 @@ local function playIntro()
             TweenService:Create(SidebarTitle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 TextTransparency = 0
             }):Play()
+        end
+
+        local ProfileWidget = Sidebar:FindFirstChild("UserProfileWidget")
+        if ProfileWidget then
+            local avatar = ProfileWidget:FindFirstChild("Avatar")
+            local displayNameLabel = ProfileWidget:FindFirstChild("DisplayName")
+            local subtitleLabel = ProfileWidget:FindFirstChild("Subtitle")
+            
+            if avatar then
+                TweenService:Create(avatar, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    ImageTransparency = 0
+                }):Play()
+                
+                local avatarStroke = avatar:FindFirstChild("Stroke")
+                if avatarStroke then
+                    TweenService:Create(avatarStroke, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                        Transparency = 0.5
+                    }):Play()
+                end
+            end
+            
+            if displayNameLabel then
+                TweenService:Create(displayNameLabel, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    TextTransparency = 0
+                }):Play()
+            end
+            
+            if subtitleLabel then
+                TweenService:Create(subtitleLabel, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    TextTransparency = 0
+                }):Play()
+            end
         end
     end)
 end
