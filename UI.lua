@@ -1,0 +1,498 @@
+-- UI.lua
+if not game:IsLoaded() then game.Loaded:Wait() end
+
+-- Retrieve all services directly inside the entrypoint
+local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local GuiService = game:GetService("GuiService")
+local TweenService = game:GetService("TweenService")
+local ExperienceService = game:GetService("ExperienceService")
+
+local hui = gethui or get_hidden_gui
+local getexec = identifyexecutor or function() return "Unknown Executor" end
+
+-- Environment and directory initialization
+if not isfolder("TaperUI") then makefolder("TaperUI") end
+if not isfile("TaperUI/Config.json") then
+    writefile("TaperUI/Config.json", HttpService:JSONEncode({
+        settings = {
+            auto_rejoin_on_kick = false,
+            disable_3d_rendering = false
+        }
+    }))
+end
+
+local env = getgenv()
+
+function env.getgitpath(where)
+    local mainBuild = "https://raw.githubusercontent.com/IcantAffordSynapse/TaperUI/refs/heads/main/"
+    if where == "src" then
+        return mainBuild .. "src/"
+    elseif where == "games" then
+        return mainBuild .. "src/games/"
+    end
+end
+
+function env.setconfig(key, value)
+    local dec = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
+    dec[tostring(game.PlaceId)] = dec[tostring(game.PlaceId)] or {}
+    dec[tostring(game.PlaceId)][key] = value
+    writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
+end
+
+-- Replaced 'autorjjjj' with 'autorejoin'
+env.autorejoin = false
+GuiService.ErrorMessageChanged:Connect(function()
+    if env.autorejoin then
+        TeleportService:Teleport(game.PlaceId)
+    end
+end)
+GuiService:SetGameplayPausedNotificationEnabled(false)
+
+-- Updated to load UI.lua directly instead of init.lua
+if queue_on_teleport then
+    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/IcantAffordSynapse/TaperUI/refs/heads/main/UI.lua"))()')
+end
+
+-- Local executor module loader helper
+local function import(path)
+    local fullPath = "TaperUI/" .. path .. ".lua"
+    if isfile(fullPath) then
+        return loadstring(readfile(fullPath))()
+    else
+        error("[TaperUI] Module file not found: " .. fullPath)
+    end
+end
+
+-- Import project scripts
+local creator = import("helper/creator")
+local elements = import("helper/elements")
+local data = import("helper/data")
+
+-- Pull tools from creator module
+local create = creator.create
+local dragify = creator.dragify
+local convertToScrolling = creator.convertToScrolling
+
+local gameList = data.gameList
+local creditsList = data.creditsList
+
+-- ---------- Main UI Construction ----------
+local screenGui = create("ScreenGui", {
+    Name = "TaperUI",
+    ResetOnSpawn = false,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+})
+screenGui.Parent = hui and hui() or CoreGui
+
+-- Float Toggle Button
+local ToggleButton = create("TextButton", {
+    Name = "ToggleButton",
+    Size = UDim2.new(0, 50, 0, 50),
+    Position = UDim2.new(0, 20, 0.5, -25),
+    BackgroundColor3 = Color3.fromRGB(24, 24, 28),
+    Text = "🚨",
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextSize = 22,
+    Font = Enum.Font.GothamBold,
+    Visible = false,
+    AutoButtonColor = true
+}, {
+    create("UICorner", { CornerRadius = UDim.new(0, 12) }),
+    create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1.5 })
+})
+ToggleButton.Parent = screenGui
+
+-- Main Panel container
+local MainFrame = create("Frame", {
+    Name = "MainFrame",
+    Size = UDim2.new(0, 620, 0, 420),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    BackgroundColor3 = Color3.fromRGB(15, 15, 17),
+    BorderSizePixel = 0,
+    ClipsDescendants = false
+}, {
+    create("UICorner", { CornerRadius = UDim.new(0, 12) }),
+    create("UIStroke", { Color = Color3.fromRGB(38, 38, 43), Thickness = 1.5 })
+})
+MainFrame.Parent = screenGui
+
+-- Hook smooth dragging
+dragify(MainFrame)
+
+-- Sidebar layout
+local Sidebar = create("Frame", {
+    Name = "Sidebar",
+    Size = UDim2.new(0, 170, 1, 0),
+    Position = UDim2.new(0, 0, 0, 0),
+    BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+    BorderSizePixel = 0
+}, {
+    create("UICorner", { CornerRadius = UDim.new(0, 12) }),
+    create("Frame", { -- Fills gaps
+        Size = UDim2.new(0, 15, 1, 0),
+        Position = UDim2.new(1, -15, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(18, 18, 22),
+        BorderSizePixel = 0
+    }),
+    create("Frame", { -- Divider stroke line
+        Size = UDim2.new(0, 1, 1, 0),
+        Position = UDim2.new(1, -1, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(32, 32, 36),
+        BorderSizePixel = 0
+    }),
+    create("TextLabel", {
+        Name = "LogoText",
+        Size = UDim2.new(1, 0, 0, 50),
+        Position = UDim2.new(0, 16, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "TaperUI",
+        TextColor3 = Color3.fromRGB(240, 240, 245),
+        TextSize = 16,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center
+    })
+})
+Sidebar.Parent = MainFrame
+
+local TabButtonContainer = create("Frame", {
+    Name = "TabButtonContainer",
+    Size = UDim2.new(1, -16, 1, -60),
+    Position = UDim2.new(0, 8, 0, 55),
+    BackgroundTransparency = 1
+}, {
+    create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 6)
+    })
+})
+TabButtonContainer.Parent = Sidebar
+
+local ContentArea = create("Frame", {
+    Name = "ContentArea",
+    Size = UDim2.new(1, -170, 1, 0),
+    Position = UDim2.new(0, 170, 0, 0),
+    BackgroundTransparency = 1
+})
+ContentArea.Parent = MainFrame
+
+local Topbar = create("Frame", {
+    Name = "Topbar",
+    Size = UDim2.new(1, 0, 0, 50),
+    Position = UDim2.new(0, 0, 0, 0),
+    BackgroundTransparency = 1
+}, {
+    create("TextButton", {
+        Name = "hidebtn",
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(1, -40, 0.5, -15),
+        BackgroundColor3 = Color3.fromRGB(24, 24, 28),
+        Text = "✕",
+        TextColor3 = Color3.fromRGB(180, 180, 185),
+        TextSize = 12,
+        Font = Enum.Font.GothamBold
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+        create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 })
+    })
+})
+Topbar.Parent = ContentArea
+
+local HideButton = Topbar.hidebtn
+
+local SectionContainers = create("Frame", {
+    Name = "SectionContainers",
+    Size = UDim2.new(1, 0, 1, -50),
+    Position = UDim2.new(0, 0, 0, 50),
+    BackgroundTransparency = 1
+})
+SectionContainers.Parent = ContentArea
+
+-- ---------- Setting Section Frames ----------
+local function createSectionFrame(name, visible)
+    return create("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        Visible = visible,
+        BackgroundTransparency = 1
+    })
+end
+
+local homeFrame = createSectionFrame("homeframe", true)
+homeFrame.Parent = SectionContainers
+
+local gameFrame = createSectionFrame("gameFrame", false)
+gameFrame.Parent = SectionContainers
+
+local gamelistFrame = createSectionFrame("gamelistFrame", false)
+gamelistFrame.Parent = SectionContainers
+
+local settingsFrame = createSectionFrame("settingsFrame", false)
+settingsFrame.Parent = SectionContainers
+
+local creditsFrame = createSectionFrame("creditsFrame", false)
+creditsFrame.Parent = SectionContainers
+
+-- Home Layout
+local homeContainer = create("Frame", {
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1
+}, {
+    create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 8),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center
+    }),
+    create("UIPadding", { PaddingTop = UDim.new(0, 16) }),
+    create("TextLabel", {
+        Name = "versionLabel",
+        Size = UDim2.new(0.9, 0, 0, 24),
+        BackgroundTransparency = 1,
+        Text = "Version: Loading",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextSize = 13,
+        Font = Enum.Font.GothamMedium
+    }),
+    create("TextLabel", {
+        Name = "execLabel",
+        Size = UDim2.new(0.9, 0, 0, 24),
+        BackgroundTransparency = 1,
+        Text = "Executor: Loading",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextSize = 13,
+        Font = Enum.Font.GothamMedium
+    }),
+    create("TextLabel", {
+        Name = "bugsLabel",
+        Size = UDim2.new(0.9, 0, 0, 24),
+        BackgroundTransparency = 1,
+        Text = "Report bugs inside redacted",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextSize = 13,
+        Font = Enum.Font.GothamMedium
+    }),
+    create("TextLabel", {
+        Name = "discan",
+        Size = UDim2.new(0.9, 0, 0, 24),
+        BackgroundTransparency = 1,
+        Text = "Discord: redacted",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextSize = 13,
+        Font = Enum.Font.GothamMedium
+    }),
+    create("TextLabel", {
+        Name = "ythead",
+        Size = UDim2.new(0.9, 0, 0, 24),
+        BackgroundTransparency = 1,
+        Text = "Tutorial on redacted",
+        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextSize = 13,
+        Font = Enum.Font.GothamMedium
+    })
+})
+homeContainer.Parent = homeFrame
+
+-- Sidebar Buttons builder
+local function createTabBtn(text, layoutOrder)
+    return create("TextButton", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundColor3 = Color3.fromRGB(24, 24, 28),
+        BackgroundTransparency = layoutOrder == 1 and 0 or 1,
+        Text = "",
+        LayoutOrder = layoutOrder,
+        AutoButtonColor = false
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("TextLabel", {
+            Name = "LabelText",
+            Size = UDim2.new(1, -12, 1, 0),
+            Position = UDim2.new(0, 12, 0, 0),
+            BackgroundTransparency = 1,
+            Text = text,
+            TextColor3 = layoutOrder == 1 parks and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185),
+            TextColor3 = layoutOrder == 1 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185),
+            TextSize = 13,
+            Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center
+        })
+    })
+end
+
+local Tabs = {
+    HomeTab = createTabBtn("🏠 Home", 1),
+    GameTab = createTabBtn("🎮 Game", 2),
+    GameslistTab = createTabBtn("🔍 Games List", 3),
+    SettingsTab = createTabBtn("⚙️ Settings", 4),
+    CreditsTab = createTabBtn("👥 Credits", 5)
+}
+for _, btn in pairs(Tabs) do
+    btn.Parent = TabButtonContainer
+end
+
+local Sections = {
+    Home = {
+        TabBtn = Tabs.HomeTab,
+        Container = homeFrame,
+        Content = homeContainer
+    },
+    Game = {
+        TabBtn = Tabs.GameTab,
+        Container = gameFrame,
+        Content = convertToScrolling(gameFrame)
+    },
+    GamesList = {
+        TabBtn = Tabs.GameslistTab,
+        Container = gamelistFrame,
+        Content = convertToScrolling(gamelistFrame)
+    },
+    Settings = {
+        TabBtn = Tabs.SettingsTab,
+        Container = settingsFrame,
+        Content = convertToScrolling(settingsFrame)
+    },
+    Credits = {
+        TabBtn = Tabs.CreditsTab,
+        Container = creditsFrame,
+        Content = convertToScrolling(creditsFrame)
+    }
+}
+
+local CurSection = Sections.Home
+
+-- Tab Button Hover & Click animation logic
+for _, sect in pairs(Sections) do
+    sect.TabBtn.MouseEnter:Connect(function()
+        if CurSection ~= sect then
+            TweenService:Create(sect.TabBtn, TweenInfo.new(0.15), { BackgroundTransparency = 0.5, BackgroundColor3 = Color3.fromRGB(32, 32, 36) }):Play()
+        end
+    end)
+
+    sect.TabBtn.MouseLeave:Connect(function()
+        if CurSection ~= sect then
+            TweenService:Create(sect.TabBtn, TweenInfo.new(0.15), { BackgroundTransparency = 1 }):Play()
+        end
+    end)
+
+    sect.TabBtn.MouseButton1Click:Connect(function()
+        if CurSection == sect then return end
+
+        if CurSection then
+            TweenService:Create(CurSection.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
+            TweenService:Create(CurSection.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(180, 180, 185) }):Play()
+            CurSection.Container.Visible = false
+        end
+
+        sect.Container.Visible = true
+        
+        TweenService:Create(sect.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(28, 28, 32) }):Play()
+        TweenService:Create(sect.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+
+        CurSection = sect
+    end)
+end
+
+-- Close / Open panel toggles
+HideButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+    ToggleButton.Visible = true
+end)
+
+ToggleButton.MouseButton1Click:Connect(function()
+    MainFrame.Visible = true
+    ToggleButton.Visible = false
+end)
+
+-- Initialize dynamic placeholder values on Home
+local function replaceRedacted()
+    local c = Sections.Home.Content
+    c.bugsLabel.Text = c.bugsLabel.Text:gsub("redacted", "")
+    c.discan.Text = c.discan.Text:gsub("redacted", "")
+    c.ythead.Text = c.ythead.Text:gsub("redacted", "YouTube")
+    c.execLabel.Text = "Executor: " .. getexec()
+    c.versionLabel.Text = "Version: 1.0 | " .. (data.updatedDate or "N/A")
+end
+replaceRedacted()
+
+-- Load game modules dynamically from Github repo or Local files
+local ok, gamePath = pcall(function()
+    return game:HttpGet(env.getgitpath("games") .. tostring(game.PlaceId) .. ".lua")
+end)
+
+local gameTargetContent = Sections.Game.Content or Sections.Game.Container
+
+if not ok or #gamePath == 0 or gamePath == "404: Not Found" then
+    local handledLocally = false
+
+    if getgenv().FileScripts then
+        if isfile("TaperUI/" .. tostring(game.PlaceId) .. ".lua") then
+            local gameModule = loadstring(readfile("TaperUI/" .. tostring(game.PlaceId) .. ".lua"))()
+            gameModule(gameTargetContent, HttpService:JSONDecode(readfile("TaperUI/Config.json")))
+            handledLocally = true
+        end
+    end
+
+    if not handledLocally then
+        elements:Unsupported(gameTargetContent, function()
+            if CurSection then
+                TweenService:Create(CurSection.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
+                TweenService:Create(CurSection.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(180, 180, 185) }):Play()
+                CurSection.Container.Visible = false
+            end
+
+            Sections.GamesList.Container.Visible = true
+            
+            TweenService:Create(Sections.GamesList.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(28, 28, 32) }):Play()
+            TweenService:Create(Sections.GamesList.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+
+            CurSection = Sections.GamesList
+        end)
+    end
+else
+    local gameModule = loadstring(gamePath)()
+    gameModule(gameTargetContent, HttpService:JSONDecode(readfile("TaperUI/Config.json")))
+end
+
+-- Render the games menu list
+elements:Searchbar(Sections.GamesList.Content, gameList)
+for _, g in ipairs(gameList) do
+    elements:addGame(Sections.GamesList.Content, g.game, g.status, function()
+        ExperienceService:LaunchExperience({placeId = g.id})
+    end)
+end
+
+-- Render the UI contribution list
+for sect, c in pairs(creditsList) do
+    if #c > 0 then
+        elements:CredHead(Sections.Credits.Content, sect)
+        for _, person in ipairs(c) do
+            elements:CredPerson(Sections.Credits.Content, person)
+        end
+    end
+end
+
+-- Render settings parameters
+local dec1 = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
+
+elements:Toggle("Disable 3D Rendering", Sections.Settings.Content, dec1.settings.disable_3d_rendering, function(v)
+    local dec = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
+    dec.settings.disable_3d_rendering = v
+    writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
+    RunService:Set3dRenderingEnabled(not v)
+end)
+
+elements:Toggle("Auto Rejoin (when kicked)", Sections.Settings.Content, dec1.settings.auto_rejoin_on_kick, function(v)
+    local dec = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
+    dec.settings.auto_rejoin_on_kick = v
+    writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
+    getgenv().autorejoin = v
+end)
+
+print("✅ UI Reloaded (Added Scrolling top padding to prevent element clipping and overflow)")
