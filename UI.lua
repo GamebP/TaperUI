@@ -595,38 +595,44 @@ local LoadingFrame = create("Frame", {
     Visible = true,
     Parent = MainFrame
 }, {
+    create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 4),
+        HorizontalAlignment = Enum.HorizontalAlignment.Center,
+        VerticalAlignment = Enum.VerticalAlignment.Center
+    }),
     create("TextLabel", {
         Name = "Title",
-        Size = UDim2.new(1, 0, 0, 30),
-        Position = UDim2.new(0, 0, 0.5, -25),
+        Size = UDim2.new(1, 0, 0, 22),
         BackgroundTransparency = 1,
         Text = "Taper Interface Suite",
         TextColor3 = Color3.fromRGB(240, 240, 245),
         TextSize = 18,
         Font = Enum.Font.GothamBold,
-        TextTransparency = 1
+        TextTransparency = 1,
+        LayoutOrder = 1
     }),
     create("TextLabel", {
         Name = "Subtitle",
-        Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0.5, 5),
+        Size = UDim2.new(1, 0, 0, 16),
         BackgroundTransparency = 1,
         Text = "by SkyDash",
         TextColor3 = Color3.fromRGB(160, 160, 165),
         TextSize = 13,
         Font = Enum.Font.GothamMedium,
-        TextTransparency = 1
+        TextTransparency = 1,
+        LayoutOrder = 2
     }),
     create("TextLabel", {
         Name = "Version",
-        Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0.5, 25),
+        Size = UDim2.new(1, 0, 0, 14),
         BackgroundTransparency = 1,
         Text = "v1.0",
         TextColor3 = Color3.fromRGB(120, 120, 125),
         TextSize = 11,
         Font = Enum.Font.GothamMedium,
-        TextTransparency = 1
+        TextTransparency = 1,
+        LayoutOrder = 3
     })
 })
 
