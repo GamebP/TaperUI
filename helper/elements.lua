@@ -1,5 +1,16 @@
 -- helper/elements.lua
-local creator = loadstring(readfile("TaperUI/helper/creator.lua"))()
+local taperImport = getgenv().taperImport or function(path)
+    local localPath = "TaperUI/" .. path .. ".lua"
+    local isFolderSupported = typeof(isfolder) == "function"
+    local isDirectory = isFolderSupported and isfolder(localPath)
+    if isfile(localPath) and not isDirectory then
+        return loadstring(readfile(localPath))()
+    else
+        error("[TaperUI] Fallback import failed for " .. path)
+    end
+end
+
+local creator = taperImport("helper/creator")
 
 -- Retrieve services directly
 local TweenService = game:GetService("TweenService")

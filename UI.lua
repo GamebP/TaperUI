@@ -114,7 +114,10 @@ end
 -- Local/Remote module loader helper (Fallback to GitHub raw)
 local function import(path)
     local localPath = "TaperUI/" .. path .. ".lua"
-    if isfile(localPath) then
+    local isFolderSupported = typeof(isfolder) == "function"
+    local isDirectory = isFolderSupported and isfolder(localPath)
+    
+    if isfile(localPath) and not isDirectory then
         return loadstring(readfile(localPath))()
     else
         local gitUrl = env.getgitpath("src") .. path .. ".lua"
@@ -126,11 +129,15 @@ local function import(path)
         end
     end
 end
+getgenv().taperImport = import
 
 -- Local/Remote JSON loader helper (Fallback to GitHub raw)
 local function importJson(path)
     local localPath = "TaperUI/" .. path .. ".json"
-    if isfile(localPath) then
+    local isFolderSupported = typeof(isfolder) == "function"
+    local isDirectory = isFolderSupported and isfolder(localPath)
+    
+    if isfile(localPath) and not isDirectory then
         return HttpService:JSONDecode(readfile(localPath))
     else
         local gitUrl = env.getgitpath("src") .. path .. ".json"
