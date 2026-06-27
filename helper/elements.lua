@@ -654,7 +654,7 @@ function elements:Searchbar(parent, gameList)
                 Position = UDim2.new(0, 24, 0, 0),
                 BackgroundTransparency = 1,
                 Text = "",
-                PlaceholderText = "Search for available brainrot games...",
+                PlaceholderText = "Search for available games...",
                 TextColor3 = Color3.fromRGB(240, 240, 245),
                 PlaceholderColor3 = Color3.fromRGB(110, 110, 115),
                 TextSize = 13,
