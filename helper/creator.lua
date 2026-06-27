@@ -2,7 +2,6 @@
 local creator = {}
 local UserInputService = game:GetService("UserInputService")
 
--- Raw instance factory helper
 function creator.create(className, properties, children)
     local inst = Instance.new(className)
     for k, v in pairs(properties) do
@@ -16,7 +15,6 @@ function creator.create(className, properties, children)
     return inst
 end
 
--- Lag-free UI dragging script
 function creator.dragify(frame)
     local dragging = false
     local dragInput, mousePos, framePos
@@ -54,7 +52,6 @@ function creator.dragify(frame)
     end)
 end
 
--- Converts flat Frame into high fidelity ScrollingFrame
 function creator.convertToScrolling(container)
     if not container then return nil end
     

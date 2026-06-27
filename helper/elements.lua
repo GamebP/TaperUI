@@ -12,12 +12,11 @@ end
 
 local creator = taperImport("helper/creator")
 
--- Retrieve services directly
 local TweenService = game:GetService("TweenService")
 local ExperienceService = game:GetService("ExperienceService")
 local UserInputService = game:GetService("UserInputService")
 local create = creator.create
-local TaperAssets = getgenv().TaperAssets or {} -- Get pre-loaded global assets
+local TaperAssets = getgenv().TaperAssets or {}
 
 local elements = {}
 
@@ -402,7 +401,7 @@ function elements:Searchbar(parent, gameList)
                 Size = UDim2.new(0, 14, 0, 14),
                 Position = UDim2.new(0, 4, 0.5, -7),
                 BackgroundTransparency = 1,
-                Image = TaperAssets.search, -- Read directly from pre-loaded TaperAssets array
+                Image = TaperAssets.search,
                 ImageColor3 = Color3.fromRGB(110, 110, 115)
             }),
             create("TextBox", {

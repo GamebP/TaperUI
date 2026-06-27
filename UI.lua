@@ -167,6 +167,99 @@ local screenGui = create("ScreenGui", {
 })
 screenGui.Parent = hui and hui() or CoreGui
 
+local ToastContainer = create("Frame", {
+    Name = "ToastContainer",
+    Size = UDim2.new(0, 280, 0, 400),
+    Position = UDim2.new(1, -20, 1, -20),
+    AnchorPoint = Vector2.new(1, 1),
+    BackgroundTransparency = 1,
+    BorderSizePixel = 0,
+    ZIndex = 100000,
+    Parent = screenGui
+}, {
+    create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 8),
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
+        VerticalAlignment = Enum.VerticalAlignment.Bottom
+    })
+})
+
+local function showToast(title, message, duration)
+    duration = duration or 3
+    
+    local Toast = create("Frame", {
+        Name = "Toast",
+        Size = UDim2.new(0, 0, 0, 60), -- Starts collapsed for sliding width tween
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = true
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Name = "Stroke", Color = Color3.fromRGB(45, 45, 50), Thickness = 1, Transparency = 1 }),
+        create("TextLabel", {
+            Name = "ToastTitle",
+            Size = UDim2.new(1, -24, 0, 20),
+            Position = UDim2.new(0, 12, 0, 8),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = Color3.fromRGB(240, 240, 245),
+            TextSize = 13,
+            Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTransparency = 1
+        }),
+        create("TextLabel", {
+            Name = "ToastMessage",
+            Size = UDim2.new(1, -24, 0, 18),
+            Position = UDim2.new(0, 12, 0, 28),
+            BackgroundTransparency = 1,
+            Text = message,
+            TextColor3 = Color3.fromRGB(160, 160, 165),
+            TextSize = 11,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTransparency = 1
+        })
+    })
+    Toast.Parent = ToastContainer
+
+    local stroke = Toast:FindFirstChild("Stroke")
+    
+    TweenService:Create(Toast, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, 0, 60),
+        BackgroundTransparency = 0.05
+    }):Play()
+
+    if stroke then
+        TweenService:Create(stroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), { Transparency = 0.5 }):Play()
+    end
+
+    task.delay(0.05, function()
+        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { TextTransparency = 0 }):Play()
+        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { TextTransparency = 0 }):Play()
+    end)
+
+    task.delay(duration, function()
+        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        
+        local fadeOut = TweenService:Create(Toast, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
+            BackgroundTransparency = 1,
+            Size = UDim2.new(1, 0, 0, 0)
+        })
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Transparency = 1 }):Play()
+        end
+        fadeOut:Play()
+        
+        fadeOut.Completed:Connect(function()
+            Toast:Destroy()
+        end)
+    end)
+end
+
 local MainFrame = create("Frame", {
     Name = "MainFrame",
     Size = UDim2.new(0, 420, 0, 100),
@@ -296,7 +389,6 @@ settingsFrame.Parent = SectionContainers
 local creditsFrame = createSectionFrame("creditsFrame", false)
 creditsFrame.Parent = SectionContainers
 
--- Home Layout
 local homeContainer = create("Frame", {
     Size = UDim2.new(1, 0, 1, 0),
     BackgroundTransparency = 1
@@ -435,54 +527,13 @@ for _, sect in pairs(Sections) do
     end)
 end
 
-local isAnimating = false
 local function toggleUI()
-    if isAnimating then return end
-    isAnimating = true
-
-    local mainStroke = MainFrame:FindFirstChild("MainStroke")
-
     if MainFrame.Visible then
-        local shrinkMain = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Size = UDim2.new(0, 390, 0, 90),
-            BackgroundTransparency = 1
-        })
-        
-        if mainStroke then
-            TweenService:Create(mainStroke, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-                Transparency = 1
-            }):Play()
-        end
-        
-        shrinkMain.Completed:Connect(function()
-            MainFrame.Visible = false
-            isAnimating = false
-        end)
-        
-        shrinkMain:Play()
+        MainFrame.Visible = false
+        showToast("TaperUI", "Interface hidden. Press [" .. activeKeybind .. "] to show again.", 2.5)
     else
-        MainFrame.Size = UDim2.new(0, 420, 0, 100)
-        MainFrame.BackgroundTransparency = 1
-        if mainStroke then mainStroke.Transparency = 1 end
-        
         MainFrame.Visible = true
-        
-        local expandMain = TweenService:Create(MainFrame, TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
-            Size = UDim2.new(0, 620, 0, 420),
-            BackgroundTransparency = 0
-        })
-        
-        if mainStroke then
-            TweenService:Create(mainStroke, TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
-                Transparency = 0
-            }):Play()
-        end
-        
-        expandMain.Completed:Connect(function()
-            isAnimating = false
-        end)
-        
-        expandMain:Play()
+        showToast("TaperUI", "Interface opened successfully.", 2.5)
     end
 end
 
@@ -586,6 +637,7 @@ elements:Keybind("Toggle UI Keybind", Sections.Settings.Content, activeKeybind, 
     local dec = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
     dec.settings.toggle_keybind = newKey
     writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
+    showToast("Keybind Updated", "New open/close key: [" .. newKey .. "]", 2.5)
 end)
 
 local LoadingFrame = create("Frame", {
@@ -595,7 +647,7 @@ local LoadingFrame = create("Frame", {
     Visible = true,
     Parent = MainFrame
 }, {
-    create("UIListLayout", {
+    create("UIListLayout", { -- Perfectly centers intro text on both X and Y axes [5]
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
