@@ -179,6 +179,8 @@ function elements:Toggle(str, parent, def, cb)
 end
 
 function elements:Textbox(str, parent, def, cb)
+    local currentText = def or ""
+
     local newTb = create("Frame", {
         Size = UDim2.new(0.98, 0, 0, 44),
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
@@ -210,7 +212,8 @@ function elements:Textbox(str, parent, def, cb)
                 Size = UDim2.new(1, -16, 1, 0),
                 Position = UDim2.new(0, 8, 0, 0),
                 BackgroundTransparency = 1,
-                Text = def or "",
+                Text = currentText,
+                ClearTextOnFocus = false,
                 PlaceholderText = "...",
                 TextColor3 = Color3.fromRGB(240, 240, 245),
                 PlaceholderColor3 = Color3.fromRGB(100, 100, 105),
@@ -220,11 +223,149 @@ function elements:Textbox(str, parent, def, cb)
         })
     })
 
-    newTb.tbbg.Inp.FocusLost:Connect(function()
-        cb(newTb.tbbg.Inp.Text)
+    local inpTextBox = newTb.tbbg.Inp
+
+    inpTextBox.FocusLost:Connect(function()
+        local enteredText = inpTextBox.Text
+        if enteredText == "" then
+            inpTextBox.Text = currentText
+        else
+            currentText = enteredText
+            cb(enteredText)
+        end
     end)
 
     return newTb
+end
+
+function elements:Slider(str, parent, min, max, def, decimals, cb)
+    local currentVal = def or min
+    local decimalPlaces = decimals or 0
+    local isDragging = false
+
+    local sliderFrame = create("Frame", {
+        Size = UDim2.new(0.98, 0, 0, 54),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        Parent = parent
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
+        create("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(0.6, 0, 0, 22),
+            Position = UDim2.new(0, 12, 0, 8),
+            BackgroundTransparency = 1,
+            Text = str,
+            TextColor3 = Color3.fromRGB(210, 210, 215),
+            TextSize = 13,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left
+        }),
+        create("TextLabel", {
+            Name = "ValueLabel",
+            Size = UDim2.new(0.3, 0, 0, 22),
+            Position = UDim2.new(0.7, -12, 0, 8),
+            BackgroundTransparency = 1,
+            Text = tostring(currentVal),
+            TextColor3 = Color3.fromRGB(150, 150, 155),
+            TextSize = 12,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Right
+        }),
+        create("Frame", {
+            Name = "TrackBg",
+            Size = UDim2.new(1, -24, 0, 6),
+            Position = UDim2.new(0, 12, 0, 36),
+            BackgroundColor3 = Color3.fromRGB(28, 28, 32),
+            BorderSizePixel = 0
+        }, {
+            create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+            create("Frame", {
+                Name = "TrackFill",
+                Size = UDim2.new(0, 0, 1, 0),
+                BackgroundColor3 = Color3.fromRGB(210, 210, 215),
+                BorderSizePixel = 0
+            }, {
+                create("UICorner", { CornerRadius = UDim.new(1, 0) })
+            }),
+            create("Frame", {
+                Name = "Knob",
+                Size = UDim2.new(0, 12, 0, 12),
+                Position = UDim2.new(0, 0, 0.5, -6),
+                BackgroundColor3 = Color3.fromRGB(240, 240, 245),
+                BorderSizePixel = 0
+            }, {
+                create("UICorner", { CornerRadius = UDim.new(1, 0) }),
+                create("UIStroke", { Color = Color3.fromRGB(35, 35, 40), Thickness = 1 })
+            }),
+            create("TextButton", {
+                Name = "Trigger",
+                Size = UDim2.new(1, 0, 0, 20),
+                Position = UDim2.new(0, 0, 0.5, -10),
+                BackgroundTransparency = 1,
+                Text = "",
+                ZIndex = 5
+            })
+        })
+    })
+
+    local trackBg = sliderFrame.TrackBg
+    local trackFill = trackBg.TrackFill
+    local knob = trackBg.Knob
+    local trigger = trackBg.Trigger
+    local valueLabel = sliderFrame.ValueLabel
+
+    local function update(input)
+        local absolutePosition = trackBg.AbsolutePosition
+        local absoluteSize = trackBg.AbsoluteSize
+        local mouseX = input.Position.X
+        
+        local percentage = math.clamp((mouseX - absolutePosition.X) / absoluteSize.X, 0, 1)
+        local rawValue = min + ((max - min) * percentage)
+        
+        local factor = 10 ^ decimalPlaces
+        local value = math.round(rawValue * factor) / factor
+        value = math.clamp(value, min, max)
+        
+        local visualPercent = (value - min) / (max - min)
+        trackFill.Size = UDim2.new(visualPercent, 0, 1, 0)
+        knob.Position = UDim2.new(visualPercent, -6, 0.5, -6)
+        valueLabel.Text = tostring(value)
+        
+        cb(value)
+    end
+
+    -- Setup initial position
+    local initialPercent = math.clamp((currentVal - min) / (max - min), 0, 1)
+    trackFill.Size = UDim2.new(initialPercent, 0, 1, 0)
+    knob.Position = UDim2.new(initialPercent, -6, 0.5, -6)
+
+    trigger.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = true
+            update(input)
+        end
+    end)
+
+    local inputChangedConn = UserInputService.InputChanged:Connect(function(input)
+        if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input)
+        end
+    end)
+
+    local inputEndedConn = UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            isDragging = false
+        end
+    end)
+
+    sliderFrame.Destroying:Connect(function()
+        if inputChangedConn then inputChangedConn:Disconnect() end
+        if inputEndedConn then inputEndedConn:Disconnect() end
+    end)
+
+    task.defer(function() cb(currentVal) end)
+    return sliderFrame
 end
 
 function elements:Keybind(str, parent, def, cb)

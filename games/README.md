@@ -112,3 +112,19 @@ Creates a dynamic dropdown selection menu. When clicked, it expands its frame ve
       print("Selected trigger mode: " .. tostring(selectedOption))
   end)
   ```
+
+### 7. `elements:Slider(str, parent, min, max, def, decimals, cb)`
+Creates an interactive horizontal dragging slider element.
+* **Parameters:**
+  * `str` (`string`): The text display on the left side of the slider card.
+  * `parent` (`Instance`): The container frame (typically `parent`).
+  * `min` (`number`): The minimum allowed value.
+  * `max` (`number`): The maximum allowed value.
+  * `def` (`number`): The default starting value.
+  * `decimals` (`number`): Number of decimal places to process (e.g., `0` for whole integer values, `1` or `2` for floating-point values).
+  * `cb` (`function`): Callback executed when modified, returning the current calculated slider number `function(value)`.
+* **Example:**
+  ```lua
+  elements:Slider("Gravity", parent, 0, 196.2, 196.2, 1, function(val)
+      workspace.Gravity = val
+  end)
