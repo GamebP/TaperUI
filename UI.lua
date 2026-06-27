@@ -19,7 +19,8 @@ if not isfile("TaperUI/Config.json") then
     writefile("TaperUI/Config.json", HttpService:JSONEncode({
         settings = {
             auto_rejoin_on_kick = false,
-            disable_3d_rendering = false
+            disable_3d_rendering = false,
+            toggle_keybind = "K"
         }
     }))
 end
@@ -64,10 +65,10 @@ local function getAsset(path)
 end
 
 local assetPaths = {
-    -- Images
+    -- Images path
     logo_transparent = "images/logo-transparent.png",
     logo_img = "images/logo.png",
-    -- Icons
+    -- Icons path
     home = "images/icons/home.png",
     game = "images/icons/game.png",
     collapse = "images/icons/collapse-arrow.png",
@@ -152,29 +153,19 @@ local convertToScrolling = creator.convertToScrolling
 local gameList = data.gameList
 local creditsList = data.creditsList
 
+local configSettings = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
+if not configSettings.settings.toggle_keybind then
+    configSettings.settings.toggle_keybind = "K"
+    writefile("TaperUI/Config.json", HttpService:JSONEncode(configSettings))
+end
+local activeKeybind = configSettings.settings.toggle_keybind or "K"
+
 local screenGui = create("ScreenGui", {
     Name = "TaperUI",
     ResetOnSpawn = false,
     ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 })
 screenGui.Parent = hui and hui() or CoreGui
-
-local ToggleButton = create("TextButton", {
-    Name = "ToggleButton",
-    Size = UDim2.new(0, 50, 0, 50),
-    Position = UDim2.new(0, 20, 0.5, -25),
-    BackgroundColor3 = Color3.fromRGB(24, 24, 28),
-    Text = "🚨",
-    TextColor3 = Color3.fromRGB(255, 255, 255),
-    TextSize = 22,
-    Font = Enum.Font.GothamBold,
-    Visible = false,
-    AutoButtonColor = true
-}, {
-    create("UICorner", { CornerRadius = UDim.new(0, 12) }),
-    create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1.5 })
-})
-ToggleButton.Parent = screenGui
 
 local MainFrame = create("Frame", {
     Name = "MainFrame",
@@ -231,26 +222,6 @@ local Sidebar = create("Frame", {
 })
 Sidebar.Parent = MainFrame
 
-local LogoImage = Sidebar:FindFirstChild("LogoImage")
-if LogoImage then
-    task.delay(1.2, function()
-        local fadeOutTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            ImageTransparency = 1
-        })
-        
-        fadeOutTween.Completed:Connect(function()
-            LogoImage.Image = TaperAssets.logo_transparent
-
-            local fadeInTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                ImageTransparency = 0
-            })
-            fadeInTween:Play()
-        end)
-        
-        fadeOutTween:Play()
-    end)
-end
-
 local TabButtonContainer = create("Frame", {
     Name = "TabButtonContainer",
     Size = UDim2.new(1, -16, 1, -60),
@@ -281,14 +252,11 @@ local Topbar = create("Frame", {
 }, {
     create("ImageButton", {
         Name = "hidebtn",
-        Size = UDim2.new(0, 30, 0, 30),
-        Position = UDim2.new(1, -40, 0.5, -15),
-        BackgroundColor3 = Color3.fromRGB(24, 24, 28),
+        Size = UDim2.new(0, 20, 0, 20),
+        Position = UDim2.new(1, -30, 0.5, -10),
+        BackgroundTransparency = 1,
         Image = TaperAssets.close,
         ImageColor3 = Color3.fromRGB(180, 180, 185)
-    }, {
-        create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-        create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 })
     })
 })
 Topbar.Parent = ContentArea
@@ -467,14 +435,71 @@ for _, sect in pairs(Sections) do
     end)
 end
 
+local isAnimating = false
+local function toggleUI()
+    if isAnimating then return end
+    isAnimating = true
+
+    local mainStroke = MainFrame:FindFirstChild("MainStroke")
+
+    if MainFrame.Visible then
+        local shrinkMain = TweenService:Create(MainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 390, 0, 90),
+            BackgroundTransparency = 1
+        })
+        
+        if mainStroke then
+            TweenService:Create(mainStroke, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+                Transparency = 1
+            }):Play()
+        end
+        
+        shrinkMain.Completed:Connect(function()
+            MainFrame.Visible = false
+            isAnimating = false
+        end)
+        
+        shrinkMain:Play()
+    else
+        MainFrame.Size = UDim2.new(0, 420, 0, 100)
+        MainFrame.BackgroundTransparency = 1
+        if mainStroke then mainStroke.Transparency = 1 end
+        
+        MainFrame.Visible = true
+        
+        local expandMain = TweenService:Create(MainFrame, TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 620, 0, 420),
+            BackgroundTransparency = 0
+        })
+        
+        if mainStroke then
+            TweenService:Create(mainStroke, TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+                Transparency = 0
+            }):Play()
+        end
+        
+        expandMain.Completed:Connect(function()
+            isAnimating = false
+        end)
+        
+        expandMain:Play()
+    end
+end
+
 HideButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = false
-    ToggleButton.Visible = true
+    if MainFrame.Visible then
+        toggleUI()
+    end
 end)
 
-ToggleButton.MouseButton1Click:Connect(function()
-    MainFrame.Visible = true
-    ToggleButton.Visible = false
+local keybindConnection
+keybindConnection = UserInputService.InputBegan:Connect(function(input, processed)
+    if processed then return end
+    if input.UserInputType == Enum.UserInputType.Keyboard then
+        if input.KeyCode.Name == activeKeybind then
+            toggleUI()
+        end
+    end
 end)
 
 local function replaceRedacted()
@@ -554,6 +579,13 @@ elements:Toggle("Auto Rejoin (when kicked)", Sections.Settings.Content, dec1.set
     dec.settings.auto_rejoin_on_kick = v
     writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
     getgenv().autorejoin = v
+end)
+
+elements:Keybind("Toggle UI Keybind", Sections.Settings.Content, activeKeybind, function(newKey)
+    activeKeybind = newKey
+    local dec = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
+    dec.settings.toggle_keybind = newKey
+    writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
 end)
 
 local LoadingFrame = create("Frame", {
@@ -672,6 +704,9 @@ playIntro()
 elements:Button("Uninject UI", Sections.Settings.Content, function()
     if errorConnection then
         errorConnection:Disconnect()
+    end
+    if keybindConnection then
+        keybindConnection:Disconnect()
     end
 
     pcall(function()

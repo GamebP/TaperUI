@@ -15,6 +15,7 @@ local creator = taperImport("helper/creator")
 -- Retrieve services directly
 local TweenService = game:GetService("TweenService")
 local ExperienceService = game:GetService("ExperienceService")
+local UserInputService = game:GetService("UserInputService")
 local create = creator.create
 local TaperAssets = getgenv().TaperAssets or {} -- Get pre-loaded global assets
 
@@ -189,6 +190,83 @@ function elements:Textbox(str, parent, def, cb)
     end)
 
     return newTb
+end
+
+function elements:Keybind(str, parent, def, cb)
+    local currentKey = def or "K"
+    local checkingForKey = false
+
+    local kbFrame = create("TextButton", {
+        Size = UDim2.new(0.98, 0, 0, 42),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        AutoButtonColor = false,
+        Text = "",
+        Parent = parent
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
+        create("TextLabel", {
+            Name = "TextLabel",
+            Size = UDim2.new(0.6, 0, 1, 0),
+            Position = UDim2.new(0, 12, 0, 0),
+            BackgroundTransparency = 1,
+            Text = str,
+            TextColor3 = Color3.fromRGB(210, 210, 215),
+            TextSize = 13,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left
+        }),
+        create("Frame", {
+            Name = "keybg",
+            Size = UDim2.new(0, 45, 0, 24),
+            Position = UDim2.new(1, -57, 0.5, -12),
+            BackgroundColor3 = Color3.fromRGB(28, 28, 32)
+        }, {
+            create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+            create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 }),
+            create("TextLabel", {
+                Name = "KeyLabel",
+                Size = UDim2.new(1, 0, 1, 0),
+                BackgroundTransparency = 1,
+                Text = currentKey,
+                TextColor3 = Color3.fromRGB(240, 240, 245),
+                TextSize = 12,
+                Font = Enum.Font.GothamBold,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center
+            })
+        })
+    })
+
+    local keyLabel = kbFrame.keybg.KeyLabel
+
+    kbFrame.MouseButton1Click:Connect(function()
+        checkingForKey = true
+        keyLabel.Text = "..."
+        keyLabel.TextColor3 = Color3.fromRGB(220, 180, 50)
+    end)
+
+    local inputConnection
+    inputConnection = UserInputService.InputBegan:Connect(function(input)
+        if checkingForKey then
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                local keyPressed = input.KeyCode.Name
+                if keyPressed ~= "Escape" then
+                    checkingForKey = false
+                    currentKey = keyPressed
+                    keyLabel.Text = currentKey
+                    keyLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+                    cb(currentKey)
+                end
+            end
+        end
+    end)
+
+    kbFrame.Destroying:Connect(function()
+        if inputConnection then inputConnection:Disconnect() end
+    end)
+
+    return kbFrame
 end
 
 function elements:Unsupported(parent, cb)
