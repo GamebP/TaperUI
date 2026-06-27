@@ -71,6 +71,7 @@ local assetPaths = {
     -- Icons path
     home = "images/icons/home.png",
     game = "images/icons/game.png",
+    list = "images/icons/list.png",
     collapse = "images/icons/collapse-arrow.png",
     expand = "images/icons/expand-arrow.png",
     search = "images/icons/magnifying-glass.png",
@@ -190,7 +191,7 @@ local function showToast(title, message, duration)
     
     local Toast = create("Frame", {
         Name = "Toast",
-        Size = UDim2.new(0, 0, 0, 60), -- Starts collapsed for sliding width tween
+        Size = UDim2.new(0, 0, 0, 60),
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -455,8 +456,8 @@ end
 
 local Tabs = {
     HomeTab = createTabBtn("Home", TaperAssets.home, 1),
-    GameTab = createTabBtn("Game", TaperAssets.collapse, 2),
-    GameslistTab = createTabBtn("Games List", TaperAssets.game, 3),
+    GameTab = createTabBtn("Game", TaperAssets.game, 2),
+    GameslistTab = createTabBtn("Games List", TaperAssets.list, 3),
     SettingsTab = createTabBtn("Settings", TaperAssets.settings, 4),
     CreditsTab = createTabBtn("Credits", TaperAssets.user, 5)
 }
@@ -669,7 +670,7 @@ local LoadingFrame = create("Frame", {
     Visible = true,
     Parent = MainFrame
 }, {
-    create("UIListLayout", { -- Perfectly centers intro text on both X and Y axes [5]
+    create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 4),
         HorizontalAlignment = Enum.HorizontalAlignment.Center,
@@ -701,7 +702,7 @@ local LoadingFrame = create("Frame", {
         Name = "Version",
         Size = UDim2.new(1, 0, 0, 14),
         BackgroundTransparency = 1,
-        Text = "v1.0",
+        Text = "" .. tostring(dec1.version),
         TextColor3 = Color3.fromRGB(120, 120, 125),
         TextSize = 11,
         Font = Enum.Font.GothamMedium,
