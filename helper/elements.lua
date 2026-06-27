@@ -441,12 +441,6 @@ function elements:Keybind(str, parent, def, cb)
                     keyLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
                 end
             end
-        else
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                if input.KeyCode.Name == currentKey then
-                    task.spawn(cb)
-                end
-            end
         end
     end)
 
