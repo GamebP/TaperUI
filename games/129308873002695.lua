@@ -73,7 +73,15 @@ return function(parent, config)
     elements:Label("⌨️ Hotkey Binds", parent)
 
     -- Custom Keybind Card
-    elements:Keybind("Teleport Home Hotkey", parent, "H", function(keyName)
-        print("Selected hotkey changed to: " .. tostring(keyName))
+    local showToast = getgenv().showToast or function() end
+    elements:Keybind("Teleport Home Hotkey", parent, "H", function()
+        local character = LocalPlayer.Character
+        if character and character:FindFirstChild("HumanoidRootPart") then
+            -- Teleports the player to coordinates (adjust if needed) [1]
+            character.HumanoidRootPart.CFrame = CFrame.new(0, 100, 0) 
+            showToast("Teleported", "Teleported back Home!", 1.5)
+        else
+            showToast("Error", "Character model is not loaded.", 2)
+        end
     end)
 end

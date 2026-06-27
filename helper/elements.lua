@@ -282,7 +282,9 @@ function elements:Keybind(str, parent, def, cb)
     end)
 
     local inputConnection
-    inputConnection = UserInputService.InputBegan:Connect(function(input)
+    inputConnection = UserInputService.InputBegan:Connect(function(input, processed)
+        if processed then return end
+        
         if checkingForKey then
             if input.UserInputType == Enum.UserInputType.Keyboard then
                 local keyPressed = input.KeyCode.Name
@@ -291,7 +293,12 @@ function elements:Keybind(str, parent, def, cb)
                     currentKey = keyPressed
                     keyLabel.Text = currentKey
                     keyLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
-                    cb(currentKey)
+                end
+            end
+        else
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode.Name == currentKey then
+                    task.spawn(cb)
                 end
             end
         end

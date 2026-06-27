@@ -260,6 +260,7 @@ local function showToast(title, message, duration)
         end)
     end)
 end
+getgenv().showToast = showToast
 
 local MainFrame = create("Frame", {
     Name = "MainFrame",
