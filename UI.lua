@@ -256,6 +256,11 @@ local TabButtonContainer = create("Frame", {
     Size = UDim2.new(1, -16, 1, -60),
     Position = UDim2.new(0, 8, 0, 55),
     BackgroundTransparency = 1
+}, {
+    create("UIListLayout", {
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 6)
+    })
 })
 TabButtonContainer.Parent = Sidebar
 
