@@ -434,6 +434,11 @@ function elements:Keybind(str, parent, def, cb)
                     currentKey = keyPressed
                     keyLabel.Text = currentKey
                     keyLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
+                    task.spawn(function() cb(currentKey) end)
+                else
+                    checkingForKey = false
+                    keyLabel.Text = currentKey
+                    keyLabel.TextColor3 = Color3.fromRGB(240, 240, 245)
                 end
             end
         else
