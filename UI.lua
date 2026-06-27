@@ -600,11 +600,33 @@ else
     gameModule(gameTargetContent, HttpService:JSONDecode(readfile("TaperUI/Config.json")))
 end
 
-elements:Searchbar(Sections.GamesList.Content, gameList)
+local activeGames = {}
 for _, g in ipairs(gameList) do
-    elements:addGame(Sections.GamesList.Content, g.game, g.status, function()
-        ExperienceService:LaunchExperience({placeId = g.id})
-    end)
+    if g.isActiveInUI == true then
+        table.insert(activeGames, g)
+    end
+end
+
+elements:Searchbar(Sections.GamesList.Content, activeGames)
+if #activeGames == 0 then
+    create("TextLabel", {
+        Name = "NoGamesLabel",
+        Size = UDim2.new(0.98, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Text = "No available games found.",
+        TextColor3 = Color3.fromRGB(130, 130, 135),
+        TextSize = 13,
+        Font = Enum.Font.GothamMedium,
+        TextXAlignment = Enum.TextXAlignment.Center,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        Parent = Sections.GamesList.Content
+    })
+else
+    for _, g in ipairs(activeGames) do
+        elements:addGame(Sections.GamesList.Content, g.gameName, g.gameStatus, function()
+            ExperienceService:LaunchExperience({placeId = g.gameID})
+        end)
+    end
 end
 
 for sect, c in pairs(creditsList) do

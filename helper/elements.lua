@@ -421,17 +421,36 @@ function elements:Searchbar(parent, gameList)
 
     searchBar.searchbar.Inp:GetPropertyChangedSignal("Text"):Connect(function()
         for _, child in ipairs(parent:GetChildren()) do
-            if child.Name == "GameElement" then
+            if child.Name == "GameElement" or child.Name == "NoGamesLabel" then
                 child:Destroy()
             end
         end
+        
         local searchText = searchBar.searchbar.Inp.Text:lower()
+        local matchCount = 0
+        
         for _, g in ipairs(gameList) do
-            if g.game:lower():find(searchText) then
-                elements:addGame(parent, g.game, g.status, function()
-                    ExperienceService:LaunchExperience({placeId = g.id})
+            if g.gameName:lower():find(searchText) then
+                matchCount = matchCount + 1
+                elements:addGame(parent, g.gameName, g.gameStatus, function()
+                    ExperienceService:LaunchExperience({placeId = g.gameID})
                 end)
             end
+        end
+        
+        if matchCount == 0 then
+            create("TextLabel", {
+                Name = "NoGamesLabel",
+                Size = UDim2.new(0.98, 0, 0, 40),
+                BackgroundTransparency = 1,
+                Text = "No games matched your search.",
+                TextColor3 = Color3.fromRGB(130, 130, 135),
+                TextSize = 13,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Center,
+                TextYAlignment = Enum.TextYAlignment.Center,
+                Parent = parent
+            })
         end
     end)
 
