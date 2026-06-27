@@ -159,7 +159,7 @@ if not configSettings.settings.toggle_keybind then
     configSettings.settings.toggle_keybind = "K"
     writefile("TaperUI/Config.json", HttpService:JSONEncode(configSettings))
 end
-local activeKeybind = configSettings.settings.toggle_keybind or "K"
+local activeKeybind = "K"
 
 local screenGui = create("ScreenGui", {
     Name = "TaperUI",
@@ -657,9 +657,6 @@ end)
 
 elements:Keybind("Toggle UI Keybind", Sections.Settings.Content, activeKeybind, function(newKey)
     activeKeybind = newKey
-    local dec = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
-    dec.settings.toggle_keybind = newKey
-    writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
     showToast("Keybind Updated", "New open/close key: [" .. newKey .. "]", 2.5)
 end)
 
@@ -702,7 +699,7 @@ local LoadingFrame = create("Frame", {
         Name = "Version",
         Size = UDim2.new(1, 0, 0, 14),
         BackgroundTransparency = 1,
-        Text = "" .. tostring(dec1.version),
+        Text = "" .. tostring(data.version),
         TextColor3 = Color3.fromRGB(120, 120, 125),
         TextSize = 11,
         Font = Enum.Font.GothamMedium,
