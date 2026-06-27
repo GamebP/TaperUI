@@ -1,7 +1,6 @@
 -- UI.lua
 if not game:IsLoaded() then game.Loaded:Wait() end
 
--- Retrieve all services directly inside the entrypoint
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
@@ -15,7 +14,6 @@ local ExperienceService = game:GetService("ExperienceService")
 local hui = gethui or get_hidden_gui
 local getexec = identifyexecutor or function() return "Unknown Executor" end
 
--- Environment and directory initialization
 if not isfolder("TaperUI") then makefolder("TaperUI") end
 if not isfile("TaperUI/Config.json") then
     writefile("TaperUI/Config.json", HttpService:JSONEncode({
@@ -28,7 +26,6 @@ end
 
 local env = getgenv()
 
--- Updated Git pathing to point directly to your repository structure
 function env.getgitpath(where)
     local mainBuild = "https://raw.githubusercontent.com/GamebP/TaperUI/main/"
     if where == "src" then
@@ -38,11 +35,9 @@ function env.getgitpath(where)
     end
 end
 
--- Asset fetching logic (checks local filesystem, falls back to raw Git download)
 local function getAsset(path)
     local localPath = "TaperUI/" .. path
     if not isfile(localPath) then
-        -- Recursively establish the directories if they are missing
         local dirParts = string.split(localPath, "/")
         local currentDir = ""
         for i = 1, #dirParts - 1 do
@@ -52,7 +47,6 @@ local function getAsset(path)
             end
         end
 
-        -- Download from GitHub
         local gitUrl = env.getgitpath("src") .. path
         local ok, content = pcall(game.HttpGet, game, gitUrl)
         if ok and content and #content > 0 and content ~= "404: Not Found" then
@@ -69,12 +63,11 @@ local function getAsset(path)
     return ""
 end
 
--- Organized centralized manifest array list of custom image assets
 local assetPaths = {
-    -- Images path
+    -- Images
     logo_transparent = "images/logo-transparent.png",
     logo_img = "images/logo.png",
-    -- Icons path
+    -- Icons
     home = "images/icons/home.png",
     game = "images/icons/game.png",
     collapse = "images/icons/collapse-arrow.png",
@@ -89,7 +82,6 @@ local assetPaths = {
     info = "images/icons/info.png"
 }
 
--- Pre-load and cache all image assets upfront into a globally shared manifest table
 getgenv().TaperAssets = {}
 for key, path in pairs(assetPaths) do
     TaperAssets[key] = getAsset(path)
@@ -104,7 +96,6 @@ end
 
 env.autorejoin = false
 
--- Assigned to a variable so we can safely disconnect this connection upon uninjecting
 local errorConnection
 errorConnection = GuiService.ErrorMessageChanged:Connect(function()
     if env.autorejoin then
@@ -113,7 +104,6 @@ errorConnection = GuiService.ErrorMessageChanged:Connect(function()
 end)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
--- Local/Remote module loader helper (Fallback to GitHub raw)
 local function import(path)
     local localPath = "TaperUI/" .. path .. ".lua"
     local isFolderSupported = typeof(isfolder) == "function"
@@ -133,7 +123,6 @@ local function import(path)
 end
 getgenv().taperImport = import
 
--- Local/Remote JSON loader helper (Fallback to GitHub raw)
 local function importJson(path)
     local localPath = "TaperUI/" .. path .. ".json"
     local isFolderSupported = typeof(isfolder) == "function"
@@ -152,12 +141,10 @@ local function importJson(path)
     end
 end
 
--- Import project scripts
 local creator = import("helper/creator")
 local elements = import("helper/elements")
-local data = importJson("helper/data") -- Seamlessly loads your custom helper/data.json file
+local data = importJson("helper/data")
 
--- Pull tools from creator module
 local create = creator.create
 local dragify = creator.dragify
 local convertToScrolling = creator.convertToScrolling
@@ -165,7 +152,6 @@ local convertToScrolling = creator.convertToScrolling
 local gameList = data.gameList
 local creditsList = data.creditsList
 
--- ---------- Main UI Construction ----------
 local screenGui = create("ScreenGui", {
     Name = "TaperUI",
     ResetOnSpawn = false,
@@ -173,7 +159,6 @@ local screenGui = create("ScreenGui", {
 })
 screenGui.Parent = hui and hui() or CoreGui
 
--- Float Toggle Button
 local ToggleButton = create("TextButton", {
     Name = "ToggleButton",
     Size = UDim2.new(0, 50, 0, 50),
@@ -191,33 +176,31 @@ local ToggleButton = create("TextButton", {
 })
 ToggleButton.Parent = screenGui
 
--- Main Panel container
 local MainFrame = create("Frame", {
     Name = "MainFrame",
-    Size = UDim2.new(0, 620, 0, 420),
+    Size = UDim2.new(0, 420, 0, 100),
     AnchorPoint = Vector2.new(0.5, 0.5),
     Position = UDim2.new(0.5, 0, 0.5, 0),
     BackgroundColor3 = Color3.fromRGB(15, 15, 17),
+    BackgroundTransparency = 1,
     BorderSizePixel = 0,
-    ClipsDescendants = true, -- Prevents intro contents from clipping outside rounded corners
-    Visible = true -- Starts visible because the loading screen is self-contained inside it
+    ClipsDescendants = true,
+    Visible = true
 }, {
     create("UICorner", { CornerRadius = UDim.new(0, 12) }),
-    create("UIStroke", { Color = Color3.fromRGB(38, 38, 43), Thickness = 1.5 }),
-    create("UIScale", { Name = "MenuScale", Scale = 0.8 }) -- Handles panel entrance
+    create("UIStroke", { Name = "MainStroke", Color = Color3.fromRGB(38, 38, 43), Thickness = 1.5, Transparency = 1 })
 })
 MainFrame.Parent = screenGui
 
--- Hook smooth dragging
 dragify(MainFrame)
 
--- Sidebar layout
 local Sidebar = create("Frame", {
     Name = "Sidebar",
     Size = UDim2.new(0, 170, 1, 0),
     Position = UDim2.new(0, 0, 0, 0),
     BackgroundColor3 = Color3.fromRGB(18, 18, 22),
-    BorderSizePixel = 0
+    BorderSizePixel = 0,
+    Visible = false
 }, {
     create("UICorner", { CornerRadius = UDim.new(0, 12) }),
     create("Frame", {
@@ -232,7 +215,7 @@ local Sidebar = create("Frame", {
         BackgroundColor3 = Color3.fromRGB(32, 32, 36),
         BorderSizePixel = 0
     }),
-    create("TextLabel", { -- Added clean static text title here
+    create("TextLabel", {
         Name = "SidebarTitle",
         Size = UDim2.new(1, -20, 0, 40),
         Position = UDim2.new(0, 20, 0, 10),
@@ -243,25 +226,21 @@ local Sidebar = create("Frame", {
         Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Center,
-        TextTransparency = 1 -- Starts hidden, fades in with the main UI
+        TextTransparency = 1
     })
 })
 Sidebar.Parent = MainFrame
 
--- Transition logic
 local LogoImage = Sidebar:FindFirstChild("LogoImage")
 if LogoImage then
     task.delay(1.2, function()
-        -- 1. Fade out
         local fadeOutTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             ImageTransparency = 1
         })
         
         fadeOutTween.Completed:Connect(function()
-            -- 2. Swap to the normal logo for the menu
             LogoImage.Image = TaperAssets.logo_transparent
-            
-            -- 3. Fade in
+
             local fadeInTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 ImageTransparency = 0
             })
@@ -277,11 +256,6 @@ local TabButtonContainer = create("Frame", {
     Size = UDim2.new(1, -16, 1, -60),
     Position = UDim2.new(0, 8, 0, 55),
     BackgroundTransparency = 1
-}, {
-    create("UIListLayout", {
-        SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 6)
-    })
 })
 TabButtonContainer.Parent = Sidebar
 
@@ -289,7 +263,8 @@ local ContentArea = create("Frame", {
     Name = "ContentArea",
     Size = UDim2.new(1, -170, 1, 0),
     Position = UDim2.new(0, 170, 0, 0),
-    BackgroundTransparency = 1
+    BackgroundTransparency = 1,
+    Visible = false
 })
 ContentArea.Parent = MainFrame
 
@@ -299,7 +274,7 @@ local Topbar = create("Frame", {
     Position = UDim2.new(0, 0, 0, 0),
     BackgroundTransparency = 1
 }, {
-    create("ImageButton", { -- Close Panel Button using close.png from TaperAssets
+    create("ImageButton", {
         Name = "hidebtn",
         Size = UDim2.new(0, 30, 0, 30),
         Position = UDim2.new(1, -40, 0.5, -15),
@@ -323,7 +298,6 @@ local SectionContainers = create("Frame", {
 })
 SectionContainers.Parent = ContentArea
 
--- ---------- Setting Section Frames ----------
 local function createSectionFrame(name, visible)
     return create("Frame", {
         Name = name,
@@ -381,7 +355,6 @@ local homeContainer = create("Frame", {
 })
 homeContainer.Parent = homeFrame
 
--- Sidebar Buttons builder using pre-cached Image icons
 local function createTabBtn(text, iconAsset, layoutOrder)
     return create("TextButton", {
         Size = UDim2.new(1, 0, 0, 36),
@@ -397,7 +370,7 @@ local function createTabBtn(text, iconAsset, layoutOrder)
             Size = UDim2.new(0, 16, 0, 16),
             Position = UDim2.new(0, 12, 0.5, -8),
             BackgroundTransparency = 1,
-            Image = iconAsset, -- Use pre-loaded asset content ID directly
+            Image = iconAsset,
             ImageColor3 = layoutOrder == 1 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185)
         }),
         create("TextLabel", {
@@ -456,7 +429,6 @@ local Sections = {
 
 local CurSection = Sections.Home
 
--- Tab Button Hover & Click animation logic (tweens LabelText and Icon colors)
 for _, sect in pairs(Sections) do
     sect.TabBtn.MouseEnter:Connect(function()
         if CurSection ~= sect then
@@ -490,7 +462,6 @@ for _, sect in pairs(Sections) do
     end)
 end
 
--- Close / Open panel toggles
 HideButton.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
     ToggleButton.Visible = true
@@ -501,7 +472,6 @@ ToggleButton.MouseButton1Click:Connect(function()
     ToggleButton.Visible = false
 end)
 
--- Initialize dynamic placeholder values on Home
 local function replaceRedacted()
     local c = Sections.Home.Content
     c.execLabel.Text = "Executor: " .. getexec()
@@ -509,7 +479,6 @@ local function replaceRedacted()
 end
 replaceRedacted()
 
--- Load game modules dynamically from Github repo or Local files
 local ok, gamePath = pcall(function()
     return game:HttpGet(env.getgitpath("games") .. tostring(game.PlaceId) .. ".lua")
 end)
@@ -550,7 +519,6 @@ else
     gameModule(gameTargetContent, HttpService:JSONDecode(readfile("TaperUI/Config.json")))
 end
 
--- Render the games menu list
 elements:Searchbar(Sections.GamesList.Content, gameList)
 for _, g in ipairs(gameList) do
     elements:addGame(Sections.GamesList.Content, g.game, g.status, function()
@@ -558,7 +526,6 @@ for _, g in ipairs(gameList) do
     end)
 end
 
--- Render the UI contribution list
 for sect, c in pairs(creditsList) do
     if #c > 0 then
         elements:CredHead(Sections.Credits.Content, sect)
@@ -568,7 +535,6 @@ for sect, c in pairs(creditsList) do
     end
 end
 
--- Render settings parameters
 local dec1 = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
 
 elements:Toggle("Disable 3D Rendering", Sections.Settings.Content, dec1.settings.disable_3d_rendering, function(v)
@@ -585,126 +551,133 @@ elements:Toggle("Auto Rejoin (when kicked)", Sections.Settings.Content, dec1.set
     getgenv().autorejoin = v
 end)
 
--- ---------- Intro Loading Sequence ----------
-local function playIntro()
-    -- 1. Create Loading Overlay inside the MainFrame container boundaries
-    local Overlay = create("Frame", {
-        Name = "IntroOverlay",
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(15, 15, 17), -- Matches menu background
-        BorderSizePixel = 0,
-        ZIndex = 99999, -- Ensures it covers menu content
-        Parent = MainFrame
-    }, {
-        create("UICorner", { CornerRadius = UDim.new(0, 12) }) -- Matches menu corner radius
-    })
-
-    -- Centered logo inside UI window
-    local IntroLogo = create("ImageLabel", {
-        Name = "IntroLogo",
-        Size = UDim2.new(0, 0, 0, 0), -- Starts collapsed
-        Position = UDim2.new(0.5, 0, 0.5, -20),
-        AnchorPoint = Vector2.new(0.5, 0.5),
+local LoadingFrame = create("Frame", {
+    Name = "LoadingFrame",
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1,
+    Visible = true,
+    Parent = MainFrame
+}, {
+    create("TextLabel", {
+        Name = "Title",
+        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.new(0, 0, 0.5, -25),
         BackgroundTransparency = 1,
-        Image = TaperAssets.logo_img,
-        ImageTransparency = 1,
-        ScaleType = Enum.ScaleType.Fit,
-        ZIndex = 100000,
-        Parent = Overlay
-    })
-
-    -- Loading subtext label
-    local LoadingText = create("TextLabel", {
-        Name = "LoadingText",
-        Size = UDim2.new(0, 200, 0, 30),
-        Position = UDim2.new(0.5, 0, 0.5, 40),
-        AnchorPoint = Vector2.new(0.5, 0.5),
+        Text = "Taper Interface Suite",
+        TextColor3 = Color3.fromRGB(240, 240, 245),
+        TextSize = 18,
+        Font = Enum.Font.GothamBold,
+        TextTransparency = 1
+    }),
+    create("TextLabel", {
+        Name = "Subtitle",
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0.5, 5),
         BackgroundTransparency = 1,
-        Text = "Loading TaperUI...",
+        Text = "by SkyDash",
         TextColor3 = Color3.fromRGB(160, 160, 165),
         TextSize = 13,
-        Font = Enum.Font.GothamBold,
-        TextTransparency = 1,
-        ZIndex = 100000,
-        Parent = Overlay
+        Font = Enum.Font.GothamMedium,
+        TextTransparency = 1
+    }),
+    create("TextLabel", {
+        Name = "Version",
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0.5, 25),
+        BackgroundTransparency = 1,
+        Text = "v1.0",
+        TextColor3 = Color3.fromRGB(120, 120, 125),
+        TextSize = 11,
+        Font = Enum.Font.GothamMedium,
+        TextTransparency = 1
     })
+})
 
-    -- 2. First bounce open the empty main panel
-    local menuScale = MainFrame:FindFirstChild("MenuScale")
-    if menuScale then
-        menuScale.Scale = 0.8
-        TweenService:Create(menuScale, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-            Scale = 1
+local function playIntro()
+    local mainStroke = MainFrame:FindFirstChild("MainStroke")
+
+    task.wait(0.5)
+
+    TweenService:Create(MainFrame, TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        BackgroundTransparency = 0
+    }):Play()
+
+    if mainStroke then
+        TweenService:Create(mainStroke, TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+            Transparency = 0
         }):Play()
     end
 
-    -- 3. Then pop the logo and text in inside the container
-    TweenService:Create(IntroLogo, TweenInfo.new(0.85, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 180, 0, 55),
-        ImageTransparency = 0
-    }):Play()
-
-    TweenService:Create(LoadingText, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+    task.wait(0.1)
+    TweenService:Create(LoadingFrame.Title, TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
         TextTransparency = 0
     }):Play()
 
-    task.wait(1.8) -- Keeps the loading state visible briefly
-
-    -- 4. Fade out the elements and overlay inside the panel
-    TweenService:Create(IntroLogo, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        Size = UDim2.new(0, 140, 0, 40),
-        ImageTransparency = 1
+    task.wait(0.05)
+    TweenService:Create(LoadingFrame.Subtitle, TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        TextTransparency = 0
     }):Play()
 
-    TweenService:Create(LoadingText, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+    task.wait(0.05)
+    TweenService:Create(LoadingFrame.Version, TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        TextTransparency = 0
+    }):Play()
+
+    task.wait(1.1)
+
+    TweenService:Create(MainFrame, TweenInfo.new(0.7, Enum.EasingStyle.Exponential, Enum.EasingDirection.InOut), {
+        Size = UDim2.new(0, 390, 0, 90)
+    }):Play()
+
+    task.wait(0.3)
+    TweenService:Create(LoadingFrame.Title, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
+        TextTransparency = 1
+    }):Play()
+    TweenService:Create(LoadingFrame.Subtitle, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
+        TextTransparency = 1
+    }):Play()
+    TweenService:Create(LoadingFrame.Version, TweenInfo.new(0.2, Enum.EasingStyle.Exponential), {
         TextTransparency = 1
     }):Play()
 
-    local fadeOverlay = TweenService:Create(Overlay, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-        BackgroundTransparency = 1
-    })
-    fadeOverlay:Play()
+    task.wait(0.1)
 
-    -- Smoothly fade in the static sidebar title text
-    task.delay(0.1, function()
+    LoadingFrame:Destroy()
+    
+    local expandTween = TweenService:Create(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 620, 0, 420)
+    })
+    expandTween:Play()
+
+    expandTween.Completed:Connect(function()
+        Sidebar.Visible = true
+        ContentArea.Visible = true
+
         local SidebarTitle = Sidebar:FindFirstChild("SidebarTitle")
         if SidebarTitle then
-            TweenService:Create(SidebarTitle, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TweenService:Create(SidebarTitle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 TextTransparency = 0
             }):Play()
         end
     end)
-
-    -- Cleanup internal loading assets only
-    fadeOverlay.Completed:Connect(function()
-        Overlay:Destroy()
-    end)
 end
 
--- Run menu intro sequence
 playIntro()
 
--- Adds the Uninject UI option directly inside the Settings category
 elements:Button("Uninject UI", Sections.Settings.Content, function()
-    -- Disconnect standard kick/auto-rejoin hook to prevent background teleports
     if errorConnection then
         errorConnection:Disconnect()
     end
 
-    -- Safely restore standard 3D rendering view in case it was toggled off
     pcall(function()
         RunService:Set3dRenderingEnabled(true)
     end)
 
-    -- Fully remove the ScreenGui and floating ToggleButton
     if screenGui then
         screenGui:Destroy()
     end
 
-    -- Wipe active global references from the executor's memory space
     getgenv().TaperAssets = nil
     getgenv().taperImport = nil
     getgenv().autorejoin = nil
 end)
-
--- END
