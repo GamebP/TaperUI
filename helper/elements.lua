@@ -271,7 +271,7 @@ end
 function elements:Unsupported(parent, cb)
     local frame = create("Frame", {
         Size = UDim2.new(0.9, 0, 0, 115),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Position = UDim2.new(0.5, 0, 0.5, -25),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(24, 24, 28),
         Parent = parent
