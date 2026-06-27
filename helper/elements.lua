@@ -5,6 +5,7 @@ local creator = loadstring(readfile("TaperUI/helper/creator.lua"))()
 local TweenService = game:GetService("TweenService")
 local ExperienceService = game:GetService("ExperienceService")
 local create = creator.create
+local TaperAssets = getgenv().TaperAssets or {} -- Get pre-loaded global assets
 
 local elements = {}
 
@@ -305,9 +306,18 @@ function elements:Searchbar(parent, gameList)
             Position = UDim2.new(0, 12, 0.5, -14),
             BackgroundTransparency = 1
         }, {
+            create("ImageLabel", {
+                Name = "SearchIcon",
+                Size = UDim2.new(0, 14, 0, 14),
+                Position = UDim2.new(0, 4, 0.5, -7),
+                BackgroundTransparency = 1,
+                Image = TaperAssets.search, -- Read directly from pre-loaded TaperAssets array
+                ImageColor3 = Color3.fromRGB(110, 110, 115)
+            }),
             create("TextBox", {
                 Name = "Inp",
-                Size = UDim2.new(1, 0, 1, 0),
+                Size = UDim2.new(1, -24, 1, 0),
+                Position = UDim2.new(0, 24, 0, 0),
                 BackgroundTransparency = 1,
                 Text = "",
                 PlaceholderText = "Search for available brainrot games...",

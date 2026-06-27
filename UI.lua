@@ -28,13 +28,67 @@ end
 
 local env = getgenv()
 
+-- Updated Git pathing to point directly to your repository structure
 function env.getgitpath(where)
-    local mainBuild = "https://raw.githubusercontent.com/IcantAffordSynapse/TaperUI/refs/heads/main/"
+    local mainBuild = "https://raw.githubusercontent.com/GamebP/TaperUI/main/"
     if where == "src" then
-        return mainBuild .. "src/"
+        return mainBuild
     elseif where == "games" then
-        return mainBuild .. "src/games/"
+        return mainBuild .. "games/"
     end
+end
+
+-- Asset fetching logic (checks local filesystem, falls back to raw Git download)
+local function getAsset(path)
+    local localPath = "TaperUI/" .. path
+    if not isfile(localPath) then
+        -- Recursively establish the directories if they are missing
+        local dirParts = string.split(localPath, "/")
+        local currentDir = ""
+        for i = 1, #dirParts - 1 do
+            currentDir = currentDir .. dirParts[i] .. "/"
+            if not isfolder(currentDir) then
+                makefolder(currentDir)
+            end
+        end
+
+        -- Download from GitHub
+        local gitUrl = env.getgitpath("src") .. path
+        local ok, content = pcall(game.HttpGet, game, gitUrl)
+        if ok and content and #content > 0 and content ~= "404: Not Found" then
+            writefile(localPath, content)
+        else
+            return ""
+        end
+    end
+
+    local getcustom = getcustomasset or getsynasset
+    if getcustom then
+        return getcustom(localPath)
+    end
+    return ""
+end
+
+-- Organized centralized manifest array list of custom image assets
+local assetPaths = {
+    logo = "images/logo-transparent.png",
+    home = "images/icons/home.png",
+    collapse = "images/icons/collapse-arrow.png",
+    expand = "images/icons/expand-arrow.png",
+    search = "images/icons/magnifying-glass.png",
+    settings = "images/icons/settings.png",
+    user = "images/icons/user.png",
+    close = "images/icons/close.png",
+    checkmark = "images/icons/check-mark.png",
+    done = "images/icons/done.png",
+    error = "images/icons/error.png",
+    info = "images/icons/info.png"
+}
+
+-- Pre-load and cache all image assets upfront into a globally shared manifest table
+getgenv().TaperAssets = {}
+for key, path in pairs(assetPaths) do
+    TaperAssets[key] = getAsset(path)
 end
 
 function env.setconfig(key, value)
@@ -44,7 +98,6 @@ function env.setconfig(key, value)
     writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
 end
 
--- Replaced 'autorjjjj' with 'autorejoin'
 env.autorejoin = false
 GuiService.ErrorMessageChanged:Connect(function()
     if env.autorejoin then
@@ -53,25 +106,47 @@ GuiService.ErrorMessageChanged:Connect(function()
 end)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
--- Updated to load UI.lua directly instead of init.lua
+-- Updated raw link pointing directly to your GamebP repository UI.lua
 if queue_on_teleport then
-    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/IcantAffordSynapse/TaperUI/refs/heads/main/UI.lua"))()')
+    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/UI.lua"))()')
 end
 
--- Local executor module loader helper
+-- Local/Remote module loader helper (Fallback to GitHub raw)
 local function import(path)
-    local fullPath = "TaperUI/" .. path .. ".lua"
-    if isfile(fullPath) then
-        return loadstring(readfile(fullPath))()
+    local localPath = "TaperUI/" .. path .. ".lua"
+    if isfile(localPath) then
+        return loadstring(readfile(localPath))()
     else
-        error("[TaperUI] Module file not found: " .. fullPath)
+        local gitUrl = env.getgitpath("src") .. path .. ".lua"
+        local ok, content = pcall(game.HttpGet, game, gitUrl)
+        if ok and content and #content > 0 and content ~= "404: Not Found" then
+            return loadstring(content)()
+        else
+            error("[TaperUI] Module file not found: " .. localPath)
+        end
+    end
+end
+
+-- Local/Remote JSON loader helper (Fallback to GitHub raw)
+local function importJson(path)
+    local localPath = "TaperUI/" .. path .. ".json"
+    if isfile(localPath) then
+        return HttpService:JSONDecode(readfile(localPath))
+    else
+        local gitUrl = env.getgitpath("src") .. path .. ".json"
+        local ok, content = pcall(game.HttpGet, game, gitUrl)
+        if ok and content and #content > 0 and content ~= "404: Not Found" then
+            return HttpService:JSONDecode(content)
+        else
+            error("[TaperUI] JSON file not found: " .. localPath)
+        end
     end
 end
 
 -- Import project scripts
 local creator = import("helper/creator")
 local elements = import("helper/elements")
-local data = import("helper/data")
+local data = importJson("helper/data") -- Seamlessly loads your custom helper/data.json file
 
 -- Pull tools from creator module
 local create = creator.create
@@ -146,17 +221,13 @@ local Sidebar = create("Frame", {
         BackgroundColor3 = Color3.fromRGB(32, 32, 36),
         BorderSizePixel = 0
     }),
-    create("TextLabel", {
-        Name = "LogoText",
-        Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 16, 0, 0),
+    create("ImageLabel", { -- Loads logo-transparent.png automatically
+        Name = "LogoImage",
+        Size = UDim2.new(0, 130, 0, 40),
+        Position = UDim2.new(0, 20, 0, 5),
         BackgroundTransparency = 1,
-        Text = "TaperUI",
-        TextColor3 = Color3.fromRGB(240, 240, 245),
-        TextSize = 16,
-        Font = Enum.Font.GothamBold,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        TextYAlignment = Enum.TextYAlignment.Center
+        Image = TaperAssets.logo,
+        ScaleType = Enum.ScaleType.Fit
     })
 })
 Sidebar.Parent = MainFrame
@@ -188,15 +259,13 @@ local Topbar = create("Frame", {
     Position = UDim2.new(0, 0, 0, 0),
     BackgroundTransparency = 1
 }, {
-    create("TextButton", {
+    create("ImageButton", { -- Close Panel Button using close.png from TaperAssets
         Name = "hidebtn",
         Size = UDim2.new(0, 30, 0, 30),
         Position = UDim2.new(1, -40, 0.5, -15),
         BackgroundColor3 = Color3.fromRGB(24, 24, 28),
-        Text = "✕",
-        TextColor3 = Color3.fromRGB(180, 180, 185),
-        TextSize = 12,
-        Font = Enum.Font.GothamBold
+        Image = TaperAssets.close,
+        ImageColor3 = Color3.fromRGB(180, 180, 185)
     }, {
         create("UICorner", { CornerRadius = UDim.new(0, 6) }),
         create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 })
@@ -299,8 +368,8 @@ local homeContainer = create("Frame", {
 })
 homeContainer.Parent = homeFrame
 
--- Sidebar Buttons builder
-local function createTabBtn(text, layoutOrder)
+-- Sidebar Buttons builder using pre-cached Image icons
+local function createTabBtn(text, iconAsset, layoutOrder)
     return create("TextButton", {
         Size = UDim2.new(1, 0, 0, 36),
         BackgroundColor3 = Color3.fromRGB(24, 24, 28),
@@ -310,13 +379,20 @@ local function createTabBtn(text, layoutOrder)
         AutoButtonColor = false
     }, {
         create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("ImageLabel", {
+            Name = "Icon",
+            Size = UDim2.new(0, 16, 0, 16),
+            Position = UDim2.new(0, 12, 0.5, -8),
+            BackgroundTransparency = 1,
+            Image = iconAsset, -- Use pre-loaded asset content ID directly
+            ImageColor3 = layoutOrder == 1 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185)
+        }),
         create("TextLabel", {
             Name = "LabelText",
-            Size = UDim2.new(1, -12, 1, 0),
-            Position = UDim2.new(0, 12, 0, 0),
+            Size = UDim2.new(1, -38, 1, 0),
+            Position = UDim2.new(0, 36, 0, 0),
             BackgroundTransparency = 1,
             Text = text,
-            TextColor3 = layoutOrder == 1 parks and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185),
             TextColor3 = layoutOrder == 1 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185),
             TextSize = 13,
             Font = Enum.Font.GothamBold,
@@ -327,11 +403,11 @@ local function createTabBtn(text, layoutOrder)
 end
 
 local Tabs = {
-    HomeTab = createTabBtn("🏠 Home", 1),
-    GameTab = createTabBtn("🎮 Game", 2),
-    GameslistTab = createTabBtn("🔍 Games List", 3),
-    SettingsTab = createTabBtn("⚙️ Settings", 4),
-    CreditsTab = createTabBtn("👥 Credits", 5)
+    HomeTab = createTabBtn("Home", TaperAssets.home, 1),
+    GameTab = createTabBtn("Game", TaperAssets.collapse, 2),
+    GameslistTab = createTabBtn("Games List", TaperAssets.search, 3),
+    SettingsTab = createTabBtn("Settings", TaperAssets.settings, 4),
+    CreditsTab = createTabBtn("Credits", TaperAssets.user, 5)
 }
 for _, btn in pairs(Tabs) do
     btn.Parent = TabButtonContainer
@@ -367,7 +443,7 @@ local Sections = {
 
 local CurSection = Sections.Home
 
--- Tab Button Hover & Click animation logic
+-- Tab Button Hover & Click animation logic (tweens LabelText and Icon colors)
 for _, sect in pairs(Sections) do
     sect.TabBtn.MouseEnter:Connect(function()
         if CurSection ~= sect then
@@ -387,6 +463,7 @@ for _, sect in pairs(Sections) do
         if CurSection then
             TweenService:Create(CurSection.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
             TweenService:Create(CurSection.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(180, 180, 185) }):Play()
+            TweenService:Create(CurSection.TabBtn.Icon, TweenInfo.new(0.2), { ImageColor3 = Color3.fromRGB(180, 180, 185) }):Play()
             CurSection.Container.Visible = false
         end
 
@@ -394,6 +471,7 @@ for _, sect in pairs(Sections) do
         
         TweenService:Create(sect.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(28, 28, 32) }):Play()
         TweenService:Create(sect.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+        TweenService:Create(sect.TabBtn.Icon, TweenInfo.new(0.2), { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
 
         CurSection = sect
     end)
@@ -444,6 +522,7 @@ if not ok or #gamePath == 0 or gamePath == "404: Not Found" then
             if CurSection then
                 TweenService:Create(CurSection.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
                 TweenService:Create(CurSection.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(180, 180, 185) }):Play()
+                TweenService:Create(CurSection.TabBtn.Icon, TweenInfo.new(0.2), { ImageColor3 = Color3.fromRGB(180, 180, 185) }):Play()
                 CurSection.Container.Visible = false
             end
 
@@ -451,6 +530,7 @@ if not ok or #gamePath == 0 or gamePath == "404: Not Found" then
             
             TweenService:Create(Sections.GamesList.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 0, BackgroundColor3 = Color3.fromRGB(28, 28, 32) }):Play()
             TweenService:Create(Sections.GamesList.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(255, 255, 255) }):Play()
+            TweenService:Create(Sections.GamesList.TabBtn.Icon, TweenInfo.new(0.2), { ImageColor3 = Color3.fromRGB(255, 255, 255) }):Play()
 
             CurSection = Sections.GamesList
         end)
@@ -495,4 +575,4 @@ elements:Toggle("Auto Rejoin (when kicked)", Sections.Settings.Content, dec1.set
     getgenv().autorejoin = v
 end)
 
-print("✅ UI Reloaded (Added Scrolling top padding to prevent element clipping and overflow)")
+-- END
