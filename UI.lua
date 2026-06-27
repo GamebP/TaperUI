@@ -73,6 +73,7 @@ end
 local assetPaths = {
     logo = "images/logo-transparent.png",
     home = "images/icons/home.png",
+    game = "images/game.png",
     collapse = "images/icons/collapse-arrow.png",
     expand = "images/icons/expand-arrow.png",
     search = "images/icons/magnifying-glass.png",
@@ -99,7 +100,10 @@ function env.setconfig(key, value)
 end
 
 env.autorejoin = false
-GuiService.ErrorMessageChanged:Connect(function()
+
+-- Assigned to a variable so we can safely disconnect this connection upon uninjecting
+local errorConnection
+errorConnection = GuiService.ErrorMessageChanged:Connect(function()
     if env.autorejoin then
         TeleportService:Teleport(game.PlaceId)
     end
@@ -238,6 +242,24 @@ local Sidebar = create("Frame", {
     })
 })
 Sidebar.Parent = MainFrame
+
+-- Fade out and hide the logo after 1.2 seconds
+local LogoImage = Sidebar:FindFirstChild("LogoImage")
+if LogoImage then
+    task.delay(1.2, function()
+        -- Tweens ImageTransparency from 0 to 1 over 0.5 seconds
+        local fadeTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            ImageTransparency = 1
+        })
+        
+        -- Once the fade is complete, hide the element entirely to save rendering resources
+        fadeTween.Completed:Connect(function()
+            LogoImage.Visible = false
+        end)
+        
+        fadeTween:Play()
+    end)
+end
 
 local TabButtonContainer = create("Frame", {
     Name = "TabButtonContainer",
@@ -412,7 +434,7 @@ end
 local Tabs = {
     HomeTab = createTabBtn("Home", TaperAssets.home, 1),
     GameTab = createTabBtn("Game", TaperAssets.collapse, 2),
-    GameslistTab = createTabBtn("Games List", TaperAssets.search, 3),
+    GameslistTab = createTabBtn("Games List", TaperAssets.game, 3),
     SettingsTab = createTabBtn("Settings", TaperAssets.settings, 4),
     CreditsTab = createTabBtn("Credits", TaperAssets.user, 5)
 }
@@ -580,6 +602,29 @@ elements:Toggle("Auto Rejoin (when kicked)", Sections.Settings.Content, dec1.set
     dec.settings.auto_rejoin_on_kick = v
     writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
     getgenv().autorejoin = v
+end)
+
+-- Adds the Uninject UI option directly inside the Settings category
+elements:Button("Uninject UI", Sections.Settings.Content, function()
+    -- Disconnect standard kick/auto-rejoin hook to prevent background teleports
+    if errorConnection then
+        errorConnection:Disconnect()
+    end
+
+    -- Safely restore standard 3D rendering view in case it was toggled off
+    pcall(function()
+        RunService:Set3dRenderingEnabled(true)
+    end)
+
+    -- Fully remove the ScreenGui and floating ToggleButton
+    if screenGui then
+        screenGui:Destroy()
+    end
+
+    -- Wipe active global references from the executor's memory space
+    getgenv().TaperAssets = nil
+    getgenv().taperImport = nil
+    getgenv().autorejoin = nil
 end)
 
 -- END
