@@ -675,9 +675,13 @@ if #activeGames == 0 then
     })
 else
     for _, g in ipairs(activeGames) do
-        elements:addGame(Sections.GamesList.Content, g.gameName, g.gameStatus, function()
+        local isCurrentGame = (tostring(g.gameID) == tostring(game.PlaceId))
+        local btnText = isCurrentGame and "Active" or "Launch"
+        local callback = isCurrentGame and function() end or function()
             ExperienceService:LaunchExperience({placeId = g.gameID})
-        end)
+        end
+        
+        elements:addGame(Sections.GamesList.Content, g.gameName, g.gameStatus, callback, btnText)
     end
 end
 

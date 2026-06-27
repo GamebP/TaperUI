@@ -42,38 +42,74 @@ function elements:Label(str, parent)
 end
 
 function elements:Button(str, parent, cb)
+    local isHovering = false
+
     local btn = create("TextButton", {
         Size = UDim2.new(0.98, 0, 0, 40),
-        BackgroundColor3 = Color3.fromRGB(28, 28, 32),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         AutoButtonColor = false,
         Text = "",
         Parent = parent
     }, {
         create("UICorner", { CornerRadius = UDim.new(0, 8) }),
-        create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 }),
+        create("UIStroke", { Name = "Stroke", Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
         create("TextLabel", {
             Name = "TextLabel",
-            Size = UDim2.new(1, 0, 1, 0),
+            Size = UDim2.new(1, -70, 1, 0),
+            Position = UDim2.new(0, 12, 0, 0),
             BackgroundTransparency = 1,
             Text = str,
-            TextColor3 = Color3.fromRGB(240, 240, 245),
+            TextColor3 = Color3.fromRGB(210, 210, 215),
             TextSize = 13,
-            Font = Enum.Font.GothamBold,
-            TextXAlignment = Enum.TextXAlignment.Center
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left
+        }),
+        create("TextLabel", {
+            Name = "TagLabel",
+            Size = UDim2.new(0, 50, 1, 0),
+            Position = UDim2.new(1, -62, 0, 0),
+            BackgroundTransparency = 1,
+            Text = "button",
+            TextColor3 = Color3.fromRGB(110, 110, 115),
+            TextSize = 12,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Right
         })
     })
 
+    local stroke = btn:FindFirstChild("Stroke")
+
     btn.MouseEnter:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(36, 36, 42) }):Play()
-    end)
-    btn.MouseLeave:Connect(function()
+        isHovering = true
         TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(28, 28, 32) }):Play()
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.15), { Color = Color3.fromRGB(45, 45, 50) }):Play()
+        end
     end)
+
+    btn.MouseLeave:Connect(function()
+        isHovering = false
+        TweenService:Create(btn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(20, 20, 24) }):Play()
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.15), { Color = Color3.fromRGB(35, 35, 40) }):Play()
+        end
+    end)
+
     btn.MouseButton1Down:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(22, 22, 26) }):Play()
+        TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(16, 16, 20) }):Play()
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.1), { Color = Color3.fromRGB(30, 30, 35) }):Play()
+        end
     end)
+
     btn.MouseButton1Up:Connect(function()
-        TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = Color3.fromRGB(36, 36, 42) }):Play()
+        local targetBg = isHovering and Color3.fromRGB(28, 28, 32) or Color3.fromRGB(20, 20, 24)
+        local targetStroke = isHovering and Color3.fromRGB(45, 45, 50) or Color3.fromRGB(35, 35, 40)
+        
+        TweenService:Create(btn, TweenInfo.new(0.1), { BackgroundColor3 = targetBg }):Play()
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.1), { Color = targetStroke }):Play()
+        end
         cb()
     end)
 
@@ -327,7 +363,210 @@ function elements:Unsupported(parent, cb)
     return frame
 end
 
-function elements:addGame(parent, gname, gstate, cb)
+function elements:Dropdown(str, parent, options, def, cb)
+    local currentSelected = def or options[1]
+    local isOpened = false
+    local numOptions = #options
+    local closedHeight = 42
+    local openHeight = 42 + (numOptions * 32) + 8
+    
+    local dropdownFrame = create("Frame", {
+        Name = "Dropdown",
+        Size = UDim2.new(0.98, 0, 0, closedHeight),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        ClipsDescendants = true,
+        Parent = parent
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Name = "Stroke", Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
+        
+        create("TextButton", {
+            Name = "HeaderButton",
+            Size = UDim2.new(1, 0, 0, closedHeight),
+            BackgroundTransparency = 1,
+            Text = "",
+            ZIndex = 5
+        }, {
+            create("TextLabel", {
+                Name = "Title",
+                Size = UDim2.new(0.6, 0, 1, 0),
+                Position = UDim2.new(0, 12, 0, 0),
+                BackgroundTransparency = 1,
+                Text = str,
+                TextColor3 = Color3.fromRGB(210, 210, 215),
+                TextSize = 13,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = 6
+            }),
+            create("TextLabel", {
+                Name = "SelectedLabel",
+                Size = UDim2.new(0.3, 0, 1, 0),
+                Position = UDim2.new(1, -50, 0, 0),
+                BackgroundTransparency = 1,
+                Text = currentSelected,
+                TextColor3 = Color3.fromRGB(150, 150, 155),
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Right,
+                ZIndex = 6
+            }),
+            create("ImageLabel", {
+                Name = "Icon",
+                Size = UDim2.new(0, 14, 0, 14),
+                Position = UDim2.new(1, -26, 0.5, -7),
+                BackgroundTransparency = 1,
+                Image = TaperAssets.expand,
+                ImageColor3 = Color3.fromRGB(150, 150, 155),
+                ZIndex = 6
+            })
+        }),
+
+        create("Frame", {
+            Name = "OptionsList",
+            Size = UDim2.new(1, -24, 0, openHeight - closedHeight),
+            Position = UDim2.new(0, 12, 0, closedHeight),
+            BackgroundTransparency = 1,
+            Visible = false,
+            ZIndex = 2
+        }, {
+            create("UIListLayout", {
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 4)
+            })
+        })
+    })
+
+    local header = dropdownFrame.HeaderButton
+    local selectedLabel = header.SelectedLabel
+    local icon = header.Icon
+    local list = dropdownFrame.OptionsList
+
+    for idx, option in ipairs(options) do
+        local isSelected = (option == currentSelected)
+        local optionBtn = create("TextButton", {
+            Name = option,
+            Size = UDim2.new(1, 0, 0, 28),
+            BackgroundColor3 = isSelected and Color3.fromRGB(28, 28, 32) or Color3.fromRGB(24, 24, 28),
+            AutoButtonColor = false,
+            Text = "",
+            LayoutOrder = idx,
+            ZIndex = 3,
+            Parent = list
+        }, {
+            create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+            create("UIStroke", {
+                Name = "OptStroke",
+                Color = isSelected and Color3.fromRGB(45, 45, 50) or Color3.fromRGB(35, 35, 40),
+                Thickness = 1
+            }),
+            create("TextLabel", {
+                Name = "Label",
+                Size = UDim2.new(1, -24, 1, 0),
+                Position = UDim2.new(0, 12, 0, 0),
+                BackgroundTransparency = 1,
+                Text = option,
+                TextColor3 = isSelected and Color3.fromRGB(240, 240, 245) or Color3.fromRGB(180, 180, 185),
+                TextSize = 12,
+                Font = Enum.Font.GothamMedium,
+                TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = 4
+            })
+        })
+
+        local optStroke = optionBtn:FindFirstChild("OptStroke")
+        optionBtn.MouseEnter:Connect(function()
+            if currentSelected ~= option then
+                TweenService:Create(optionBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(28, 28, 32) }):Play()
+                if optStroke then
+                    TweenService:Create(optStroke, TweenInfo.new(0.15), { Color = Color3.fromRGB(45, 45, 50) }):Play()
+                end
+            end
+        end)
+        optionBtn.MouseLeave:Connect(function()
+            if currentSelected ~= option then
+                TweenService:Create(optionBtn, TweenInfo.new(0.15), { BackgroundColor3 = Color3.fromRGB(24, 24, 28) }):Play()
+                if optStroke then
+                    TweenService:Create(optStroke, TweenInfo.new(0.15), { Color = Color3.fromRGB(35, 35, 40) }):Play()
+                end
+            end
+        end)
+
+        optionBtn.MouseButton1Click:Connect(function()
+            currentSelected = option
+            selectedLabel.Text = currentSelected
+
+            isOpened = false
+            icon.Image = TaperAssets.expand
+            
+            TweenService:Create(dropdownFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0.98, 0, 0, closedHeight)
+            }):Play()
+            
+            task.delay(0.1, function()
+                list.Visible = false
+            end)
+
+            for _, optChild in ipairs(list:GetChildren()) do
+                if optChild:IsA("TextButton") then
+                    local selected = (optChild.Name == currentSelected)
+                    TweenService:Create(optChild, TweenInfo.new(0.2), {
+                        BackgroundColor3 = selected and Color3.fromRGB(28, 28, 32) or Color3.fromRGB(24, 24, 28)
+                    }):Play()
+                    
+                    local childStroke = optChild:FindFirstChild("OptStroke")
+                    if childStroke then
+                        TweenService:Create(childStroke, TweenInfo.new(0.2), {
+                            Color = selected and Color3.fromRGB(45, 45, 50) or Color3.fromRGB(35, 35, 40)
+                        }):Play()
+                    end
+                    
+                    local childLabel = optChild:FindFirstChild("Label")
+                    if childLabel then
+                        TweenService:Create(childLabel, TweenInfo.new(0.2), {
+                            TextColor3 = selected and Color3.fromRGB(240, 240, 245) or Color3.fromRGB(180, 180, 185)
+                        }):Play()
+                    end
+                end
+            end
+            
+            cb(currentSelected)
+        end)
+    end
+
+    header.MouseButton1Click:Connect(function()
+        isOpened = not isOpened
+        
+        if isOpened then
+            list.Visible = true
+            icon.Image = TaperAssets.collapse
+            
+            TweenService:Create(dropdownFrame, TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0.98, 0, 0, openHeight)
+            }):Play()
+        else
+            icon.Image = TaperAssets.expand
+            
+            TweenService:Create(dropdownFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0.98, 0, 0, closedHeight)
+            }):Play()
+            
+            task.delay(0.1, function()
+                if not isOpened then
+                    list.Visible = false
+                end
+            end)
+        end
+    end)
+
+    task.defer(function() cb(currentSelected) end)
+    return dropdownFrame
+end
+
+function elements:addGame(parent, gname, gstate, cb, btnText)
+    local buttonText = btnText or "Launch"
+    local isActiveGame = (buttonText == "Active")
+
     local statusColor = Color3.fromRGB(164, 58, 58)
     if gstate == "🟢" then
         statusColor = Color3.fromRGB(59, 164, 57)
@@ -366,18 +605,23 @@ function elements:addGame(parent, gname, gstate, cb)
             Name = "ButtonElement",
             Size = UDim2.new(0, 70, 0, 28),
             Position = UDim2.new(1, -82, 0.5, -14),
-            BackgroundColor3 = Color3.fromRGB(32, 32, 38),
-            Text = "Launch",
-            TextColor3 = Color3.fromRGB(240, 240, 245),
+            BackgroundColor3 = isActiveGame and Color3.fromRGB(18, 18, 22) or Color3.fromRGB(32, 32, 38),
+            Text = buttonText,
+            TextColor3 = isActiveGame and Color3.fromRGB(110, 110, 115) or Color3.fromRGB(240, 240, 245),
             TextSize = 11,
-            Font = Enum.Font.GothamBold
+            Font = Enum.Font.GothamBold,
+            Active = not isActiveGame,
+            AutoButtonColor = not isActiveGame
         }, {
             create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-            create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 })
+            create("UIStroke", { Color = isActiveGame and Color3.fromRGB(30, 30, 35) or Color3.fromRGB(45, 45, 50), Thickness = 1 })
         })
     })
 
-    gameItem.ButtonElement.MouseButton1Click:Connect(cb)
+    if not isActiveGame then
+        gameItem.ButtonElement.MouseButton1Click:Connect(cb)
+    end
+    
     return gameItem
 end
 
@@ -432,9 +676,14 @@ function elements:Searchbar(parent, gameList)
         for _, g in ipairs(gameList) do
             if g.gameName:lower():find(searchText) then
                 matchCount = matchCount + 1
-                elements:addGame(parent, g.gameName, g.gameStatus, function()
+                
+                local isCurrentGame = (tostring(g.gameID) == tostring(game.PlaceId))
+                local btnText = isCurrentGame and "Active" or "Launch"
+                local callback = isCurrentGame and function() end or function()
                     ExperienceService:LaunchExperience({placeId = g.gameID})
-                end)
+                end
+                
+                elements:addGame(parent, g.gameName, g.gameStatus, callback, btnText)
             end
         end
         
