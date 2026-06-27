@@ -204,10 +204,12 @@ local MainFrame = create("Frame", {
     Position = UDim2.new(0.5, 0, 0.5, 0),
     BackgroundColor3 = Color3.fromRGB(15, 15, 17),
     BorderSizePixel = 0,
-    ClipsDescendants = false
+    ClipsDescendants = false,
+    Visible = false -- Starts hidden during the intro screen
 }, {
     create("UICorner", { CornerRadius = UDim.new(0, 12) }),
-    create("UIStroke", { Color = Color3.fromRGB(38, 38, 43), Thickness = 1.5 })
+    create("UIStroke", { Color = Color3.fromRGB(38, 38, 43), Thickness = 1.5 }),
+    create("UIScale", { Name = "MenuScale", Scale = 0.8 }) -- Handles the elastic entrance
 })
 MainFrame.Parent = screenGui
 
@@ -235,13 +237,18 @@ local Sidebar = create("Frame", {
         BackgroundColor3 = Color3.fromRGB(32, 32, 36),
         BorderSizePixel = 0
     }),
-    create("ImageLabel", {
-        Name = "LogoImage",
-        Size = UDim2.new(0, 130, 0, 40),
-        Position = UDim2.new(0, 20, 0, 5),
+    create("TextLabel", { -- Added clean static text title here
+        Name = "SidebarTitle",
+        Size = UDim2.new(1, -20, 0, 40),
+        Position = UDim2.new(0, 20, 0, 10),
         BackgroundTransparency = 1,
-        Image = TaperAssets.logo_img,
-        ScaleType = Enum.ScaleType.Fit
+        Text = "TaperUI",
+        TextColor3 = Color3.fromRGB(240, 240, 245),
+        TextSize = 18,
+        Font = Enum.Font.GothamBold,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        TextYAlignment = Enum.TextYAlignment.Center,
+        TextTransparency = 1 -- Starts hidden, fades in with the main UI
     })
 })
 Sidebar.Parent = MainFrame
@@ -582,6 +589,105 @@ elements:Toggle("Auto Rejoin (when kicked)", Sections.Settings.Content, dec1.set
     writefile("TaperUI/Config.json", HttpService:JSONEncode(dec))
     getgenv().autorejoin = v
 end)
+
+-- ---------- Intro Loading Sequence ----------
+local function playIntro()
+    -- 1. Create a full-screen loading overlay
+    local Overlay = create("Frame", {
+        Name = "IntroOverlay",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(10, 10, 12),
+        BorderSizePixel = 0,
+        ZIndex = 99999,
+        Parent = screenGui
+    })
+
+    -- Centered loading image logo
+    local IntroLogo = create("ImageLabel", {
+        Name = "IntroLogo",
+        Size = UDim2.new(0, 0, 0, 0), -- Starts collapsed
+        Position = UDim2.new(0.5, 0, 0.5, -20),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Image = TaperAssets.logo_img, -- Displays your high-fidelity normal logo
+        ImageTransparency = 1,
+        ScaleType = Enum.ScaleType.Fit,
+        ZIndex = 100000,
+        Parent = Overlay
+    })
+
+    -- Loading subtext label
+    local LoadingText = create("TextLabel", {
+        Name = "LoadingText",
+        Size = UDim2.new(0, 200, 0, 30),
+        Position = UDim2.new(0.5, 0, 0.5, 40),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundTransparency = 1,
+        Text = "Loading TaperUI...",
+        TextColor3 = Color3.fromRGB(160, 160, 165),
+        TextSize = 13,
+        Font = Enum.Font.GothamBold,
+        TextTransparency = 1,
+        ZIndex = 100000,
+        Parent = Overlay
+    })
+
+    -- 2. Animate the logo and text in elastically
+    TweenService:Create(IntroLogo, TweenInfo.new(0.85, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 180, 0, 55),
+        ImageTransparency = 0
+    }):Play()
+
+    TweenService:Create(LoadingText, TweenInfo.new(0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        TextTransparency = 0
+    }):Play()
+
+    task.wait(2.0) -- Pause briefly while mock loading
+
+    -- 3. Fade out loading overlay and elements
+    TweenService:Create(IntroLogo, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        Size = UDim2.new(0, 140, 0, 40),
+        ImageTransparency = 1
+    }):Play()
+
+    TweenService:Create(LoadingText, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        TextTransparency = 1
+    }):Play()
+
+    local fadeOverlay = TweenService:Create(Overlay, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+        BackgroundTransparency = 1
+    })
+    fadeOverlay:Play()
+
+    -- 4. Animate the main menu popping up & sidebar title fading in
+    task.delay(0.15, function()
+        MainFrame.Visible = true
+        
+        -- Scale up main panel
+        local menuScale = MainFrame:FindFirstChild("MenuScale")
+        if menuScale then
+            TweenService:Create(menuScale, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Scale = 1
+            }):Play()
+        end
+
+        -- Smoothly fade in the static sidebar title text
+        local SidebarTitle = Sidebar:FindFirstChild("SidebarTitle")
+        if SidebarTitle then
+            TweenService:Create(SidebarTitle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                TextTransparency = 0
+            }):Play()
+        end
+    end)
+
+    -- Cleanup loading scene resources
+    fadeOverlay.Completed:Connect(function()
+        Overlay:Destroy()
+    end)
+end
+
+-- Run loading animation
+playIntro()
 
 -- Adds the Uninject UI option directly inside the Settings category
 elements:Button("Uninject UI", Sections.Settings.Content, function()
