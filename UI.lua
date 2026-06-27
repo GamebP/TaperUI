@@ -113,11 +113,6 @@ errorConnection = GuiService.ErrorMessageChanged:Connect(function()
 end)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
--- Updated raw link pointing directly to your GamebP repository UI.lua
-if queue_on_teleport then
-    queue_on_teleport('loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/UI.lua"))()')
-end
-
 -- Local/Remote module loader helper (Fallback to GitHub raw)
 local function import(path)
     local localPath = "TaperUI/" .. path .. ".lua"
@@ -204,12 +199,12 @@ local MainFrame = create("Frame", {
     Position = UDim2.new(0.5, 0, 0.5, 0),
     BackgroundColor3 = Color3.fromRGB(15, 15, 17),
     BorderSizePixel = 0,
-    ClipsDescendants = false,
-    Visible = false -- Starts hidden during the intro screen
+    ClipsDescendants = true, -- Prevents intro contents from clipping outside rounded corners
+    Visible = true -- Starts visible because the loading screen is self-contained inside it
 }, {
     create("UICorner", { CornerRadius = UDim.new(0, 12) }),
     create("UIStroke", { Color = Color3.fromRGB(38, 38, 43), Thickness = 1.5 }),
-    create("UIScale", { Name = "MenuScale", Scale = 0.8 }) -- Handles the elastic entrance
+    create("UIScale", { Name = "MenuScale", Scale = 0.8 }) -- Handles panel entrance
 })
 MainFrame.Parent = screenGui
 
@@ -592,24 +587,26 @@ end)
 
 -- ---------- Intro Loading Sequence ----------
 local function playIntro()
-    -- 1. Create a full-screen loading overlay
+    -- 1. Create Loading Overlay inside the MainFrame container boundaries
     local Overlay = create("Frame", {
         Name = "IntroOverlay",
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(10, 10, 12),
+        BackgroundColor3 = Color3.fromRGB(15, 15, 17), -- Matches menu background
         BorderSizePixel = 0,
-        ZIndex = 99999,
-        Parent = screenGui
+        ZIndex = 99999, -- Ensures it covers menu content
+        Parent = MainFrame
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 12) }) -- Matches menu corner radius
     })
 
-    -- Centered loading image logo
+    -- Centered logo inside UI window
     local IntroLogo = create("ImageLabel", {
         Name = "IntroLogo",
         Size = UDim2.new(0, 0, 0, 0), -- Starts collapsed
         Position = UDim2.new(0.5, 0, 0.5, -20),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundTransparency = 1,
-        Image = TaperAssets.logo_img, -- Displays your high-fidelity normal logo
+        Image = TaperAssets.logo_img,
         ImageTransparency = 1,
         ScaleType = Enum.ScaleType.Fit,
         ZIndex = 100000,
@@ -632,7 +629,16 @@ local function playIntro()
         Parent = Overlay
     })
 
-    -- 2. Animate the logo and text in elastically
+    -- 2. First bounce open the empty main panel
+    local menuScale = MainFrame:FindFirstChild("MenuScale")
+    if menuScale then
+        menuScale.Scale = 0.8
+        TweenService:Create(menuScale, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Scale = 1
+        }):Play()
+    end
+
+    -- 3. Then pop the logo and text in inside the container
     TweenService:Create(IntroLogo, TweenInfo.new(0.85, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
         Size = UDim2.new(0, 180, 0, 55),
         ImageTransparency = 0
@@ -642,9 +648,9 @@ local function playIntro()
         TextTransparency = 0
     }):Play()
 
-    task.wait(2.0) -- Pause briefly while mock loading
+    task.wait(1.8) -- Keeps the loading state visible briefly
 
-    -- 3. Fade out loading overlay and elements
+    -- 4. Fade out the elements and overlay inside the panel
     TweenService:Create(IntroLogo, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
         Size = UDim2.new(0, 140, 0, 40),
         ImageTransparency = 1
@@ -654,39 +660,28 @@ local function playIntro()
         TextTransparency = 1
     }):Play()
 
-    local fadeOverlay = TweenService:Create(Overlay, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+    local fadeOverlay = TweenService:Create(Overlay, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
         BackgroundTransparency = 1
     })
     fadeOverlay:Play()
 
-    -- 4. Animate the main menu popping up & sidebar title fading in
-    task.delay(0.15, function()
-        MainFrame.Visible = true
-        
-        -- Scale up main panel
-        local menuScale = MainFrame:FindFirstChild("MenuScale")
-        if menuScale then
-            TweenService:Create(menuScale, TweenInfo.new(0.6, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-                Scale = 1
-            }):Play()
-        end
-
-        -- Smoothly fade in the static sidebar title text
+    -- Smoothly fade in the static sidebar title text
+    task.delay(0.1, function()
         local SidebarTitle = Sidebar:FindFirstChild("SidebarTitle")
         if SidebarTitle then
-            TweenService:Create(SidebarTitle, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            TweenService:Create(SidebarTitle, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 TextTransparency = 0
             }):Play()
         end
     end)
 
-    -- Cleanup loading scene resources
+    -- Cleanup internal loading assets only
     fadeOverlay.Completed:Connect(function()
         Overlay:Destroy()
     end)
 end
 
--- Run loading animation
+-- Run menu intro sequence
 playIntro()
 
 -- Adds the Uninject UI option directly inside the Settings category
