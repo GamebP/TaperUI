@@ -354,12 +354,12 @@ local UserProfileWidget = create("Frame", {
     }),
     create("TextLabel", {
         Name = "DisplayName",
-        Size = UDim2.new(1, -52, 0, 18),
-        Position = UDim2.new(0, 48, 0.5, -15),
+        Size = UDim2.new(1, -56, 0, 18),
+        Position = UDim2.new(0, 52, 0.5, -18),
         BackgroundTransparency = 1,
         Text = displayName,
         TextColor3 = Color3.fromRGB(240, 240, 245),
-        TextSize = 12,
+        TextSize = 14,
         Font = Enum.Font.GothamBold,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Bottom,
@@ -367,16 +367,16 @@ local UserProfileWidget = create("Frame", {
     }),
     create("TextLabel", {
         Name = "Subtitle",
-        Size = UDim2.new(1, -52, 0, 14),
-        Position = UDim2.new(0, 48, 0.5, 2),
+        Size = UDim2.new(1, -56, 0, 16),
+        Position = UDim2.new(0, 52, 0.5, 3),
         BackgroundTransparency = 1,
         Text = "bum lad",
         TextColor3 = Color3.fromRGB(150, 150, 155),
-        TextSize = 10,
+        TextSize = 12,
         Font = Enum.Font.GothamMedium,
         TextXAlignment = Enum.TextXAlignment.Left,
         TextYAlignment = Enum.TextYAlignment.Top,
-        TextTransparency = 1 -- Fades in with menu
+        TextTransparency = 1
     })
 })
 
