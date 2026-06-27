@@ -71,9 +71,12 @@ end
 
 -- Organized centralized manifest array list of custom image assets
 local assetPaths = {
-    logo = "images/logo-transparent.png",
+    -- Images path
+    logo_transparent = "images/logo-transparent.png",
+    logo_img = "images/logo.png",
+    -- Icons path
     home = "images/icons/home.png",
-    game = "images/game.png",
+    game = "images/icons/game.png",
     collapse = "images/icons/collapse-arrow.png",
     expand = "images/icons/expand-arrow.png",
     search = "images/icons/magnifying-glass.png",
@@ -220,44 +223,50 @@ local Sidebar = create("Frame", {
     BorderSizePixel = 0
 }, {
     create("UICorner", { CornerRadius = UDim.new(0, 12) }),
-    create("Frame", { -- Fills gaps
+    create("Frame", {
         Size = UDim2.new(0, 15, 1, 0),
         Position = UDim2.new(1, -15, 0, 0),
         BackgroundColor3 = Color3.fromRGB(18, 18, 22),
         BorderSizePixel = 0
     }),
-    create("Frame", { -- Divider stroke line
+    create("Frame", {
         Size = UDim2.new(0, 1, 1, 0),
         Position = UDim2.new(1, -1, 0, 0),
         BackgroundColor3 = Color3.fromRGB(32, 32, 36),
         BorderSizePixel = 0
     }),
-    create("ImageLabel", { -- Loads logo-transparent.png automatically
+    create("ImageLabel", {
         Name = "LogoImage",
         Size = UDim2.new(0, 130, 0, 40),
         Position = UDim2.new(0, 20, 0, 5),
         BackgroundTransparency = 1,
-        Image = TaperAssets.logo,
+        Image = TaperAssets.logo_transparent,
         ScaleType = Enum.ScaleType.Fit
     })
 })
 Sidebar.Parent = MainFrame
 
--- Fade out and hide the logo after 1.2 seconds
+-- Transition logic
 local LogoImage = Sidebar:FindFirstChild("LogoImage")
 if LogoImage then
     task.delay(1.2, function()
-        -- Tweens ImageTransparency from 0 to 1 over 0.5 seconds
-        local fadeTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+        -- 1. Fade out
+        local fadeOutTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             ImageTransparency = 1
         })
         
-        -- Once the fade is complete, hide the element entirely to save rendering resources
-        fadeTween.Completed:Connect(function()
-            LogoImage.Visible = false
+        fadeOutTween.Completed:Connect(function()
+            -- 2. Swap to the normal logo for the menu
+            LogoImage.Image = TaperAssets.logo_img
+            
+            -- 3. Fade in
+            local fadeInTween = TweenService:Create(LogoImage, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                ImageTransparency = 0
+            })
+            fadeInTween:Play()
         end)
         
-        fadeTween:Play()
+        fadeOutTween:Play()
     end)
 end
 
@@ -547,7 +556,7 @@ if not ok or #gamePath == 0 or gamePath == "404: Not Found" then
     end
 
     if not handledLocally then
-        elements:Unsupported(gameTargetContent, function()
+        elements:Unsupported(Sections.Game.Container, function()
             if CurSection then
                 TweenService:Create(CurSection.TabBtn, TweenInfo.new(0.2), { BackgroundTransparency = 1 }):Play()
                 TweenService:Create(CurSection.TabBtn.LabelText, TweenInfo.new(0.2), { TextColor3 = Color3.fromRGB(180, 180, 185) }):Play()

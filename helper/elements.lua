@@ -193,7 +193,9 @@ end
 
 function elements:Unsupported(parent, cb)
     local frame = create("Frame", {
-        Size = UDim2.new(0.98, 0, 0, 110),
+        Size = UDim2.new(0.9, 0, 0, 115),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = Color3.fromRGB(24, 24, 28),
         Parent = parent
     }, {
@@ -201,7 +203,7 @@ function elements:Unsupported(parent, cb)
         create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 }),
         create("TextLabel", {
             Size = UDim2.new(1, 0, 0, 40),
-            Position = UDim2.new(0, 0, 0, 8),
+            Position = UDim2.new(0, 0, 0, 12),
             BackgroundTransparency = 1,
             Text = "This place is currently unsupported.",
             TextColor3 = Color3.fromRGB(220, 100, 100),
@@ -211,8 +213,8 @@ function elements:Unsupported(parent, cb)
         }),
         create("TextButton", {
             Name = "suggestbtn",
-            Size = UDim2.new(0.45, -6, 0, 36),
-            Position = UDim2.new(0.05, 0, 0, 56),
+            Size = UDim2.new(0.43, 0, 0, 36),
+            Position = UDim2.new(0.05, 0, 0, 60),
             BackgroundColor3 = Color3.fromRGB(32, 32, 38),
             Text = "Suggest Game",
             TextColor3 = Color3.fromRGB(220, 220, 225),
@@ -224,8 +226,8 @@ function elements:Unsupported(parent, cb)
         }),
         create("TextButton", {
             Name = "glbtn",
-            Size = UDim2.new(0.45, -6, 0, 36),
-            Position = UDim2.new(0.5, 6, 0, 56),
+            Size = UDim2.new(0.43, 0, 0, 36),
+            Position = UDim2.new(0.52, 0, 0, 60),
             BackgroundColor3 = Color3.fromRGB(32, 32, 38),
             Text = "Browse Games",
             TextColor3 = Color3.fromRGB(220, 220, 225),
@@ -238,7 +240,7 @@ function elements:Unsupported(parent, cb)
     })
 
     frame.suggestbtn.MouseButton1Click:Connect(function()
-        setclipboard("https://discord.gg/vaehz")
+        setclipboard("")
         frame.suggestbtn.Text = "Copied Link!"
         task.wait(1)
         frame.suggestbtn.Text = "Suggest Game"
