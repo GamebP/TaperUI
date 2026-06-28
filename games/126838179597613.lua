@@ -17,6 +17,29 @@ return function(parent, config)
     local selectedGate = "4"
     local lastLockWarning = 0
 
+    -- Tracks selected gates individually per world
+    local selectedGates = {
+        World1 = "4",
+        World2 = "11",
+        World3 = "21",
+        World4 = "31"
+    }
+
+    -- Build separated static lists for the gates
+    local gatesW1 = {}
+    for i = 1, 10 do table.insert(gatesW1, tostring(i)) end
+
+    local gatesW2 = {}
+    for i = 11, 20 do table.insert(gatesW2, tostring(i)) end
+
+    local gatesW3 = {}
+    for i = 21, 30 do table.insert(gatesW3, tostring(i)) end
+
+    local gatesW4 = {}
+    for i = 31, 40 do table.insert(gatesW4, tostring(i)) end
+
+    local worlds = {"World1", "World2", "World3", "World4"}
+
     -- Localized State Configuration for AFK Training
     local autoTrainActive = false
     local selectedTrainingSpot = "World 1 - 1x (0 Rebirth)"
@@ -78,45 +101,6 @@ return function(parent, config)
         "World3 - Egg5", "World3 - Egg6",
         "World4 - Egg7", "World4 - Egg8"
     }
-
-    -- Dynamically discover Worlds and Gate Numbers from workspace.Goals
-    local goals = workspace:FindFirstChild("Goals")
-    local worlds = {}
-    local gates = {}
-
-    if goals then
-        for _, world in ipairs(goals:GetChildren()) do
-            if world.Name:match("^World%d+$") then
-                if not table.find(worlds, world.Name) then
-                    table.insert(worlds, world.Name)
-                end
-                for _, gate in ipairs(world:GetChildren()) do
-                    if tonumber(gate.Name) and not table.find(gates, gate.Name) then
-                        table.insert(gates, gate.Name)
-                    end
-                end
-            end
-        end
-    end
-
-    -- Sort discovered values numerically
-    table.sort(worlds, function(a, b)
-        return (tonumber(a:match("%d+")) or 0) < (tonumber(b:match("%d+")) or 0)
-    end)
-
-    table.sort(gates, function(a, b)
-        return (tonumber(a) or 0) < (tonumber(b) or 0)
-    end)
-
-    -- Fallback configurations if Goals directory has not loaded
-    if #worlds == 0 then
-        worlds = {"World1", "World2", "World3", "World4"}
-    end
-    if #gates == 0 then
-        for i = 1, 40 do
-            table.insert(gates, tostring(i))
-        end
-    end
 
     -- Helper: Safely reads the client's rebirth count from leaderstats
     local function getRebirthCount()
@@ -249,18 +233,21 @@ return function(parent, config)
         return false
     end
 
-    -- Helper: Verifies if the selected gate's keeper status is Unlocked
-    local function isGateUnlocked()
+    -- Helper: Verifies unlock status of specific goal markers dynamically
+    local function isSpecificGateUnlocked(worldName, gateName)
         local success, result = pcall(function()
-            local goalFolder = workspace.Goals:FindFirstChild(selectedWorld)
-            if not goalFolder then return true end
+            local goalFolder = workspace.Goals:FindFirstChild(worldName)
+            if not goalFolder then 
+                -- If previous world is streamed out, assume unlocked as we have transitioned beyond it
+                return true 
+            end
             
-            local gateFolder = goalFolder:FindFirstChild(selectedGate)
+            local gateFolder = goalFolder:FindFirstChild(gateName)
             if not gateFolder then return true end
             
             local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
             if not keeperStatus then 
-                return true -- If no KeeperStatus exists, assume the gate lacks lock logic
+                return true
             end
 
             local status = keeperStatus.Anchor.BillboardGui.Frame.Status
@@ -277,14 +264,31 @@ return function(parent, config)
                 return true
             end
 
-            -- Fallback: check if the status Text itself says unlocked
             if status:IsA("TextLabel") then
                 return status.Text:lower():find("unlocked") ~= nil
             end
 
             return false
         end)
-        return success and result
+        
+        if not success then
+            return true -- Fallback to prevent locking the loop on standard path errors
+        end
+        return result
+    end
+
+    -- Helper: Verifies if the selected gate's keeper status is Unlocked
+    local function isGateUnlocked()
+        -- Boundaries transition checks matching game gate structures
+        if selectedGate == "11" then
+            return isSpecificGateUnlocked("World1", "10")
+        elseif selectedGate == "21" then
+            return isSpecificGateUnlocked("World2", "20")
+        elseif selectedGate == "31" then
+            return isSpecificGateUnlocked("World3", "30")
+        end
+
+        return isSpecificGateUnlocked(selectedWorld, selectedGate)
     end
 
     -- Helper: Safely resolve the path to the selected target part
@@ -395,15 +399,49 @@ return function(parent, config)
     -- UI: Automation Utilities Section
     elements:Label("🔥 Automation Utilities", parent)
 
+    -- Pre-declare the dropdown variables to reference them in the callbacks
+    local dropdownW1, dropdownW2, dropdownW3, dropdownW4
+
+    local function updateGateDropdownVisibility()
+        if dropdownW1 then dropdownW1.Visible = (selectedWorld == "World1") end
+        if dropdownW2 then dropdownW2.Visible = (selectedWorld == "World2") end
+        if dropdownW3 then dropdownW3.Visible = (selectedWorld == "World3") end
+        if dropdownW4 then dropdownW4.Visible = (selectedWorld == "World4") end
+    end
+
     -- Dropdown to pick the World
     elements:Dropdown("Select World", parent, worlds, selectedWorld, function(value)
         selectedWorld = value
+        selectedGate = selectedGates[value] or "4"
+        updateGateDropdownVisibility()
     end)
 
-    -- Dropdown to pick the Win Anchor (Gate)
-    elements:Dropdown("Select Win Anchor", parent, gates, selectedGate, function(value)
+    -- Dropdown to pick the Win Anchor (Gate) for World 1
+    dropdownW1 = elements:Dropdown("Select Win Anchor (World 1)", parent, gatesW1, "4", function(value)
+        selectedGates.World1 = value
         selectedGate = value
     end)
+
+    -- Dropdown to pick the Win Anchor (Gate) for World 2
+    dropdownW2 = elements:Dropdown("Select Win Anchor (World 2)", parent, gatesW2, "11", function(value)
+        selectedGates.World2 = value
+        selectedGate = value
+    end)
+
+    -- Dropdown to pick the Win Anchor (Gate) for World 3
+    dropdownW3 = elements:Dropdown("Select Win Anchor (World 3)", parent, gatesW3, "21", function(value)
+        selectedGates.World3 = value
+        selectedGate = value
+    end)
+
+    -- Dropdown to pick the Win Anchor (Gate) for World 4
+    dropdownW4 = elements:Dropdown("Select Win Anchor (World 4)", parent, gatesW4, "31", function(value)
+        selectedGates.World4 = value
+        selectedGate = value
+    end)
+
+    -- Align initial state visibility
+    updateGateDropdownVisibility()
 
     -- Textbox to change how fast it transmits (in seconds)
     elements:Textbox("Transmit Interval (s)", parent, tostring(loopInterval), function(text)
