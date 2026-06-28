@@ -114,7 +114,7 @@ return function(parent, config)
         if leaderstats then
             local rebirthVal = leaderstats:FindFirstChild("Rebirth")
             if rebirthVal then
-                return tonumber(re-birthVal.Value) or 0
+                return tonumber(rebirthVal.Value) or 0
             end
         end
         return 0
@@ -305,7 +305,7 @@ return function(parent, config)
         return success and part or nil
     end
 
-    -- Helper: Simulates the touch interaction strictly on the TouchTransmitter
+    -- Helper: Simulates physical touch interaction at target location and returns to original position
     local function fireTouch()
         if not isGateUnlocked() then
             local now = tick()
@@ -321,13 +321,22 @@ return function(parent, config)
         local rootPart = char and char:FindFirstChild("HumanoidRootPart")
 
         if targetPart and rootPart then
+            -- 1. Cache the original CFrame before the sequence begins
+            local originalCFrame = rootPart.CFrame
+
+            -- 2. Teleport client to the target win trigger to process server collision bounds
+            rootPart.CFrame = targetPart.CFrame
+            task.wait(0.08) -- Minimum physical latency allowance for engine update
+
+            -- 3. Execute touch bounds verification via client pipeline
             if typeof(firetouchinterest) == "function" then
                 firetouchinterest(targetPart, rootPart, 0) -- Touch began
                 task.wait(0.02)
                 firetouchinterest(targetPart, rootPart, 1) -- Touch ended
-            else
-                warn("[Unsupported] Your executor does not support the 'firetouchinterest' API.")
             end
+
+            -- 4. Restore character positioning seamlessly to original vector coordinates
+            rootPart.CFrame = originalCFrame
         else
             warn("[Error] Target part or your character's HumanoidRootPart was not found.")
         end
