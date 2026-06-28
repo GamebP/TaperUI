@@ -166,12 +166,14 @@ return function(parent, config)
         textLabel.TextColor3 = Color3.new(1, 1, 1)
         textLabel.Parent = billboard
 
+        -- Cached entry now tracks the CharacterInstance
         espData[player] = {
             Container = container,
             Highlight = highlight,
             Billboard = billboard,
             TextLabel = textLabel,
-            Player = player
+            Player = player,
+            CharacterInstance = char
         }
     end
 
@@ -190,12 +192,20 @@ return function(parent, config)
             return
         end
 
+        -- 1. SANITIZE CACHE: Purge entries if players leave, respawn, or have invalid folder structures
+        for plr, data in pairs(espData) do
+            if not plr or not plr.Parent or not Players:FindFirstChild(plr.Name) then
+                if data.Container then pcall(function() data.Container:Destroy() end) end
+                espData[plr] = nil
+            elseif not plr.Character or plr.Character ~= data.CharacterInstance or not data.Container or data.Container.Parent ~= plr.Character then
+                if data.Container then pcall(function() data.Container:Destroy() end) end
+                espData[plr] = nil
+            end
+        end
+
+        -- 2. DRAW/UPDATE ACTIVE ESP COVERS
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr == LocalPlayer then
-                if espData[plr] then
-                    espData[plr].Highlight.Enabled = false
-                    espData[plr].Billboard.Enabled = false
-                end
                 continue
             end
 
@@ -207,6 +217,7 @@ return function(parent, config)
                 continue
             end
 
+            -- Automatically generates fresh visuals if purged or newly connected
             if not espData[plr] then
                 createESPForPlayer(plr)
                 if not espData[plr] then continue end
@@ -215,8 +226,6 @@ return function(parent, config)
             local data = espData[plr]
             local char = plr.Character
             if not char then
-                data.Highlight.Enabled = false
-                data.Billboard.Enabled = false
                 continue
             end
 
@@ -241,13 +250,6 @@ return function(parent, config)
                 data.TextLabel.TextColor3 = color
             else
                 data.TextLabel.Text = plr.Name
-            end
-        end
-
-        for plr, data in pairs(espData) do
-            if not Players:FindFirstChild(plr.Name) or not plr.Character then
-                if data.Container then pcall(function() data.Container:Destroy() end) end
-                espData[plr] = nil
             end
         end
     end
