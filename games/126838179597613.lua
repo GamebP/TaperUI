@@ -200,6 +200,19 @@ return function(parent, config)
         return string.format("%.2f", val)
     end
 
+    -- Helper: Dynamically determines the active physical world loaded in workspace
+    local function getActiveWorld()
+        if autoFightActive then
+            for _, wName in ipairs({"World4", "World3", "World2", "World1"}) do
+                local folder = workspace.Goals:FindFirstChild(wName)
+                if folder and #folder:GetChildren() > 0 then
+                    return wName
+                end
+            end
+        end
+        return selectedWorld
+    end
+
     -- Helper: Safely reads the client's current Wins balance from leaderstats
     local function getWinsCount()
         local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
@@ -327,12 +340,12 @@ return function(parent, config)
             local goalFolder = workspace.Goals:FindFirstChild(worldName)
             if not goalFolder then 
                 -- If previous world is streamed out, assume unlocked as we have transitioned beyond it
-                return worldName ~= selectedWorld 
+                return worldName ~= getActiveWorld()
             end
             
             local gateFolder = goalFolder:FindFirstChild(gateName)
             if not gateFolder then 
-                return worldName ~= selectedWorld
+                return worldName ~= getActiveWorld()
             end
             
             local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
@@ -362,26 +375,27 @@ return function(parent, config)
         end)
         
         if not success then
-            return worldName ~= selectedWorld -- Fallback to locked on active world error
+            return worldName ~= getActiveWorld() -- Fallback to locked on active world error
         end
         return result
     end
 
     -- Helper: Dynamically determines the next locked gate to challenge inside the selected world
     local function getCurrentTargetGate()
+        local activeWorld = getActiveWorld()
         local gatesList = {}
-        if selectedWorld == "World1" then
+        if activeWorld == "World1" then
             gatesList = gatesW1
-        elseif selectedWorld == "World2" then
+        elseif activeWorld == "World2" then
             gatesList = gatesW2
-        elseif selectedWorld == "World3" then
+        elseif activeWorld == "World3" then
             gatesList = gatesW3
-        elseif selectedWorld == "World4" then
+        elseif activeWorld == "World4" then
             gatesList = gatesW4
         end
         
         for _, gate in ipairs(gatesList) do
-            if not isSpecificGateUnlocked(selectedWorld, gate) then
+            if not isSpecificGateUnlocked(activeWorld, gate) then
                 return gate
             end
         end
@@ -392,8 +406,9 @@ return function(parent, config)
 
     -- Helper: Checks if player's kicks balance exceeds target Keeper's power
     local function checkCanBeatKeeper(gate)
+        local activeWorld = getActiveWorld()
         local success, result = pcall(function()
-            local goalFolder = workspace.Goals:FindFirstChild(selectedWorld)
+            local goalFolder = workspace.Goals:FindFirstChild(activeWorld)
             if not goalFolder then return false end
             local gateFolder = goalFolder:FindFirstChild(gate)
             if not gateFolder then return false end
@@ -428,8 +443,9 @@ return function(parent, config)
 
     -- Helper: Gets Keeper prompt and Anchor part safely
     local function getKeeperPromptAndAnchor(gate)
+        local activeWorld = getActiveWorld()
         local success, result = pcall(function()
-            local anchor = workspace.Goals[selectedWorld][gate].KeeperStatus.Anchor
+            local anchor = workspace.Goals[activeWorld][gate].KeeperStatus.Anchor
             local prompt = anchor:FindFirstChild("FootballKeeperPrompt") or anchor:FindFirstChildOfClass("ProximityPrompt")
             return {Prompt = prompt, Anchor = anchor}
         end)
@@ -481,6 +497,7 @@ return function(parent, config)
 
     -- Helper: Verifies if the selected gate's keeper status is Unlocked
     local function isGateUnlocked()
+        local activeWorld = getActiveWorld()
         -- Boundaries transition checks matching game gate structures
         if selectedGate == "11" then
             return isSpecificGateUnlocked("World1", "10")
@@ -490,13 +507,14 @@ return function(parent, config)
             return isSpecificGateUnlocked("World3", "30")
         end
 
-        return isSpecificGateUnlocked(selectedWorld, selectedGate)
+        return isSpecificGateUnlocked(activeWorld, selectedGate)
     end
 
     -- Helper: Safely resolve the path to the selected target part
     local function getTargetPart()
         local success, part = pcall(function()
-            return workspace.Goals[selectedWorld][selectedGate].Wins.Anchor
+            local activeWorld = getActiveWorld()
+            return workspace.Goals[activeWorld][selectedGate].Wins.Anchor
         end)
         return success and part or nil
     end
@@ -614,10 +632,11 @@ return function(parent, config)
     local dropdownW1, dropdownW2, dropdownW3, dropdownW4
 
     local function updateGateDropdownVisibility()
-        if dropdownW1 then dropdownW1.Visible = (selectedWorld == "World1") end
-        if dropdownW2 then dropdownW2.Visible = (selectedWorld == "World2") end
-        if dropdownW3 then dropdownW3.Visible = (selectedWorld == "World3") end
-        if dropdownW4 then dropdownW4.Visible = (selectedWorld == "World4") end
+        local activeWorld = getActiveWorld()
+        if dropdownW1 then dropdownW1.Visible = (activeWorld == "World1") end
+        if dropdownW2 then dropdownW2.Visible = (activeWorld == "World2") end
+        if dropdownW3 then dropdownW3.Visible = (activeWorld == "World3") end
+        if dropdownW4 then dropdownW4.Visible = (activeWorld == "World4") end
     end
 
     -- Dropdown to pick the World
