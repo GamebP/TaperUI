@@ -15,6 +15,18 @@ return function(parent, config)
     local selectedWorld = "World1"
     local selectedGate = "4"
 
+    -- Helper to correct the off-screen layout clipping bug in the TaperUI library
+    local function fixDropdownLayout(dropdown)
+        if not dropdown then return end
+        local header = dropdown:FindFirstChild("HeaderButton")
+        local selectedLabel = header and header:FindFirstChild("SelectedLabel")
+        if selectedLabel then
+            selectedLabel.AnchorPoint = Vector2.new(1, 0)
+            selectedLabel.Size = UDim2.new(0.5, 0, 1, 0)
+            selectedLabel.Position = UDim2.new(1, -35, 0, 0)
+        end
+    end
+
     -- Dynamically discover Worlds and Gate Numbers from workspace.Goals
     local goals = workspace:FindFirstChild("Goals")
     local worlds = {}
@@ -62,19 +74,30 @@ return function(parent, config)
         return success and part or nil
     end
 
-    -- Helper: Simulates the touch interaction strictly on the TouchTransmitter
+    -- Helper: Fires the TouchTransmitter or connections without player movement
     local function fireTouch()
         local targetPart = getTargetPart()
         local char = LocalPlayer.Character
         local rootPart = char and char:FindFirstChild("HumanoidRootPart")
 
         if targetPart and rootPart then
+            -- Option 1: Fire via standard physical emulation (Replicates to Server)
             if typeof(firetouchinterest) == "function" then
-                firetouchinterest(targetPart, rootPart, 0) -- Touch began
-                task.wait(0.02)
-                firetouchinterest(targetPart, rootPart, 1) -- Touch ended
+                task.spawn(function()
+                    firetouchinterest(targetPart, rootPart, 0) -- Touch began
+                    task.wait(0.01)
+                    firetouchinterest(targetPart, rootPart, 1) -- Touch ended
+                end)
+            -- Option 2: Fallback to firing client connections directly if firetouchinterest is restricted
+            elseif typeof(getconnections) == "function" then
+                task.spawn(function()
+                    local connections = getconnections(targetPart.Touched)
+                    for _, connection in ipairs(connections) do
+                        connection:Fire(rootPart)
+                    end
+                end)
             else
-                warn("[Unsupported] Your executor does not support the 'firetouchinterest' API.")
+                warn("[Unsupported] Your executor does not support firetouchinterest or getconnections.")
             end
         else
             warn("[Error] Target part or your character's HumanoidRootPart was not found.")
@@ -84,14 +107,16 @@ return function(parent, config)
     elements:Label("🔥 Automation Utilities", parent)
 
     -- Dropdown to pick the World
-    elements:Dropdown("Select World", parent, worlds, selectedWorld, function(value)
+    local worldDropdown = elements:Dropdown("Select World", parent, worlds, selectedWorld, function(value)
         selectedWorld = value
     end)
+    fixDropdownLayout(worldDropdown)
 
     -- Dropdown to pick the Win Anchor (Gate)
-    elements:Dropdown("Select Win Anchor", parent, gates, selectedGate, function(value)
+    local gateDropdown = elements:Dropdown("Select Win Anchor", parent, gates, selectedGate, function(value)
         selectedGate = value
     end)
+    fixDropdownLayout(gateDropdown)
 
     -- Textbox to precisely change how fast it transmits (in seconds)
     elements:Textbox("Transmit Interval (s)", parent, tostring(loopInterval), function(text)
@@ -103,7 +128,7 @@ return function(parent, config)
         end
     end)
 
-    -- Toggle for Touch Farm Loop
+    -- Toggle for Touch Farm Loop using task.spawn as requested
     elements:Toggle("Auto Win Farm", parent, false, function(state)
         winFarmActive = state
         
