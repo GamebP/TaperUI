@@ -40,6 +40,19 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "[🏆Cup] +1 Kick to Score Goals ⚽️",
+      "gameID": "126838179597613",
+      "gameStatus": "🟢",
+      "dateAdded": "28.06.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
