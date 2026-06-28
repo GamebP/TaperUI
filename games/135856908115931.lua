@@ -9,6 +9,7 @@ return function(parent, config)
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local UserInputService = game:GetService("UserInputService")
+    local TweenService = game:GetService("TweenService")
     local Workspace = game:GetService("Workspace")
     local Camera = Workspace.CurrentCamera
     local LocalPlayer = Players.LocalPlayer
@@ -17,7 +18,7 @@ return function(parent, config)
     local espEnabled = true
     local teamCheck = true
     local aimbotEnabled = true
-    local aimbotToggleKeyStr = "P"
+    local aimbotToggleKeyStr = "R" -- Defaulted to 'R' as requested
     local fovDegrees = 15
 
     local triggerbotActive = false
@@ -32,16 +33,42 @@ return function(parent, config)
     local espData = {}
     local connections = {}
 
-    -- Helper: track event connections for easy unbinding on destroy
+    -- ===== FOV CIRCLE INITIALIZATION =====
+    local hasDrawing = (typeof(Drawing) == "table" or typeof(Drawing) == "userdata") and typeof(Drawing.new) == "function"
+    local fovCircle
+    if hasDrawing then
+        fovCircle = Drawing.new("Circle")
+        fovCircle.Thickness = 1.5
+        fovCircle.NumSides = 64
+        fovCircle.Radius = fovDegrees
+        fovCircle.Filled = false
+        fovCircle.Color = Color3.fromRGB(255, 255, 255)
+        fovCircle.Visible = false
+    end
+
+    -- Helper: track event connections for cleanup on destroy
     local function track(conn)
         table.insert(connections, conn)
         return conn
     end
 
-    -- Helper: safe translation of key strings to KeyCodes
+    -- Helper: translate key strings to KeyCodes
     local function getKeyCode(keyName)
         local ok, kc = pcall(function() return Enum.KeyCode[keyName] end)
         return ok and kc or nil
+    end
+
+    -- Helper: safely update UI visual components when toggled via hotkey
+    local function setToggleVisual(toggleFrame, state)
+        if not toggleFrame then return end
+        local toggleBg = toggleFrame:FindFirstChild("togglebg")
+        local knob = toggleBg and toggleBg:FindFirstChild("leftrightlol")
+        if toggleBg and knob then
+            local bgTarget = state and Color3.fromRGB(59, 164, 57) or Color3.fromRGB(164, 58, 58)
+            local posTarget = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+            TweenService:Create(toggleBg, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { BackgroundColor3 = bgTarget }):Play()
+            TweenService:Create(knob, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = posTarget }):Play()
+        end
     end
 
     local function isAlive(player)
@@ -237,6 +264,33 @@ return function(parent, config)
         end
     end
 
+    -- ===== FOV CIRCLE UPDATE =====
+    local function updateFovCircle()
+        if not hasDrawing or not fovCircle then return end
+        
+        if not aimbotEnabled then
+            fovCircle.Visible = false
+            return
+        end
+        
+        fovCircle.Position = Camera.ViewportSize / 2
+        
+        local fovRad = math.rad(fovDegrees)
+        local cameraFovRad = math.rad(Camera.FieldOfView)
+        local viewportY = Camera.ViewportSize.Y
+        
+        local success, radius = pcall(function()
+            return (math.tan(fovRad) / math.tan(cameraFovRad / 2)) * (viewportY / 2)
+        end)
+        
+        if success and radius then
+            fovCircle.Radius = radius
+            fovCircle.Visible = true
+        else
+            fovCircle.Visible = false
+        end
+    end
+
     -- ===== TRIGGERBOT =====
     local function resetTriggerbotState()
         triggerbotRunning = false
@@ -279,7 +333,9 @@ return function(parent, config)
 
     elements:Label("🎯 Combat (Aimbot)", parent)
 
-    elements:Toggle("Aimbot Active", parent, aimbotEnabled, function(state)
+    -- Storing reference to dynamic visual synchronization
+    local aimbotToggleUI
+    aimbotToggleUI = elements:Toggle("Aimbot Active", parent, aimbotEnabled, function(state)
         aimbotEnabled = state
     end)
 
@@ -316,10 +372,12 @@ return function(parent, config)
     track(UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if gameProcessed then return end
         if input.UserInputType == Enum.UserInputType.Keyboard then
-            -- Handle Aimbot Toggle
+            -- Handle Aimbot Toggle via Keyboard
             local aimbotKC = getKeyCode(aimbotToggleKeyStr)
             if aimbotKC and input.KeyCode == aimbotKC then
                 aimbotEnabled = not aimbotEnabled
+                setToggleVisual(aimbotToggleUI, aimbotEnabled) -- Safely sync visually
+                
                 if getgenv().showToast then
                     getgenv().showToast("Aimbot", "Aimbot is now " .. (aimbotEnabled and "Enabled" or "Disabled"), 1.5)
                 end
@@ -354,6 +412,7 @@ return function(parent, config)
     track(RunService.RenderStepped:Connect(function()
         updateESP()
         doAimbot()
+        updateFovCircle()
         doTriggerbot()
     end))
 
@@ -363,5 +422,8 @@ return function(parent, config)
             if conn then conn:Disconnect() end
         end
         clearAllESP()
+        if hasDrawing and fovCircle then
+            pcall(function() fovCircle:Remove() end)
+        end
     end)
 end
