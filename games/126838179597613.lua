@@ -33,6 +33,7 @@ return function(parent, config)
 
     -- Localized State Configuration for Auto Fight Keeper
     local autoFightActive = false
+    local currentlyFightingOrTeleporting = false
 
     -- Tracks selected gates individually per world
     local selectedGates = {
@@ -354,26 +355,30 @@ return function(parent, config)
     local function forceOpenRebirthUI()
         pcall(function()
             local rebirthFrame = LocalPlayer.PlayerGui:FindFirstChild("RebirthFrame", true)
-            if rebirthFrame then
-                local rebirth = rebirthFrame.Parent
-                if rebirth and rebirth:IsA("GuiObject") and not rebirth.Visible then
-                    -- Click screen button to activate frame state
-                    for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-                        if desc:IsA("TextButton") or desc:IsA("ImageButton") then
-                            local name = desc.Name:lower()
-                            local text = desc:IsA("TextButton") and desc.Text:lower() or ""
-                            if name:find("rebirth") or text:find("rebirth") then
-                                if typeof(firesignal) == "function" then
-                                    firesignal(desc.MouseButton1Click)
-                                    firesignal(desc.Activated)
-                                end
-                                break
+            local rebirth = rebirthFrame and rebirthFrame.Parent
+            
+            -- Lock positioning way offscreen prior to opening to avoid visual pops/flashes
+            if rebirth and rebirth:IsA("Frame") then
+                rebirth.Position = UDim2.new(5, 0, 5, 0)
+            end
+
+            if rebirth and rebirth:IsA("GuiObject") and not rebirth.Visible then
+                -- Click screen button to activate frame state
+                for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                    if desc:IsA("TextButton") or desc:IsA("ImageButton") then
+                        local name = desc.Name:lower()
+                        local text = desc:IsA("TextButton") and desc.Text:lower() or ""
+                        if name:find("rebirth") or text:find("rebirth") then
+                            if typeof(firesignal) == "function" then
+                                firesignal(desc.MouseButton1Click)
+                                firesignal(desc.Activated)
                             end
+                            break
                         end
                     end
-                    task.wait(0.1)
-                    rebirth.Visible = true
                 end
+                task.wait(0.15)
+                rebirth.Visible = true
             end
         end)
     end
@@ -381,18 +386,28 @@ return function(parent, config)
     -- Helper: Parses active Level progress and safely triggers the rebirth button signals
     local function checkAndExecuteRebirth()
         local success, err = pcall(function()
-            -- Force-open the UI frame to ensure the text labels load and update
-            forceOpenRebirthUI()
-
+            -- Find unique RebirthFrame first
             local rebirthFrame = LocalPlayer.PlayerGui:FindFirstChild("RebirthFrame", true)
             if not rebirthFrame then
-                log("Rebirth", "RebirthFrame not found recursively in PlayerGui.")
+                log("Rebirth", "RebirthFrame not found recursively inside PlayerGui.")
                 return
             end
 
             local rebirth = rebirthFrame.Parent
-            if rebirth and rebirth:IsA("GuiObject") and not rebirth.Visible then
-                rebirth.Visible = true
+            local originalVisible = rebirth and rebirth:IsA("GuiObject") and rebirth.Visible or false
+            local originalPosition = rebirth and rebirth:IsA("Frame") and rebirth.Position or nil
+
+            -- Move it off-screen and force visible to let client-side scripts populate the Cost label
+            if rebirth and rebirth:IsA("GuiObject") then
+                if originalPosition then
+                    rebirth.Position = UDim2.new(5, 0, 5, 0) -- Move way off-screen
+                end
+                if not originalVisible then
+                    -- Force-open the UI frame
+                    forceOpenRebirthUI()
+                    rebirth.Visible = true
+                    task.wait(0.05)
+                end
             end
 
             local amountLabel = rebirthFrame:FindFirstChild("Cost") and rebirthFrame.Cost:FindFirstChild("Amount")
@@ -430,7 +445,7 @@ return function(parent, config)
                             firesignal(rebirthButton.Activated)
                         end
 
-                        -- 3. Physically click the button on-screen to bypass anti-cheat listeners
+                        -- 3. Physically click the button on-screen
                         clickButtonOnScreen(rebirthButton)
 
                         -- 4. Clear any confirmation alerts that appear subsequently
@@ -453,6 +468,17 @@ return function(parent, config)
                 end
             else
                 log("Rebirth", "Failed to resolve required Rebirth UI components.")
+            end
+
+            -- Safely restore the original visibility and position state
+            if rebirth and rebirth:IsA("GuiObject") then
+                if not originalVisible then
+                    task.wait(0.05)
+                    rebirth.Visible = false
+                end
+                if originalPosition then
+                    rebirth.Position = originalPosition
+                end
             end
         end)
 
@@ -860,12 +886,14 @@ return function(parent, config)
 
                 if inFight then
                     fighting = true
+                    currentlyFightingOrTeleporting = true -- Lock training teleport
                     clickGoal()
                     task.wait(0.05) -- clicks at 20 CPS
                 else
                     if fighting then
                         -- Finished a fight, restore previous position
                         fighting = false
+                        currentlyFightingOrTeleporting = false -- Release training lock
                         local char = LocalPlayer.Character
                         local rootPart = char and char:FindFirstChild("HumanoidRootPart")
                         if rootPart and savedCFrame then
@@ -886,6 +914,7 @@ return function(parent, config)
                                 local rootPart = char and char:FindFirstChild("HumanoidRootPart")
                                 if rootPart then
                                     savedCFrame = rootPart.CFrame
+                                    currentlyFightingOrTeleporting = true -- Lock training teleport
                                     
                                     -- Teleport safely 2 studs above the Keeper Anchor
                                     rootPart.CFrame = target.Anchor.CFrame * CFrame.new(0, 2, 0)
@@ -896,6 +925,13 @@ return function(parent, config)
                                     while autoFightActive and not isGoalUIActive() and (tick() - startAttempt < 2.0) do
                                         firePrompt(target.Prompt)
                                         task.wait(0.2)
+                                    end
+
+                                    -- Release lock and return if fight failed to launch within 2 seconds
+                                    if not isGoalUIActive() then
+                                        currentlyFightingOrTeleporting = false
+                                        rootPart.CFrame = savedCFrame
+                                        savedCFrame = nil
                                     end
                                 end
                             end
@@ -941,16 +977,18 @@ return function(parent, config)
         autoTrainActive = true
         task.spawn(function()
             while autoTrainActive do
-                local spotInfo = trainingSpots[selectedTrainingSpot]
-                if spotInfo then
-                    local currentRebirths = getRebirthCount()
-                    if currentRebirths >= spotInfo.req then
-                        teleportTo(spotInfo.pos)
-                    else
-                        local now = tick()
-                        if now - lastTrainWarning > 5 then
-                            warn(string.format("[Auto Train] Blocked. Requires %d Rebirths (You have %d).", spotInfo.req, currentRebirths))
-                            lastTrainWarning = now
+                if not currentlyFightingOrTeleporting then
+                    local spotInfo = trainingSpots[selectedTrainingSpot]
+                    if spotInfo then
+                        local currentRebirths = getRebirthCount()
+                        if currentRebirths >= spotInfo.req then
+                            teleportTo(spotInfo.pos)
+                        else
+                            local now = tick()
+                            if now - lastTrainWarning > 5 then
+                                warn(string.format("[Auto Train] Blocked. Requires %d Rebirths (You have %d).", spotInfo.req, currentRebirths))
+                                lastTrainWarning = now
+                            end
                         end
                     end
                 end
