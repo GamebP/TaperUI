@@ -27,6 +27,19 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "[🏖️DUELS] Murderers VS Sheriffs",
+      "gameID": "135856908115931",
+      "gameStatus": "🟢",
+      "dateAdded": "28.06.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
