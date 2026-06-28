@@ -386,7 +386,9 @@ return function(parent, config)
     -- Helper: Parses active Level progress and safely triggers the rebirth button signals
     local function checkAndExecuteRebirth()
         local success, err = pcall(function()
-            -- Find unique RebirthFrame first
+            -- Force-open the UI frame to ensure the text labels load and update
+            forceOpenRebirthUI()
+
             local rebirthFrame = LocalPlayer.PlayerGui:FindFirstChild("RebirthFrame", true)
             if not rebirthFrame then
                 log("Rebirth", "RebirthFrame not found recursively inside PlayerGui.")
@@ -457,8 +459,10 @@ return function(parent, config)
                                     local titleText = titleBack and titleBack:IsA("TextLabel") and titleBack.Text:lower() or ""
                                     
                                     if btnText == "yes" or btnText == "confirm" or btnText:find("rebirth") or titleText:find("yes") or titleText:find("confirm") then
-                                        firesignal(desc.MouseButton1Click)
-                                        firesignal(desc.Activated)
+                                        if typeof(firesignal) == "function" then
+                                            firesignal(desc.MouseButton1Click)
+                                            firesignal(desc.Activated)
+                                        end
                                         clickButtonOnScreen(desc)
                                     end
                                 end
