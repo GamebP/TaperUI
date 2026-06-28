@@ -10,6 +10,12 @@ return function(parent, config)
     local VirtualInputManager = game:GetService("VirtualInputManager")
     local LocalPlayer = Players.LocalPlayer
 
+    -- Defensive initialization guard to block fake executor clicks during UI construction
+    local scriptInitTime = tick()
+    local function isReady()
+        return (tick() - scriptInitTime) > 1.0
+    end
+
     -- Localized State Configuration for Win Farm
     local winFarmActive = false
     local loopInterval = 0.5
@@ -108,7 +114,7 @@ return function(parent, config)
         if leaderstats then
             local rebirthVal = leaderstats:FindFirstChild("Rebirth")
             if rebirthVal then
-                return tonumber(rebirthVal.Value) or 0
+                return tonumber(re-birthVal.Value) or 0
             end
         end
         return 0
@@ -455,16 +461,18 @@ return function(parent, config)
 
     -- Toggle for Touch Farm Loop
     elements:Toggle("Auto Win Farm", parent, false, function(state)
-        winFarmActive = state
-        
-        if winFarmActive then
-            task.spawn(function()
-                while winFarmActive do
-                    fireTouch()
-                    task.wait(loopInterval)
-                end
-            end)
+        if not isReady() or not state then
+            winFarmActive = false
+            return
         end
+
+        winFarmActive = true
+        task.spawn(function()
+            while winFarmActive do
+                fireTouch()
+                task.wait(loopInterval)
+            end
+        end)
     end)
 
     -- UI: AFK Training Section
@@ -477,28 +485,30 @@ return function(parent, config)
 
     -- Toggle to maintain teleport position on the training target
     elements:Toggle("Auto Train (AFK Loop)", parent, false, function(state)
-        autoTrainActive = state
-        
-        if autoTrainActive then
-            task.spawn(function()
-                while autoTrainActive do
-                    local spotInfo = trainingSpots[selectedTrainingSpot]
-                    if spotInfo then
-                        local currentRebirths = getRebirthCount()
-                        if currentRebirths >= spotInfo.req then
-                            teleportTo(spotInfo.pos)
-                        else
-                            local now = tick()
-                            if now - lastTrainWarning > 5 then
-                                warn(string.format("[Auto Train] Blocked. Requires %d Rebirths (You have %d).", spotInfo.req, currentRebirths))
-                                lastTrainWarning = now
-                            end
+        if not isReady() or not state then
+            autoTrainActive = false
+            return
+        end
+
+        autoTrainActive = true
+        task.spawn(function()
+            while autoTrainActive do
+                local spotInfo = trainingSpots[selectedTrainingSpot]
+                if spotInfo then
+                    local currentRebirths = getRebirthCount()
+                    if currentRebirths >= spotInfo.req then
+                        teleportTo(spotInfo.pos)
+                    else
+                        local now = tick()
+                        if now - lastTrainWarning > 5 then
+                            warn(string.format("[Auto Train] Blocked. Requires %d Rebirths (You have %d).", spotInfo.req, currentRebirths))
+                            lastTrainWarning = now
                         end
                     end
-                    task.wait(1.5) -- Periodically re-aligns position against game reset scripts
                 end
-            end)
-        end
+                task.wait(1.5) -- Periodically re-aligns position against game reset scripts
+            end
+        end)
     end)
 
     -- UI: Egg Hatching Section
@@ -534,25 +544,25 @@ return function(parent, config)
 
     -- Toggle for Auto Hatch Loop
     elements:Toggle("Auto Hatch Eggs", parent, false, function(state)
-        autoHatchActive = state
-        if not state then
+        if not isReady() or not state then
+            autoHatchActive = false
             hasPressedT = false
+            return
         end
-        
-        if autoHatchActive then
-            task.spawn(function()
-                while autoHatchActive do
-                    if selectedHatchKey == Enum.KeyCode.T then
-                        if not hasPressedT then
-                            executeInteraction()
-                            hasPressedT = true
-                        end
-                    else
+
+        autoHatchActive = true
+        task.spawn(function()
+            while autoHatchActive do
+                if selectedHatchKey == Enum.KeyCode.T then
+                    if not hasPressedT then
                         executeInteraction()
+                        hasPressedT = true
                     end
-                    task.wait(hatchInterval)
+                else
+                    executeInteraction()
                 end
-            end)
-        end
+                task.wait(hatchInterval)
+            end
+        end)
     end)
 end
