@@ -305,77 +305,6 @@ return function(parent, config)
         end)
     end
 
-    -- Helper: Checks if player's kicks balance exceeds selected Keeper's power
-    local function checkCanBeatKeeper()
-        local success, result = pcall(function()
-            local goalFolder = workspace.Goals:FindFirstChild(selectedWorld)
-            if not goalFolder then return false end
-            local gateFolder = goalFolder:FindFirstChild(selectedGate)
-            if not gateFolder then return false end
-            local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
-            if not keeperStatus then return false end
-            
-            local anchor = keeperStatus:FindFirstChild("Anchor")
-            if not anchor then return false end
-            
-            local billboard = anchor:FindFirstChildOfClass("BillboardGui")
-            local frame = billboard and billboard:FindFirstChild("Frame")
-            local powerFolder = frame and frame:FindFirstChild("Power")
-            local powerLabel = powerFolder and powerFolder:FindFirstChild("Power")
-            
-            if powerLabel and powerLabel:IsA("TextLabel") then
-                local keeperPower = parseAbbreviatedNumber(powerLabel.Text)
-                local myPowerVal = LocalPlayer.leaderstats:FindFirstChild("Kicks")
-                local myPower = myPowerVal and myPowerVal.Value or 0
-                return myPower > keeperPower
-            end
-            return false
-        end)
-        return success and result
-    end
-
-    -- Helper: Gets Keeper prompt and Anchor part safely
-    local function getKeeperPromptAndAnchor()
-        local success, result = pcall(function()
-            local anchor = workspace.Goals[selectedWorld][selectedGate].KeeperStatus.Anchor
-            local prompt = anchor:FindFirstChild("FootballKeeperPrompt") or anchor:FindFirstChildOfClass("ProximityPrompt")
-            return {Prompt = prompt, Anchor = anchor}
-        end)
-        return success and result or nil
-    end
-
-    -- Helper: Performs a single simulated click in the middle of the Goal UI Click button
-    local function clickGoal()
-        pcall(function()
-            local goalGui = LocalPlayer.PlayerGui:FindFirstChild("Goal")
-            if goalGui and goalGui.Enabled then
-                local clickBtn = goalGui:FindFirstChild("Click") or (goalGui:FindFirstChild("Frame") and goalGui.Frame:FindFirstChild("Click"))
-                if clickBtn then
-                    local absPos = clickBtn.AbsolutePosition
-                    local absSize = clickBtn.AbsoluteSize
-                    local clickX = absPos.X + (absSize.X / 2)
-                    local clickY = absPos.Y + (absSize.Y / 2)
-                    if VirtualInputManager then
-                        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
-                        task.wait(0.01)
-                        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
-                    end
-                end
-            end
-        end)
-    end
-
-    -- Helper: Teleports player's character to a Vector3 position
-    local function teleportTo(pos)
-        local char = LocalPlayer.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = CFrame.new(pos)
-            return true
-        end
-        return false
-    end
-
     -- Helper: Verifies unlock status of specific goal markers dynamically
     local function isSpecificGateUnlocked(worldName, gateName)
         local success, result = pcall(function()
@@ -418,6 +347,100 @@ return function(parent, config)
             return true -- Fallback to prevent locking the loop on standard path errors
         end
         return result
+    end
+
+    -- Helper: Dynamically determines the next locked gate to challenge inside the selected world
+    local function getCurrentTargetGate()
+        local gatesList = {}
+        if selectedWorld == "World1" then
+            gatesList = gatesW1
+        elseif selectedWorld == "World2" then
+            gatesList = gatesW2
+        elseif selectedWorld == "World3" then
+            gatesList = gatesW3
+        elseif selectedWorld == "World4" then
+            gatesList = gatesW4
+        end
+        
+        for _, gate in ipairs(gatesList) do
+            if not isSpecificGateUnlocked(selectedWorld, gate) then
+                return gate
+            end
+        end
+        
+        -- Fallback to currently selected gate if all are unlocked
+        return gatesList[#gatesList] or selectedGate
+    end
+
+    -- Helper: Checks if player's kicks balance exceeds target Keeper's power
+    local function checkCanBeatKeeper(gate)
+        local success, result = pcall(function()
+            local goalFolder = workspace.Goals:FindFirstChild(selectedWorld)
+            if not goalFolder then return false end
+            local gateFolder = goalFolder:FindFirstChild(gate)
+            if not gateFolder then return false end
+            local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
+            if not keeperStatus then return false end
+            
+            local anchor = keeperStatus:FindFirstChild("Anchor")
+            if not anchor then return false end
+            
+            local billboard = anchor:FindFirstChildOfClass("BillboardGui")
+            local frame = billboard and billboard:FindFirstChild("Frame")
+            local powerFolder = frame and frame:FindFirstChild("Power")
+            local powerLabel = powerFolder and powerFolder:FindFirstChild("Power")
+            
+            if powerLabel and powerLabel:IsA("TextLabel") then
+                local keeperPower = parseAbbreviatedNumber(powerLabel.Text)
+                local myPowerVal = LocalPlayer.leaderstats:FindFirstChild("Kicks")
+                local myPower = myPowerVal and myPowerVal.Value or 0
+                return myPower > keeperPower
+            end
+            return false
+        end)
+        return success and result
+    end
+
+    -- Helper: Gets Keeper prompt and Anchor part safely
+    local function getKeeperPromptAndAnchor(gate)
+        local success, result = pcall(function()
+            local anchor = workspace.Goals[selectedWorld][gate].KeeperStatus.Anchor
+            local prompt = anchor:FindFirstChild("FootballKeeperPrompt") or anchor:FindFirstChildOfClass("ProximityPrompt")
+            return {Prompt = prompt, Anchor = anchor}
+        end)
+        return success and result or nil
+    end
+
+    -- Helper: Performs a single simulated click in the middle of the Goal UI Click button
+    local function clickGoal()
+        pcall(function()
+            local goalGui = LocalPlayer.PlayerGui:FindFirstChild("Goal")
+            if goalGui and goalGui.Enabled then
+                local clickBtn = goalGui:FindFirstChild("Click") or (goalGui:FindFirstChild("Frame") and goalGui.Frame:FindFirstChild("Click"))
+                if clickBtn then
+                    local absPos = clickBtn.AbsolutePosition
+                    local absSize = clickBtn.AbsoluteSize
+                    local clickX = absPos.X + (absSize.X / 2)
+                    local clickY = absPos.Y + (absSize.Y / 2)
+                    if VirtualInputManager then
+                        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+                        task.wait(0.01)
+                        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+                    end
+                end
+            end
+        end)
+    end
+
+    -- Helper: Teleports player's character to a Vector3 position
+    local function teleportTo(pos)
+        local char = LocalPlayer.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.CFrame = CFrame.new(pos)
+            return true
+        end
+        return false
     end
 
     -- Helper: Verifies if the selected gate's keeper status is Unlocked
@@ -653,10 +676,13 @@ return function(parent, config)
                         savedCFrame = nil
                         task.wait(1.0)
                     else
-                        -- Not fighting, check power capabilities
-                        local canBeat = checkCanBeatKeeper()
+                        -- Dynamically resolve the next locked gate to challenge
+                        local targetGate = getCurrentTargetGate()
+                        
+                        -- Not fighting, check power capabilities for this target gate
+                        local canBeat = checkCanBeatKeeper(targetGate)
                         if canBeat then
-                            local target = getKeeperPromptAndAnchor()
+                            local target = getKeeperPromptAndAnchor(targetGate)
                             if target and target.Prompt and target.Anchor then
                                 local char = LocalPlayer.Character
                                 local rootPart = char and char:FindFirstChild("HumanoidRootPart")
