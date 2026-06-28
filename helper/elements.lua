@@ -549,7 +549,7 @@ function elements:Dropdown(str, parent, options, def, cb)
             create("TextLabel", {
                 Name = "SelectedLabel",
                 Size = UDim2.new(0.3, 0, 1, 0),
-                Position = UDim2.new(1, -50, 0, 0),
+                Position = UDim2.new(0.7, -30, 0, 0),
                 BackgroundTransparency = 1,
                 Text = currentSelected,
                 TextColor3 = Color3.fromRGB(150, 150, 155),
