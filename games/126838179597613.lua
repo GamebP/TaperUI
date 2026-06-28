@@ -922,7 +922,7 @@ return function(parent, config)
                             local target = getKeeperPromptAndAnchor(targetGate)
                             if target and target.Prompt and target.Anchor then
                                 local char = LocalPlayer.Character
-                               .local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+                                local rootPart = char and char:FindFirstChild("HumanoidRootPart")
                                 if rootPart then
                                     savedCFrame = rootPart.CFrame
                                     currentlyFightingOrTeleporting = true -- Lock training teleport
