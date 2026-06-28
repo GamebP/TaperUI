@@ -16,20 +16,12 @@ return function(parent, config)
         uiLoaded = true
     end)
 
-    -- Real-time Logging Helper (Viewable via F9 Console)
-    local function log(module, msg)
-        print(string.format("[TaperUI - %s] %s", module, msg))
-    end
-
     -- Localized State Configuration for Win Farm
     local winFarmActive = false
     local loopInterval = 0.5
     local selectedWorld = "World1"
     local selectedGate = "4"
     local lastLockWarning = 0
-
-    -- Localized State Configuration for Auto Rebirth
-    local autoRebirthActive = false
 
     -- Localized State Configuration for Auto Fight Keeper
     local autoFightActive = false
@@ -335,169 +327,6 @@ return function(parent, config)
         return amount
     end
 
-    -- Helper: Evaluates the client's screen layout and physically triggers a mouse-click sequence
-    local function clickButtonOnScreen(btn)
-        if not btn then return end
-        pcall(function()
-            local absPos = btn.AbsolutePosition
-            local absSize = btn.AbsoluteSize
-            local clickX = absPos.X + (absSize.X / 2)
-            local clickY = absPos.Y + (absSize.Y / 2)
-            if VirtualInputManager then
-                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
-                task.wait(0.01)
-                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
-            end
-        end)
-    end
-
-    -- Helper: Attempts to open the Rebirth UI if it is currently closed/unpopulated
-    local function forceOpenRebirthUI()
-        pcall(function()
-            local rebirthFrame = LocalPlayer.PlayerGui:FindFirstChild("RebirthFrame", true)
-            local rebirth = rebirthFrame and rebirthFrame.Parent
-            
-            -- Lock positioning way offscreen prior to opening to avoid visual pops/flashes
-            if rebirth and rebirth:IsA("Frame") then
-                rebirth.Position = UDim2.new(5, 0, 5, 0)
-            end
-
-            if rebirth and rebirth:IsA("GuiObject") and not rebirth.Visible then
-                -- Restrict opener button scanner strictly inside the game's native UI container (MainUI)
-                local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-                if mainUI then
-                    for _, desc in ipairs(mainUI:GetDescendants()) do
-                        if desc:IsA("TextButton") or desc:IsA("ImageButton") then
-                            local name = desc.Name:lower()
-                            local text = desc:IsA("TextButton") and desc.Text:lower() or ""
-                            if name:find("rebirth") or text:find("rebirth") then
-                                if typeof(firesignal) == "function" then
-                                    firesignal(desc.MouseButton1Click)
-                                    firesignal(desc.Activated)
-                                end
-                                clickButtonOnScreen(desc)
-                                break
-                            end
-                        end
-                    end
-                end
-                task.wait(0.15)
-                rebirth.Visible = true
-            end
-        end)
-    end
-
-    -- Helper: Parses active Level progress and safely triggers the rebirth button signals
-    local function checkAndExecuteRebirth()
-        local success, err = pcall(function()
-            -- Force-open the UI frame to ensure the text labels load and update
-            forceOpenRebirthUI()
-
-            local rebirthFrame = LocalPlayer.PlayerGui:FindFirstChild("RebirthFrame", true)
-            if not rebirthFrame then
-                log("Rebirth", "RebirthFrame not found recursively inside PlayerGui.")
-                return
-            end
-
-            local rebirth = rebirthFrame.Parent
-            local originalVisible = rebirth and rebirth:IsA("GuiObject") and rebirth.Visible or false
-            local originalPosition = rebirth and rebirth:IsA("Frame") and rebirth.Position or nil
-
-            -- Move it off-screen and force visible to let client-side scripts populate the Cost label
-            if rebirth and rebirth:IsA("GuiObject") then
-                if originalPosition then
-                    rebirth.Position = UDim2.new(5, 0, 5, 0) -- Move way off-screen
-                end
-                if not originalVisible then
-                    -- Force-open the UI frame
-                    forceOpenRebirthUI()
-                    rebirth.Visible = true
-                    task.wait(0.05)
-                end
-            end
-
-            local amountLabel = rebirthFrame:FindFirstChild("Cost") and rebirthFrame.Cost:FindFirstChild("Amount")
-            local rebirthButton = rebirthFrame:FindFirstChild("RebirthButton")
-
-            if amountLabel and amountLabel:IsA("TextLabel") and rebirthButton then
-                local text = amountLabel.Text -- expected format: "Level: 95/95"
-                log("Rebirth", "Read Rebirth Label Text: " .. tostring(text))
-
-                local currentStr, requiredStr = text:match("(%d+)%s*/%s*(%d+)")
-                if currentStr and requiredStr then
-                    local currentLevel = tonumber(currentStr)
-                    local requiredLevel = tonumber(requiredStr)
-                    
-                    log("Rebirth", string.format("Levels parsed successfully: %d/%d", currentLevel, requiredLevel))
-                    
-                    if currentLevel and requiredLevel and currentLevel >= requiredLevel then
-                        log("Rebirth", "Requirements met! Processing rebirth trigger sequence...")
-
-                        -- 1. Attempt Silent Network Rebirth via Remote Event / Remote Function
-                        local replicatedStorage = game:GetService("ReplicatedStorage")
-                        for _, desc in ipairs(replicatedStorage:GetDescendants()) do
-                            if desc:IsA("RemoteEvent") and (desc.Name:lower():find("rebirth") or desc.Name:lower() == "r") then
-                                desc:FireServer()
-                            elseif desc:IsA("RemoteFunction") and (desc.Name:lower():find("rebirth") or desc.Name:lower() == "r") then
-                                desc:InvokeServer()
-                            end
-                        end
-
-                        -- 2. Trigger UI click sequence via mouse-interaction signals
-                        if typeof(firesignal) == "function" then
-                            firesignal(rebirthButton.MouseButton1Click)
-                            firesignal(rebirthButton.MouseButton1Down)
-                            firesignal(rebirthButton.MouseButton1Up)
-                            firesignal(rebirthButton.Activated)
-                        end
-
-                        -- 3. Physically click the button on-screen
-                        clickButtonOnScreen(rebirthButton)
-
-                        -- 4. Clear any confirmation alerts that appear subsequently inside MainUI
-                        task.delay(0.15, function()
-                            local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-                            if mainUI then
-                                for _, desc in ipairs(mainUI:GetDescendants()) do
-                                    if desc:IsA("TextButton") and desc.Visible then
-                                        local btnText = desc.Text:lower()
-                                        local titleBack = desc:FindFirstChild("TitleBack")
-                                        local titleText = titleBack and titleBack:IsA("TextLabel") and titleBack.Text:lower() or ""
-                                        
-                                        if btnText == "yes" or btnText == "confirm" or btnText:find("rebirth") or titleText:find("yes") or titleText:find("confirm") then
-                                            if typeof(firesignal) == "function" then
-                                                firesignal(desc.MouseButton1Click)
-                                                firesignal(desc.Activated)
-                                            end
-                                            clickButtonOnScreen(desc)
-                                        end
-                                    end
-                                end
-                            end
-                        end)
-                    end
-                end
-            else
-                log("Rebirth", "Failed to resolve required Rebirth UI components.")
-            end
-
-            -- Safely restore the original visibility and position state
-            if rebirth and rebirth:IsA("GuiObject") then
-                if not originalVisible then
-                    task.wait(0.05)
-                    rebirth.Visible = false
-                end
-                if originalPosition then
-                    rebirth.Position = originalPosition
-                end
-            end
-        end)
-
-        if not success then
-            log("Rebirth", "Error executing check: " .. tostring(err))
-        end
-    end
-
     -- Helper: Verifies unlock status of specific goal markers dynamically
     local function isSpecificGateUnlocked(worldName, gateName)
         local success, result = pcall(function()
@@ -600,7 +429,6 @@ return function(parent, config)
                 end
                 
                 local affordable = myPower > keeperPower
-                log("Fight", string.format("Target: %s | Keeper Power: %s | My Kicks: %s | Can Beat: %s", gate, formatBigNumber(keeperPower), formatBigNumber(myPower), tostring(affordable)))
                 return affordable
             end
             return false
@@ -862,22 +690,6 @@ return function(parent, config)
         else
             warn("[Invalid] Please enter a valid positive number for the interval.")
         end
-    end)
-
-    -- Toggle for Auto Rebirth Checking
-    elements:Toggle("Auto Rebirth", parent, false, function(state)
-        if not uiLoaded or not state then
-            autoRebirthActive = false
-            return
-        end
-
-        autoRebirthActive = true
-        task.spawn(function()
-            while autoRebirthActive do
-                checkAndExecuteRebirth()
-                task.wait(2.0)
-            end
-        end)
     end)
 
     -- Toggle for Auto Fight Keeper
