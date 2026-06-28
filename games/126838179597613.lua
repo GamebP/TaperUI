@@ -74,31 +74,14 @@ return function(parent, config)
         return success and part or nil
     end
 
-    -- Helper: Fires the TouchTransmitter or connections without player movement
-    local function fireTouch()
+    -- Helper: Teleports you directly to the target part's CFrame
+    local function teleportToPart()
         local targetPart = getTargetPart()
         local char = LocalPlayer.Character
         local rootPart = char and char:FindFirstChild("HumanoidRootPart")
 
         if targetPart and rootPart then
-            -- Option 1: Fire via standard physical emulation (Replicates to Server)
-            if typeof(firetouchinterest) == "function" then
-                task.spawn(function()
-                    firetouchinterest(targetPart, rootPart, 0) -- Touch began
-                    task.wait(0.01)
-                    firetouchinterest(targetPart, rootPart, 1) -- Touch ended
-                end)
-            -- Option 2: Fallback to firing client connections directly if firetouchinterest is restricted
-            elseif typeof(getconnections) == "function" then
-                task.spawn(function()
-                    local connections = getconnections(targetPart.Touched)
-                    for _, connection in ipairs(connections) do
-                        connection:Fire(rootPart)
-                    end
-                end)
-            else
-                warn("[Unsupported] Your executor does not support firetouchinterest or getconnections.")
-            end
+            rootPart.CFrame = targetPart.CFrame
         else
             warn("[Error] Target part or your character's HumanoidRootPart was not found.")
         end
@@ -128,14 +111,14 @@ return function(parent, config)
         end
     end)
 
-    -- Toggle for Touch Farm Loop using task.spawn as requested
+    -- Toggle for Teleport Win Farm Loop
     elements:Toggle("Auto Win Farm", parent, false, function(state)
         winFarmActive = state
         
         if winFarmActive then
             task.spawn(function()
                 while winFarmActive do
-                    fireTouch()
+                    teleportToPart()
                     task.wait(loopInterval)
                 end
             end)
