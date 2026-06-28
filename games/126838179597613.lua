@@ -1,3 +1,1169 @@
+--[[
+
+ok i see...
+so when you want to auto fight..
+`workspace.Goals.World#2["#14"].KeeperStatus.Anchor.FootballKeeperPrompt` you will need to tp to it close,
+ofc first of all check if you can beat it at `workspace.Goals.World#2["#14"].KeeperStatus.Anchor.BillboardGui.Frame.Power.Power` so if it's like MyPower > HisPower then we can do this!
+
+to be honest.. #14 can be any other goal .. but world can be different too..
+
+MyPower = game:GetService("Players").LocalPlayer.leaderstats.Kicks (206977186600) <- NumberValue
+
+So if you see if you can beat it, tp to him, press letter `E`, and whenever 
+`game:GetService("Players").LocalPlayer.PlayerGui.Goal` is active you will start clicking 20 cps at middle of the `game:GetService("Players").LocalPlayer.PlayerGui.Goal.Click`  x,y pos. 
+
+--]]
+
+-- What works:
+-- Auto Train
+-- Teleports
+-- Auto Open Eggs
+-- Auto Get Money
+
+-- Dosent work:
+-- Auto Rebirth
+-- Auto Fight
+
+-- Auto Rebirth info:
+--[[
+
+Rebirth (Frame)
+  Visible: true
+  ClipsDescendants: false
+  BorderColor3: 0.105882, 0.164706, 0.207843
+  Style: Enum.FrameStyle.Custom
+  LayoutOrder: 0
+  BackgroundColor3: 0, 0, 0
+  Position: {0.5, 0}, {0.5, 0}
+  Name: Rebirth
+  ClassName: Frame
+  BackgroundTransparency: 0.44999998807907104
+  ZIndex: 1
+  BorderSizePixel: 0
+  Size: {0.489406794, 0}, {0.5, 0}
+    RebirthFrame (Frame)
+      Visible: true
+      ClipsDescendants: false
+      BorderColor3: 0, 0, 0
+      Style: Enum.FrameStyle.Custom
+      LayoutOrder: 0
+      BackgroundColor3: 0.192157, 0.192157, 0.192157
+      Position: {0.5, 0}, {0.571236014, 0}
+      Name: RebirthFrame
+      ClassName: Frame
+      BackgroundTransparency: 1
+      ZIndex: 1
+      BorderSizePixel: 0
+      Size: {1, 0}, {0.839797735, 0}
+        Cost (Frame)
+          Visible: true
+          ClipsDescendants: false
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Style: Enum.FrameStyle.Custom
+          LayoutOrder: 0
+          BackgroundColor3: 0, 0, 0
+          Position: {0.5, 0}, {0.699999988, 0}
+          Name: Cost
+          ClassName: Frame
+          BackgroundTransparency: 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.75999999, 0}, {0.109359667, 0}
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            YouNeed (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 2
+              BorderSizePixel: 0
+              Size: {0.923076928, 0}, {0.731680155, 0}
+              Name: YouNeed
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 0, 0
+              BorderColor3: 0, 0, 0
+              Text: Rebirth resets: Levels & Kicks
+              Position: {0.49999994, 0}, {-0.56445694, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+            Background (Frame)
+              Visible: true
+              ClipsDescendants: false
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Style: Enum.FrameStyle.Custom
+              LayoutOrder: 0
+              BackgroundColor3: 1, 1, 1
+              Position: {0, 0}, {0, 0}
+              Name: Background
+              ClassName: Frame
+              BackgroundTransparency: 1
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {1, 0}, {1, 0}
+                ProgressBar (Frame)
+                  Visible: true
+                  ClipsDescendants: false
+                  BorderColor3: 0, 0, 0
+                  Style: Enum.FrameStyle.Custom
+                  LayoutOrder: 0
+                  BackgroundColor3: 1, 1, 1
+                  Position: {0, 0}, {0.5, 0}
+                  Name: ProgressBar
+                  ClassName: Frame
+                  BackgroundTransparency: 0
+                  ZIndex: 1
+                  BorderSizePixel: 0
+                  Size: {1, 0}, {1, 0}
+                    GoldV2 (UIGradient)
+                      Name: GoldV2
+                      ClassName: UIGradient
+            Amount (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 2
+              BorderSizePixel: 0
+              Size: {0.584999979, 0}, {0.800000012, 0}
+              Name: Amount
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Text: Level: 95/95
+              Position: {0.5, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 17
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+        RebirthButton (TextButton)
+          LayoutOrder: 3
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 3
+          BorderSizePixel: 0
+          Size: {0.349999994, 0}, {0.170000002, 0}
+          Name: RebirthButton
+          TextXAlignment: Enum.TextXAlignment.Center
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 0, 0, 0
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Text: 
+          Position: {0.300000012, 0}, {0.898843586, 0}
+          Visible: true
+          TextSize: 14
+          Font: Enum.Font.SourceSans
+          BackgroundTransparency: 0
+          ClassName: TextButton
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 1, 1, 1
+            TitleBack (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 4
+              BorderSizePixel: 0
+              Size: {0.800000012, 0}, {0.765999973, 0}
+              Name: TitleBack
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Text: Rebirth
+              Position: {0.5, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+            UICorner (UICorner)
+              Name: UICorner
+              ClassName: UICorner
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            Green (UIGradient)
+              Name: Green
+              ClassName: UIGradient
+        AutoRebirthButton (TextButton)
+          LayoutOrder: 0
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 2
+          BorderSizePixel: 0
+          Size: {0.25, 0}, {0.131425604, 0}
+          Name: AutoRebirthButton
+          TextXAlignment: Enum.TextXAlignment.Center
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 1, 1, 1
+          BorderColor3: 0, 0, 0
+          Text: 
+          Position: {0.99999994, 0}, {1.18830001, 0}
+          Visible: false
+          TextSize: 14
+          Font: Enum.Font.FredokaOne
+          BackgroundTransparency: 0
+          ClassName: TextButton
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 1, 0, 0
+            UIGradient (UIGradient)
+              Name: UIGradient
+              ClassName: UIGradient
+            TextLabel (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 3
+              BorderSizePixel: 0
+              Size: {0.870293856, 0}, {0.8348912, 0}
+              Name: TextLabel
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0, 0, 0
+              Text: Auto: OFF
+              Position: {0.502748609, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+            UICorner (UICorner)
+              Name: UICorner
+              ClassName: UICorner
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+        SkipButton (TextButton)
+          LayoutOrder: 3
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 3
+          BorderSizePixel: 0
+          Size: {0.349999994, 0}, {0.170000002, 0}
+          Name: SkipButton
+          TextXAlignment: Enum.TextXAlignment.Center
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 0, 0, 0
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Text: 
+          Position: {0.709999979, 0}, {0.898843586, 0}
+          Visible: true
+          TextSize: 14
+          Font: Enum.Font.SourceSans
+          BackgroundTransparency: 0
+          ClassName: TextButton
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 1, 1, 1
+            TitleBack (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 4
+              BorderSizePixel: 0
+              Size: {0.800000012, 0}, {0.765999973, 0}
+              Name: TitleBack
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Text: Skip Rebirth
+              Position: {0.5, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+            UICorner (UICorner)
+              Name: UICorner
+              ClassName: UICorner
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            Blue (UIGradient)
+              Name: Blue
+              ClassName: UIGradient
+            TitleBack (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 4
+              BorderSizePixel: 0
+              Size: {0.589999974, 0}, {0.49000001, 0}
+              Name: TitleBack
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Text: KEEP EVERYTHING
+              Position: {0.5, 0}, {1, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+                GoldV2 (UIGradient)
+                  Name: GoldV2
+                  ClassName: UIGradient
+        NewPower (Frame)
+          Visible: true
+          ClipsDescendants: false
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Style: Enum.FrameStyle.Custom
+          LayoutOrder: 0
+          BackgroundColor3: 1, 1, 1
+          Position: {0.765999973, 0}, {0.219999999, 0}
+          Name: NewPower
+          ClassName: Frame
+          BackgroundTransparency: 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.355000019, 0}, {0.153999999, 0}
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            Red (UIGradient)
+              Name: Red
+              ClassName: UIGradient
+            ImageLabel (ImageLabel)
+              LayoutOrder: 0
+              ImageTransparency: 0
+              Image: rbxassetid://72856756441554
+              ImageRectSize: 0, 0
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.330000013, 0}, {0.330000013, 0}
+              ClipsDescendants: false
+              BorderColor3: 0, 0, 0
+              Visible: true
+              ImageRectOffset: 0, 0
+              BackgroundTransparency: 1
+              ClassName: ImageLabel
+              ImageColor3: 1, 1, 1
+              Position: {0.5, 0}, {0.5, 0}
+              Name: ImageLabel
+              BackgroundColor3: 1, 1, 1
+            TextLabel (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.899999976, 0}, {0.899999976, 0}
+              Name: TextLabel
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0, 0, 0
+              Text: Kick x10
+              Position: {0.5, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+        OldPower (Frame)
+          Visible: true
+          ClipsDescendants: false
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Style: Enum.FrameStyle.Custom
+          LayoutOrder: 0
+          BackgroundColor3: 1, 1, 1
+          Position: {0.266000003, 0}, {0.219999999, 0}
+          Name: OldPower
+          ClassName: Frame
+          BackgroundTransparency: 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.355000019, 0}, {0.153999999, 0}
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            Arrow (ImageLabel)
+              LayoutOrder: 0
+              ImageTransparency: 0
+              Image: rbxassetid://14996495341
+              ImageRectSize: 0, 0
+              ZIndex: 25
+              BorderSizePixel: 0
+              Size: {0.199371859, 0}, {0.774591506, 0}
+              ClipsDescendants: false
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Visible: true
+              ImageRectOffset: 0, 0
+              BackgroundTransparency: 1
+              ClassName: ImageLabel
+              ImageColor3: 1, 1, 1
+              Position: {1.16400003, 0}, {0.5, 0}
+              Name: Arrow
+              BackgroundColor3: 1, 1, 1
+                UIAspectRatioConstraint (UIAspectRatioConstraint)
+                  Name: UIAspectRatioConstraint
+                  ClassName: UIAspectRatioConstraint
+            Red (UIGradient)
+              Name: Red
+              ClassName: UIGradient
+            ImageLabel (ImageLabel)
+              LayoutOrder: 0
+              ImageTransparency: 0
+              Image: rbxassetid://72856756441554
+              ImageRectSize: 0, 0
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.330000013, 0}, {0.330000013, 0}
+              ClipsDescendants: false
+              BorderColor3: 0, 0, 0
+              Visible: true
+              ImageRectOffset: 0, 0
+              BackgroundTransparency: 1
+              ClassName: ImageLabel
+              ImageColor3: 1, 1, 1
+              Position: {0.5, 0}, {0.5, 0}
+              Name: ImageLabel
+              BackgroundColor3: 1, 1, 1
+            TextLabel (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.899999976, 0}, {0.899999976, 0}
+              Name: TextLabel
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0, 0, 0
+              Text: Kick x9
+              Position: {0.5, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+        NewLevel (Frame)
+          Visible: true
+          ClipsDescendants: false
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Style: Enum.FrameStyle.Custom
+          LayoutOrder: 0
+          BackgroundColor3: 1, 1, 1
+          Position: {0.765999973, 0}, {0.430000007, 0}
+          Name: NewLevel
+          ClassName: Frame
+          BackgroundTransparency: 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.355000019, 0}, {0.153999999, 0}
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            Green (UIGradient)
+              Name: Green
+              ClassName: UIGradient
+            ImageLabel (ImageLabel)
+              LayoutOrder: 0
+              ImageTransparency: 0
+              Image: rbxassetid://83384311884533
+              ImageRectSize: 0, 0
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.330000013, 0}, {0.330000013, 0}
+              ClipsDescendants: false
+              BorderColor3: 0, 0, 0
+              Visible: true
+              ImageRectOffset: 0, 0
+              BackgroundTransparency: 1
+              ClassName: ImageLabel
+              ImageColor3: 1, 1, 1
+              Position: {0.5, 0}, {0.5, 0}
+              Name: ImageLabel
+              BackgroundColor3: 1, 1, 1
+            TextLabel (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.899999976, 0}, {0.899999976, 0}
+              Name: TextLabel
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0, 0, 0
+              Text: Level 105
+              Position: {0.5, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+        OldLevel (Frame)
+          Visible: true
+          ClipsDescendants: false
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Style: Enum.FrameStyle.Custom
+          LayoutOrder: 0
+          BackgroundColor3: 1, 1, 1
+          Position: {0.266000003, 0}, {0.430000007, 0}
+          Name: OldLevel
+          ClassName: Frame
+          BackgroundTransparency: 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.355000019, 0}, {0.153999999, 0}
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            Arrow (ImageLabel)
+              LayoutOrder: 0
+              ImageTransparency: 0
+              Image: rbxassetid://14996495341
+              ImageRectSize: 0, 0
+              ZIndex: 25
+              BorderSizePixel: 0
+              Size: {0.199371859, 0}, {0.774591506, 0}
+              ClipsDescendants: false
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Visible: true
+              ImageRectOffset: 0, 0
+              BackgroundTransparency: 1
+              ClassName: ImageLabel
+              ImageColor3: 1, 1, 1
+              Position: {1.16400003, 0}, {0.5, 0}
+              Name: Arrow
+              BackgroundColor3: 1, 1, 1
+                UIAspectRatioConstraint (UIAspectRatioConstraint)
+                  Name: UIAspectRatioConstraint
+                  ClassName: UIAspectRatioConstraint
+            Green (UIGradient)
+              Name: Green
+              ClassName: UIGradient
+            ImageLabel (ImageLabel)
+              LayoutOrder: 0
+              ImageTransparency: 0
+              Image: rbxassetid://83384311884533
+              ImageRectSize: 0, 0
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.330000013, 0}, {0.330000013, 0}
+              ClipsDescendants: false
+              BorderColor3: 0, 0, 0
+              Visible: true
+              ImageRectOffset: 0, 0
+              BackgroundTransparency: 1
+              ClassName: ImageLabel
+              ImageColor3: 1, 1, 1
+              Position: {0.5, 0}, {0.5, 0}
+              Name: ImageLabel
+              BackgroundColor3: 1, 1, 1
+            TextLabel (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 1
+              BorderSizePixel: 0
+              Size: {0.899999976, 0}, {0.899999976, 0}
+              Name: TextLabel
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0, 0, 0
+              Text: Level 95
+              Position: {0.5, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+        After (TextLabel)
+          LayoutOrder: 0
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.355000019, 0}, {0.0799999982, 0}
+          Name: After
+          TextXAlignment: Enum.TextXAlignment.Center
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 1, 1, 1
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Text: After: 10
+          Position: {0.769999981, 0}, {0.0599999987, 0}
+          Visible: true
+          TextSize: 8
+          Font: Enum.Font.Unknown
+          BackgroundTransparency: 1
+          ClassName: TextLabel
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 1, 1, 1
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+        Before (TextLabel)
+          LayoutOrder: 0
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.355000019, 0}, {0.0799999982, 0}
+          Name: Before
+          TextXAlignment: Enum.TextXAlignment.Center
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 1, 1, 1
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Text: Before: 9
+          Position: {0.266000003, 0}, {0.0599999987, 0}
+          Visible: true
+          TextSize: 8
+          Font: Enum.Font.Unknown
+          BackgroundTransparency: 1
+          ClassName: TextLabel
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 1, 1, 1
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+        BuyAutoRebirthButton (TextButton)
+          LayoutOrder: 0
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 2
+          BorderSizePixel: 0
+          Size: {0.25, 0}, {0.131425604, 0}
+          Name: BuyAutoRebirthButton
+          TextXAlignment: Enum.TextXAlignment.Center
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 1, 1, 1
+          BorderColor3: 0, 0, 0
+          Text: 
+          Position: {0.99999994, 0}, {1.18830001, 0}
+          Visible: true
+          TextSize: 14
+          Font: Enum.Font.FredokaOne
+          BackgroundTransparency: 0
+          ClassName: TextButton
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 1, 1, 1
+            TextLabel (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 3
+              BorderSizePixel: 0
+              Size: {0.870293856, 0}, {0.8348912, 0}
+              Name: TextLabel
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0, 0, 0
+              Text: Auto Rebirth
+              Position: {0.502748609, 0}, {0.5, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+            UICorner (UICorner)
+              Name: UICorner
+              ClassName: UICorner
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            Green (UIGradient)
+              Name: Green
+              ClassName: UIGradient
+            Price (TextLabel)
+              LayoutOrder: 0
+              TextTransparency: 0
+              TextStrokeTransparency: 1
+              ZIndex: 4
+              BorderSizePixel: 0
+              Size: {0.589999974, 0}, {0.49000001, 0}
+              Name: Price
+              TextXAlignment: Enum.TextXAlignment.Center
+              TextStrokeColor3: 0, 0, 0
+              TextColor3: 1, 1, 1
+              BorderColor3: 0.105882, 0.164706, 0.207843
+              Text:  99
+              Position: {0.5, 0}, {1, 0}
+              Visible: true
+              TextSize: 14
+              Font: Enum.Font.Unknown
+              BackgroundTransparency: 1
+              ClassName: TextLabel
+              ClipsDescendants: false
+              TextYAlignment: Enum.TextYAlignment.Center
+              TextScaled: true
+              BackgroundColor3: 1, 1, 1
+                UIStroke (UIStroke)
+                  Name: UIStroke
+                  ClassName: UIStroke
+                GoldV2 (UIGradient)
+                  Name: GoldV2
+                  ClassName: UIGradient
+    UIAspectRatioConstraint (UIAspectRatioConstraint)
+      Name: UIAspectRatioConstraint
+      ClassName: UIAspectRatioConstraint
+    Header (Frame)
+      Visible: true
+      ClipsDescendants: false
+      BorderColor3: 0, 0, 0
+      Style: Enum.FrameStyle.Custom
+      LayoutOrder: 0
+      BackgroundColor3: 1, 1, 1
+      Position: {0.500463426, 0}, {0.070545584, 0}
+      Name: Header
+      ClassName: Frame
+      BackgroundTransparency: 0
+      ZIndex: 1
+      BorderSizePixel: 0
+      Size: {0.999382257, 0}, {0.141090661, 0}
+        ImageLabel (ImageLabel)
+          LayoutOrder: 0
+          ImageTransparency: 0
+          Image: rbxassetid://140366643102022
+          ImageRectSize: 0, 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.899999976, 0}, {0.899999976, 0}
+          ClipsDescendants: false
+          BorderColor3: 0, 0, 0
+          Visible: true
+          ImageRectOffset: 0, 0
+          BackgroundTransparency: 1
+          ClassName: ImageLabel
+          ImageColor3: 1, 1, 1
+          Position: {0.0615384616, 0}, {0.5, 0}
+          Name: ImageLabel
+          BackgroundColor3: 1, 1, 1
+            UIAspectRatioConstraint (UIAspectRatioConstraint)
+              Name: UIAspectRatioConstraint
+              ClassName: UIAspectRatioConstraint
+        TextLabel (TextLabel)
+          LayoutOrder: 0
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {0.44907406, 0}, {0.720000029, 0}
+          Name: TextLabel
+          TextXAlignment: Enum.TextXAlignment.Left
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 1, 1, 1
+          BorderColor3: 0, 0, 0
+          Text: Rebirth
+          Position: {0.353846163, 0}, {0.4799999, 0}
+          Visible: true
+          TextSize: 14
+          Font: Enum.Font.GothamBold
+          BackgroundTransparency: 1
+          ClassName: TextLabel
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 1, 1, 1
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+        UIStroke (UIStroke)
+          Name: UIStroke
+          ClassName: UIStroke
+        StudsImage (ImageLabel)
+          LayoutOrder: 0
+          ImageTransparency: 0.6000000238418579
+          Image: rbxassetid://111494391746905
+          ImageRectSize: 0, 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {1, 0}, {1, 0}
+          ClipsDescendants: false
+          BorderColor3: 0, 0, 0
+          Visible: true
+          ImageRectOffset: 0, 0
+          BackgroundTransparency: 1
+          ClassName: ImageLabel
+          ImageColor3: 1, 1, 1
+          Position: {0.5, 0}, {0.5, 0}
+          Name: StudsImage
+          BackgroundColor3: 1, 1, 1
+        Purple (UIGradient)
+          Name: Purple
+          ClassName: UIGradient
+    StudsImage (ImageLabel)
+      LayoutOrder: 0
+      ImageTransparency: 0.6000000238418579
+      Image: rbxassetid://111494391746905
+      ImageRectSize: 0, 0
+      ZIndex: -1
+      BorderSizePixel: 0
+      Size: {1, 0}, {1, 0}
+      ClipsDescendants: false
+      BorderColor3: 0, 0, 0
+      Visible: true
+      ImageRectOffset: 0, 0
+      BackgroundTransparency: 1
+      ClassName: ImageLabel
+      ImageColor3: 1, 1, 1
+      Position: {0.5, 0}, {0.5, 0}
+      Name: StudsImage
+      BackgroundColor3: 1, 1, 1
+    X (ImageButton)
+      LayoutOrder: 0
+      ImageTransparency: 0
+      Image: 
+      ImageRectSize: 0, 0
+      ZIndex: 1
+      BorderSizePixel: 1
+      Size: {0.106622115, 0}, {0.0998278856, 0}
+      ClipsDescendants: false
+      BorderColor3: 0.105882, 0.164706, 0.207843
+      Visible: true
+      ImageRectOffset: 0, 0
+      BackgroundTransparency: 1
+      ClassName: ImageButton
+      ImageColor3: 1, 1, 1
+      Position: {0.920000017, 0}, {0.0700000003, 0}
+      Name: X
+      BackgroundColor3: 0.639216, 0.635294, 0.647059
+        exitframe (Frame)
+          Visible: true
+          ClipsDescendants: false
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Style: Enum.FrameStyle.Custom
+          LayoutOrder: 0
+          BackgroundColor3: 1, 1, 1
+          Position: {0.0166666675, 0}, {0, 0}
+          Name: exitframe
+          ClassName: Frame
+          BackgroundTransparency: 0
+          ZIndex: 1
+          BorderSizePixel: 0
+          Size: {1, 0}, {1, 0}
+            UIGradient (UIGradient)
+              Name: UIGradient
+              ClassName: UIGradient
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+        close_texture (ImageLabel)
+          LayoutOrder: 0
+          ImageTransparency: 0
+          Image: rbxassetid://94576060028612
+          ImageRectSize: 0, 0
+          ZIndex: 1
+          BorderSizePixel: 1
+          Size: {1, 0}, {1, 0}
+          ClipsDescendants: false
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Visible: true
+          ImageRectOffset: 0, 0
+          BackgroundTransparency: 1
+          ClassName: ImageLabel
+          ImageColor3: 1, 1, 1
+          Position: {0.0166666675, 0}, {0, 0}
+          Name: close_texture
+          BackgroundColor3: 0.639216, 0.635294, 0.647059
+        RotateImage (TextLabel)
+          LayoutOrder: 0
+          TextTransparency: 0
+          TextStrokeTransparency: 1
+          ZIndex: 2
+          BorderSizePixel: 1
+          Size: {0.699999988, 0}, {0.699999988, 0}
+          Name: RotateImage
+          TextXAlignment: Enum.TextXAlignment.Center
+          TextStrokeColor3: 0, 0, 0
+          TextColor3: 0.85098, 0.85098, 0.85098
+          BorderColor3: 0.105882, 0.164706, 0.207843
+          Text: X
+          Position: {0.5, 0}, {0.5, 0}
+          Visible: true
+          TextSize: 50
+          Font: Enum.Font.Cartoon
+          BackgroundTransparency: 1
+          ClassName: TextLabel
+          ClipsDescendants: false
+          TextYAlignment: Enum.TextYAlignment.Center
+          TextScaled: true
+          BackgroundColor3: 0.639216, 0.635294, 0.647059
+            UIStroke (UIStroke)
+              Name: UIStroke
+              ClassName: UIStroke
+            UITextSizeConstraint (UITextSizeConstraint)
+              Name: UITextSizeConstraint
+              ClassName: UITextSizeConstraint
+        UIAspectRatioConstraint (UIAspectRatioConstraint)
+          Name: UIAspectRatioConstraint
+          ClassName: UIAspectRatioConstraint
+    UIStroke (UIStroke)
+      Name: UIStroke
+      ClassName: UIStroke
+    UIScale (UIScale)
+      Name: UIScale
+      ClassName: UIScale
+
+--]]
+
+-- Auto Fight Keeper info:
+--[[
+
+Anchor (Part)
+  Reflectance: 0
+  CanCollide: false
+  Color: 0.639216, 0.635294, 0.647059
+  CFrame: 0, 9.207057, -208.323639, -1, 0, 0, 0, 1, 0, 0, 0, -1
+  Anchored: true
+  Transparency: 1
+  Name: Anchor
+  Position: 0, 9.207056999206543, -208.32363891601562
+  Locked: false
+  Material: Enum.Material.Plastic
+  ClassName: Part
+  Size: 2, 2, 2
+    BillboardGui (BillboardGui)
+      MaxDistance: 80
+      Name: BillboardGui
+      ClassName: BillboardGui
+      StudsOffset: 0, 4.800000190734863, 0
+      AlwaysOnTop: false
+      Size: {6.4000001, 0}, {6.4000001, 0}
+        Frame (Frame)
+          Visible: true
+          BorderColor3: 0, 0, 0
+          Position: {0, 0}, {0, 0}
+          Name: Frame
+          ClassName: Frame
+          BackgroundTransparency: 1
+          BackgroundColor3: 1, 1, 1
+          BorderSizePixel: 0
+          Size: {1, 0}, {1, 0}
+            Power (Frame)
+              Visible: true
+              BorderColor3: 0, 0, 0
+              Position: {0, 0}, {0, 0}
+              Name: Power
+              ClassName: Frame
+              BackgroundTransparency: 1
+              BackgroundColor3: 1, 1, 1
+              BorderSizePixel: 0
+              Size: {1, 0}, {0.300000012, 0}
+                ImageLabel (ImageLabel)
+                  Visible: true
+                  ImageTransparency: 0
+                  BorderColor3: 0, 0, 0
+                  ImageColor3: 1, 1, 1
+                  Position: {0, 0}, {0, 0}
+                  Image: rbxassetid://72856756441554
+                  Name: ImageLabel
+                  ClassName: ImageLabel
+                  BackgroundTransparency: 1
+                  BackgroundColor3: 1, 1, 1
+                  BorderSizePixel: 0
+                  Size: {0.800000012, 0}, {0.800000012, 0}
+                Power (TextLabel)
+                  Visible: true
+                  TextColor3: 1, 1, 1
+                  BorderColor3: 0, 0, 0
+                  Text: 25B
+                  Position: {0, 0}, {0, 0}
+                  TextSize: 24
+                  TextScaled: true
+                  Font: Enum.Font.Unknown
+                  Name: Power
+                  ClassName: TextLabel
+                  BackgroundTransparency: 1
+                  BackgroundColor3: 1, 1, 1
+                  BorderSizePixel: 0
+                  Size: {0.461538464, 0}, {1, 0}
+                    UIStroke (UIStroke)
+                      Name: UIStroke
+                      ClassName: UIStroke
+                UIListLayout (UIListLayout)
+                  Name: UIListLayout
+                  ClassName: UIListLayout
+            Name (Frame)
+              Visible: true
+              BorderColor3: 0, 0, 0
+              Position: {0, 0}, {0, 0}
+              Name: Name
+              ClassName: Frame
+              BackgroundTransparency: 1
+              BackgroundColor3: 1, 1, 1
+              BorderSizePixel: 0
+              Size: {1, 0}, {0.300000012, 0}
+                ImageLabel (ImageLabel)
+                  Visible: false
+                  ImageTransparency: 0
+                  BorderColor3: 0, 0, 0
+                  ImageColor3: 1, 1, 1
+                  Position: {0, 0}, {0, 0}
+                  Image: rbxassetid://79129002076576
+                  Name: ImageLabel
+                  ClassName: ImageLabel
+                  BackgroundTransparency: 1
+                  BackgroundColor3: 1, 1, 1
+                  BorderSizePixel: 0
+                  Size: {0.800000012, 0}, {0.800000012, 0}
+                UIListLayout (UIListLayout)
+                  Name: UIListLayout
+                  ClassName: UIListLayout
+                TextLabel (TextLabel)
+                  Visible: true
+                  TextColor3: 1, 1, 1
+                  BorderColor3: 0, 0, 0
+                  Text: Gold Brick
+                  Position: {0, 0}, {0, 0}
+                  TextSize: 24
+                  TextScaled: true
+                  Font: Enum.Font.Unknown
+                  Name: TextLabel
+                  ClassName: TextLabel
+                  BackgroundTransparency: 1
+                  BackgroundColor3: 1, 1, 1
+                  BorderSizePixel: 0
+                  Size: {1, 0}, {1, 0}
+                    UIStroke (UIStroke)
+                      Name: UIStroke
+                      ClassName: UIStroke
+            UIListLayout (UIListLayout)
+              Name: UIListLayout
+              ClassName: UIListLayout
+            Status (Frame)
+              Visible: true
+              BorderColor3: 0, 0, 0
+              Position: {0, 0}, {0, 0}
+              Name: Status
+              ClassName: Frame
+              BackgroundTransparency: 1
+              BackgroundColor3: 1, 1, 1
+              BorderSizePixel: 0
+              Size: {1, 0}, {0.300000012, 0}
+                Unlocked (ImageLabel)
+                  Visible: false
+                  ImageTransparency: 0
+                  BorderColor3: 0, 0, 0
+                  ImageColor3: 1, 1, 1
+                  Position: {0.5, 0}, {0.5, 0}
+                  Image: rbxassetid://130276845607118
+                  Name: Unlocked
+                  ClassName: ImageLabel
+                  BackgroundTransparency: 1
+                  BackgroundColor3: 1, 1, 1
+                  BorderSizePixel: 0
+                  Size: {0.800000012, 0}, {0.800000012, 0}
+                Locked (ImageLabel)
+                  Visible: true
+                  ImageTransparency: 0
+                  BorderColor3: 0, 0, 0
+                  ImageColor3: 1, 1, 1
+                  Position: {0.5, 0}, {0.5, 0}
+                  Image: rbxassetid://100973902594575
+                  Name: Locked
+                  ClassName: ImageLabel
+                  BackgroundTransparency: 1
+                  BackgroundColor3: 1, 1, 1
+                  BorderSizePixel: 0
+                  Size: {0.800000012, 0}, {0.800000012, 0}
+    FootballKeeperPrompt (ProximityPrompt)
+      Name: FootballKeeperPrompt
+      ClassName: ProximityPrompt
+
+--]]
+
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
@@ -14,6 +1180,11 @@ return function(parent, config)
     local scriptInitTime = tick()
     local function isReady()
         return (tick() - scriptInitTime) > 1.0
+    end
+
+    -- Real-time Logging Helper (Viewable via F9 Console)
+    local function log(module, msg)
+        print(string.format("[TaperUI - %s] %s", module, msg))
     end
 
     -- Localized State Configuration for Win Farm
@@ -180,18 +1351,18 @@ return function(parent, config)
         return string.format("%.2f", val)
     end
 
-    -- Helper: Resolves actual world folder (handles optional '#' prefix from layout differences)
+    -- Helper: Resolves actual world folder in workspace.Goals (handles optional '#' prefix dynamically)
     local function resolveWorldFolder(worldName)
         if not workspace:FindFirstChild("Goals") then return nil end
         local cleanName = worldName:gsub("#", "")
         local num = cleanName:match("%d+")
         if num then
-            return workspace.Goals:FindFirstChild("World#" .. num) or workspace.Goals:FindFirstChild("World" .. num)
+            return workspace.Goals:FindFirstChild("World" .. num) or workspace.Goals:FindFirstChild("World#" .. num)
         end
         return workspace.Goals:FindFirstChild(worldName)
     end
 
-    -- Helper: Resolves actual gate folder (handles optional '#' prefix from layout differences)
+    -- Helper: Resolves actual gate folder (handles optional '#' prefix dynamically)
     local function resolveGateFolder(worldFolder, gateName)
         if not worldFolder then return nil end
         local cleanGate = gateName:gsub("#", "")
@@ -313,6 +1484,11 @@ return function(parent, config)
             local rebirthFrame = rebirth and rebirth:FindFirstChild("RebirthFrame")
             if not rebirthFrame then return end
 
+            -- Force open the frame client-side to ensure the text labels load and update
+            if not rebirth.Visible then
+                rebirth.Visible = true
+            end
+
             local amountLabel = rebirthFrame:FindFirstChild("Cost") and rebirthFrame.Cost:FindFirstChild("Amount")
             local rebirthButton = rebirthFrame:FindFirstChild("RebirthButton")
 
@@ -324,7 +1500,11 @@ return function(parent, config)
                     local currentLevel = tonumber(currentStr)
                     local requiredLevel = tonumber(requiredStr)
                     
+                    log("Rebirth", string.format("Level Status: %d/%d", currentLevel, requiredLevel))
+                    
                     if currentLevel and requiredLevel and currentLevel >= requiredLevel then
+                        log("Rebirth", "Requirements met! Processing rebirth trigger sequence...")
+
                         -- 1. Attempt Silent Network Rebirth via Remote Event
                         local replicatedStorage = game:GetService("ReplicatedStorage")
                         for _, desc in ipairs(replicatedStorage:GetDescendants()) do
@@ -454,8 +1634,18 @@ return function(parent, config)
             if powerLabel and powerLabel:IsA("TextLabel") then
                 local keeperPower = parseAbbreviatedNumber(powerLabel.Text)
                 local myPowerVal = LocalPlayer.leaderstats:FindFirstChild("Kicks")
-                local myPower = myPowerVal and myPowerVal.Value or 0
-                return myPower > keeperPower
+                local myPower = 0
+                if myPowerVal then
+                    if myPowerVal:IsA("StringValue") then
+                        myPower = parseAbbreviatedNumber(myPowerVal.Value)
+                    else
+                        myPower = tonumber(myPowerVal.Value) or 0
+                    end
+                end
+                
+                local affordable = myPower > keeperPower
+                log("Fight", string.format("Keeper %s Power: %s | My Kicks: %s | Can Beat: %s", gate, formatBigNumber(keeperPower), formatBigNumber(myPower), tostring(affordable)))
+                return affordable
             end
             return false
         end)
@@ -474,6 +1664,17 @@ return function(parent, config)
             return {Prompt = prompt, Anchor = anchor}
         end)
         return success and result or nil
+    end
+
+    -- Helper: Universally fires a proximity prompt (native hook first, simulation fallback)
+    local function firePrompt(prompt)
+        if not prompt then return end
+        if typeof(fireproximityprompt) == "function" then
+            fireproximityprompt(prompt)
+        else
+            local holdTime = prompt.HoldDuration or 0
+            simulatePhysicalKeyPress(holdTime, prompt.KeyboardKeyCode or Enum.KeyCode.E)
+        end
     end
 
     -- Helper: Performs a single simulated click in the middle of the Goal UI Click button
@@ -761,11 +1962,14 @@ return function(parent, config)
                                     
                                     -- Teleport safely 2 studs above the Keeper Anchor
                                     rootPart.CFrame = target.Anchor.CFrame * CFrame.new(0, 2, 0)
-                                    task.wait(0.1)
+                                    task.wait(0.2) -- Upgraded delay to settle physics coordinates
 
-                                    -- Trigger prompt interaction
-                                    firePrompt(target.Prompt)
-                                    task.wait(0.3)
+                                    -- Rapid-trigger loop until fight registers successfully
+                                    local startAttempt = tick()
+                                    while autoFightActive and not LocalPlayer.PlayerGui:FindFirstChild("Goal").Enabled and (tick() - startAttempt < 2.0) do
+                                        firePrompt(target.Prompt)
+                                        task.wait(0.2)
+                                    end
                                 end
                             end
                         end
