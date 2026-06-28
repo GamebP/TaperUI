@@ -1176,11 +1176,11 @@ return function(parent, config)
     local VirtualInputManager = game:GetService("VirtualInputManager")
     local LocalPlayer = Players.LocalPlayer
 
-    -- Defensive initialization guard to block fake executor clicks during UI construction
-    local scriptInitTime = tick()
-    local function isReady()
-        return (tick() - scriptInitTime) > 1.0
-    end
+    -- Dynamic layout loading guard to block fake executor clicks during UI construction
+    local uiLoaded = false
+    task.delay(1.2, function()
+        uiLoaded = true
+    end)
 
     -- Real-time Logging Helper (Viewable via F9 Console)
     local function log(module, msg)
@@ -1354,28 +1354,51 @@ return function(parent, config)
     -- Helper: Resolves actual world folder in workspace.Goals (handles optional '#' prefix dynamically)
     local function resolveWorldFolder(worldName)
         if not workspace:FindFirstChild("Goals") then return nil end
-        local cleanName = worldName:gsub("#", "")
+        local cleanName = worldName:gsub("#", ""):gsub("%s", "")
         local num = cleanName:match("%d+")
         if num then
-            return workspace.Goals:FindFirstChild("World" .. num) or workspace.Goals:FindFirstChild("World#" .. num)
+            return workspace.Goals:FindFirstChild("World" .. num) or workspace.Goals:FindFirstChild("World#" .. num) or workspace.Goals:FindFirstChild("World #" .. num)
         end
         return workspace.Goals:FindFirstChild(worldName)
     end
 
-    -- Helper: Resolves actual gate folder (handles optional '#' prefix dynamically)
+    -- Helper: Resolves actual gate folder inside the active world folder (handles optional '#' prefix dynamically)
     local function resolveGateFolder(worldFolder, gateName)
         if not worldFolder then return nil end
-        local cleanGate = gateName:gsub("#", "")
-        return worldFolder:FindFirstChild("#" .. cleanGate) or worldFolder:FindFirstChild(cleanGate)
+        local cleanGate = gateName:gsub("#", ""):gsub("%s", "")
+        return worldFolder:FindFirstChild("#" .. cleanGate) or worldFolder:FindFirstChild(" #" .. cleanGate) or worldFolder:FindFirstChild(cleanGate)
     end
 
-    -- Helper: Dynamically determines the active physical world loaded in workspace
+    -- Helper: Dynamically determines the active physical world based on player distance to active gates
     local function getActiveWorld()
-        if autoFightActive then
-            for _, wName in ipairs({"World4", "World3", "World2", "World1"}) do
-                local folder = resolveWorldFolder(wName)
-                if folder and #folder:GetChildren() > 0 then
-                    return wName
+        if autoFightActive or winFarmActive then
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                local closestWorld = nil
+                local closestDist = math.huge
+                
+                for _, wName in ipairs({"World1", "World2", "World3", "World4"}) do
+                    local folder = resolveWorldFolder(wName)
+                    if folder then
+                        -- Measure distance to any gate inside this world folder
+                        for _, gateFolder in ipairs(folder:GetChildren()) do
+                            local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
+                            local anchor = keeperStatus and keeperStatus:FindFirstChild("Anchor")
+                            if anchor and anchor:IsA("BasePart") then
+                                local dist = (root.Position - anchor.Position).Magnitude
+                                if dist < closestDist then
+                                    closestDist = dist
+                                    closestWorld = wName
+                                end
+                                break -- Distance check completed for this world structure
+                            end
+                        end
+                    end
+                end
+                
+                if closestWorld then
+                    return closestWorld
                 end
             end
         end
@@ -1477,69 +1500,136 @@ return function(parent, config)
         return amount
     end
 
-    -- Helper: Parses active Level progress and safely triggers the rebirth button signals
-    local function checkAndExecuteRebirth()
+    -- Helper: Evaluates the client's screen layout and physically triggers a mouse-click sequence
+    local function clickButtonOnScreen(btn)
+        if not btn then return end
+        pcall(function()
+            local absPos = btn.AbsolutePosition
+            local absSize = btn.AbsoluteSize
+            local clickX = absPos.X + (absSize.X / 2)
+            local clickY = absPos.Y + (absSize.Y / 2)
+            if VirtualInputManager then
+                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+                task.wait(0.01)
+                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+            end
+        end)
+    end
+
+    -- Helper: Attempts to open the Rebirth UI if it is currently closed/unpopulated
+    local function forceOpenRebirthUI()
         pcall(function()
             local rebirth = LocalPlayer.PlayerGui:FindFirstChild("Rebirth", true)
-            local rebirthFrame = rebirth and rebirth:FindFirstChild("RebirthFrame")
-            if not rebirthFrame then return end
-
-            -- Force open the frame client-side to ensure the text labels load and update
-            if not rebirth.Visible then
+            if rebirth and not rebirth.Visible then
+                -- Click screen button to activate frame state
+                for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                    if desc:IsA("TextButton") or desc:IsA("ImageButton") then
+                        local name = desc.Name:lower()
+                        local text = desc:IsA("TextButton") and desc.Text:lower() or ""
+                        if name:find("rebirth") or text:find("rebirth") then
+                            if typeof(firesignal) == "function" then
+                                firesignal(desc.MouseButton1Click)
+                                firesignal(desc.Activated)
+                            end
+                            break
+                        end
+                    end
+                end
+                task.wait(0.1)
                 rebirth.Visible = true
+            end
+        end)
+    end
+
+    -- Helper: Parses active Level progress and safely triggers the rebirth button signals
+    local function checkAndExecuteRebirth()
+        local success, err = pcall(function()
+            -- Force-open the UI frame to update the cost text label
+            forceOpenRebirthUI()
+
+            local rebirth = LocalPlayer.PlayerGui:FindFirstChild("Rebirth", true)
+            if not rebirth then
+                log("Rebirth", "Rebirth GUI container not found in PlayerGui.")
+                return
+            end
+
+            local rebirthFrame = rebirth:FindFirstChild("RebirthFrame")
+            if not rebirthFrame then
+                log("Rebirth", "RebirthFrame missing inside Rebirth container.")
+                return
             end
 
             local amountLabel = rebirthFrame:FindFirstChild("Cost") and rebirthFrame.Cost:FindFirstChild("Amount")
             local rebirthButton = rebirthFrame:FindFirstChild("RebirthButton")
 
-            if amountLabel and amountLabel:IsA("TextLabel") and rebirthButton then
-                local text = amountLabel.Text -- expected format: "Level: 82/85" or "Level: 95/95"
-                local currentStr, requiredStr = text:match("(%d+)%s*/%s*(%d+)")
+            if not amountLabel then
+                log("Rebirth", "Cost.Amount TextLabel is missing.")
+                return
+            end
+            if not rebirthButton then
+                log("Rebirth", "RebirthButton TextButton is missing.")
+                return
+            end
+
+            local text = amountLabel.Text -- expected format: "Level: 95/95"
+            log("Rebirth", "Read Rebirth Label Text: " .. tostring(text))
+
+            local currentStr, requiredStr = text:match("(%d+)%s*/%s*(%d+)")
+            if currentStr and requiredStr then
+                local currentLevel = tonumber(currentStr)
+                local requiredLevel = tonumber(requiredStr)
                 
-                if currentStr and requiredStr then
-                    local currentLevel = tonumber(currentStr)
-                    local requiredLevel = tonumber(requiredStr)
-                    
-                    log("Rebirth", string.format("Level Status: %d/%d", currentLevel, requiredLevel))
-                    
-                    if currentLevel and requiredLevel and currentLevel >= requiredLevel then
-                        log("Rebirth", "Requirements met! Processing rebirth trigger sequence...")
+                log("Rebirth", string.format("Levels parsed successfully: %d/%d", currentLevel, requiredLevel))
+                
+                if currentLevel and requiredLevel and currentLevel >= requiredLevel then
+                    log("Rebirth", "Requirements met! Processing rebirth trigger sequence...")
 
-                        -- 1. Attempt Silent Network Rebirth via Remote Event
-                        local replicatedStorage = game:GetService("ReplicatedStorage")
-                        for _, desc in ipairs(replicatedStorage:GetDescendants()) do
-                            if desc:IsA("RemoteEvent") and (desc.Name:lower():find("rebirth") or desc.Name:lower() == "r") then
-                                desc:FireServer()
-                            end
+                    -- 1. Attempt Silent Network Rebirth via Remote Event / Remote Function
+                    local replicatedStorage = game:GetService("ReplicatedStorage")
+                    for _, desc in ipairs(replicatedStorage:GetDescendants()) do
+                        if desc:IsA("RemoteEvent") and (desc.Name:lower():find("rebirth") or desc.Name:lower() == "r") then
+                            desc:FireServer()
+                        elseif desc:IsA("RemoteFunction") and (desc.Name:lower():find("rebirth") or desc.Name:lower() == "r") then
+                            desc:InvokeServer()
                         end
+                    end
 
-                        -- 2. Trigger UI click sequence via mouse-interaction signals
-                        if typeof(firesignal) == "function" then
-                            firesignal(rebirthButton.MouseButton1Click)
-                            firesignal(rebirthButton.MouseButton1Down)
-                            firesignal(rebirthButton.MouseButton1Up)
-                            firesignal(rebirthButton.Activated)
-                        end
+                    -- 2. Trigger UI click sequence via mouse-interaction signals
+                    if typeof(firesignal) == "function" then
+                        firesignal(rebirthButton.MouseButton1Click)
+                        firesignal(rebirthButton.MouseButton1Down)
+                        firesignal(rebirthButton.MouseButton1Up)
+                        firesignal(rebirthButton.Activated)
+                    end
 
-                        -- 3. Clear any confirmation alerts that appear subsequently
-                        task.delay(0.1, function()
-                            for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-                                if desc:IsA("TextButton") and desc.Visible then
-                                    local btnText = desc.Text:lower()
-                                    local titleBack = desc:FindFirstChild("TitleBack")
-                                    local titleText = titleBack and titleBack:IsA("TextLabel") and titleBack.Text:lower() or ""
-                                    
-                                    if btnText == "yes" or btnText == "confirm" or btnText:find("rebirth") or titleText:find("yes") or titleText:find("confirm") then
-                                        firesignal(desc.MouseButton1Click)
-                                        firesignal(desc.Activated)
-                                    end
+                    -- 3. Physically click the button on-screen to bypass anti-cheat listeners
+                    clickButtonOnScreen(rebirthButton)
+
+                    -- 4. Clear any confirmation alerts that appear subsequently
+                    task.delay(0.15, function()
+                        for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                            if desc:IsA("TextButton") and desc.Visible then
+                                local btnText = desc.Text:lower()
+                                local titleBack = desc:FindFirstChild("TitleBack")
+                                local titleText = titleBack and titleBack:IsA("TextLabel") and titleBack.Text:lower() or ""
+                                
+                                if btnText == "yes" or btnText == "confirm" or btnText:find("rebirth") or titleText:find("yes") or titleText:find("confirm") then
+                                    firesignal(desc.MouseButton1Click)
+                                    firesignal(desc.Activated)
+                                    clickButtonOnScreen(desc)
                                 end
                             end
-                        end)
-                    end
+                        end
+                    end)
                 end
+            else
+                log("Rebirth", "Failed to parse current/required levels from amount label.")
             end
         end)
+
+        if not success then
+            log("Rebirth", "Error executing check: " .. tostring(err))
+        end
     end
 
     -- Helper: Verifies unlock status of specific goal markers dynamically
@@ -1644,7 +1734,7 @@ return function(parent, config)
                 end
                 
                 local affordable = myPower > keeperPower
-                log("Fight", string.format("Keeper %s Power: %s | My Kicks: %s | Can Beat: %s", gate, formatBigNumber(keeperPower), formatBigNumber(myPower), tostring(affordable)))
+                log("Fight", string.format("Target: %s | Keeper Power: %s | My Kicks: %s | Can Beat: %s", gate, formatBigNumber(keeperPower), formatBigNumber(myPower), tostring(affordable)))
                 return affordable
             end
             return false
@@ -1675,6 +1765,15 @@ return function(parent, config)
             local holdTime = prompt.HoldDuration or 0
             simulatePhysicalKeyPress(holdTime, prompt.KeyboardKeyCode or Enum.KeyCode.E)
         end
+    end
+
+    -- Helper: Checks whether the Goal fight UI is active
+    local function isGoalUIActive()
+        local success, active = pcall(function()
+            local goalGui = LocalPlayer.PlayerGui:FindFirstChild("Goal")
+            return goalGui and goalGui.Enabled
+        end)
+        return success and active
     end
 
     -- Helper: Performs a single simulated click in the middle of the Goal UI Click button
@@ -1901,7 +2000,7 @@ return function(parent, config)
 
     -- Toggle for Auto Rebirth Checking
     elements:Toggle("Auto Rebirth", parent, false, function(state)
-        if not isReady() or not state then
+        if not uiLoaded or not state then
             autoRebirthActive = false
             return
         end
@@ -1917,7 +2016,7 @@ return function(parent, config)
 
     -- Toggle for Auto Fight Keeper
     elements:Toggle("Auto Fight Keeper", parent, false, function(state)
-        if not isReady() or not state then
+        if not uiLoaded or not state then
             autoFightActive = false
             return
         end
@@ -1928,8 +2027,7 @@ return function(parent, config)
             local savedCFrame = nil
 
             while autoFightActive do
-                local goalGui = LocalPlayer.PlayerGui:FindFirstChild("Goal")
-                local inFight = goalGui and goalGui.Enabled
+                local inFight = isGoalUIActive()
 
                 if inFight then
                     fighting = true
@@ -1966,7 +2064,7 @@ return function(parent, config)
 
                                     -- Rapid-trigger loop until fight registers successfully
                                     local startAttempt = tick()
-                                    while autoFightActive and not LocalPlayer.PlayerGui:FindFirstChild("Goal").Enabled and (tick() - startAttempt < 2.0) do
+                                    while autoFightActive and not isGoalUIActive() and (tick() - startAttempt < 2.0) do
                                         firePrompt(target.Prompt)
                                         task.wait(0.2)
                                     end
@@ -1982,7 +2080,7 @@ return function(parent, config)
 
     -- Toggle for Touch Farm Loop
     elements:Toggle("Auto Win Farm", parent, false, function(state)
-        if not isReady() or not state then
+        if not uiLoaded or not state then
             winFarmActive = false
             return
         end
@@ -2006,7 +2104,7 @@ return function(parent, config)
 
     -- Toggle to maintain teleport position on the training target
     elements:Toggle("Auto Train (AFK Loop)", parent, false, function(state)
-        if not isReady() or not state then
+        if not uiLoaded or not state then
             autoTrainActive = false
             return
         end
@@ -2070,7 +2168,7 @@ return function(parent, config)
 
     -- Toggle for Auto Hatch Loop
     elements:Toggle("Auto Hatch Eggs", parent, false, function(state)
-        if not isReady() or not state then
+        if not uiLoaded or not state then
             autoHatchActive = false
             hasPressedT = false
             return
