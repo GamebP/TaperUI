@@ -1,23 +1,3 @@
--- TOOD: Fix money silent platform teleport.
-
--- TOOD: Add other upgradables
-
---[[
-
-ok i see...
-so when you want to auto fight..
-`workspace.Goals.World#2["#14"].KeeperStatus.Anchor.FootballKeeperPrompt` you will need to tp to it close,
-ofc first of all check if you can beat it at `workspace.Goals.World#2["#14"].KeeperStatus.Anchor.BillboardGui.Frame.Power.Power` so if it's like MyPower > HisPower then we can do this!
-
-to be honest.. #14 can be any other goal .. but world can be different too..
-
-MyPower = game:GetService("Players").LocalPlayer.leaderstats.Kicks (206977186600) <- NumberValue
-
-So if you see if you can beat it, tp to him, press letter `E`, and whenever 
-`game:GetService("Players").LocalPlayer.PlayerGui.Goal` is active you will start clicking 20 cps at middle of the `game:GetService("Players").LocalPlayer.PlayerGui.Goal.Click`  x,y pos. 
-
---]]
-
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
@@ -200,11 +180,29 @@ return function(parent, config)
         return string.format("%.2f", val)
     end
 
+    -- Helper: Resolves actual world folder (handles optional '#' prefix from layout differences)
+    local function resolveWorldFolder(worldName)
+        if not workspace:FindFirstChild("Goals") then return nil end
+        local cleanName = worldName:gsub("#", "")
+        local num = cleanName:match("%d+")
+        if num then
+            return workspace.Goals:FindFirstChild("World#" .. num) or workspace.Goals:FindFirstChild("World" .. num)
+        end
+        return workspace.Goals:FindFirstChild(worldName)
+    end
+
+    -- Helper: Resolves actual gate folder (handles optional '#' prefix from layout differences)
+    local function resolveGateFolder(worldFolder, gateName)
+        if not worldFolder then return nil end
+        local cleanGate = gateName:gsub("#", "")
+        return worldFolder:FindFirstChild("#" .. cleanGate) or worldFolder:FindFirstChild(cleanGate)
+    end
+
     -- Helper: Dynamically determines the active physical world loaded in workspace
     local function getActiveWorld()
         if autoFightActive then
             for _, wName in ipairs({"World4", "World3", "World2", "World1"}) do
-                local folder = workspace.Goals:FindFirstChild(wName)
+                local folder = resolveWorldFolder(wName)
                 if folder and #folder:GetChildren() > 0 then
                     return wName
                 end
@@ -311,12 +309,15 @@ return function(parent, config)
     -- Helper: Parses active Level progress and safely triggers the rebirth button signals
     local function checkAndExecuteRebirth()
         pcall(function()
-            local rebirthFrame = LocalPlayer.PlayerGui.MainUI.Frames.Rebirth.RebirthFrame
+            local rebirth = LocalPlayer.PlayerGui:FindFirstChild("Rebirth", true)
+            local rebirthFrame = rebirth and rebirth:FindFirstChild("RebirthFrame")
+            if not rebirthFrame then return end
+
             local amountLabel = rebirthFrame:FindFirstChild("Cost") and rebirthFrame.Cost:FindFirstChild("Amount")
             local rebirthButton = rebirthFrame:FindFirstChild("RebirthButton")
 
             if amountLabel and amountLabel:IsA("TextLabel") and rebirthButton then
-                local text = amountLabel.Text -- expected format: "Level: 82/85"
+                local text = amountLabel.Text -- expected format: "Level: 82/85" or "Level: 95/95"
                 local currentStr, requiredStr = text:match("(%d+)%s*/%s*(%d+)")
                 
                 if currentStr and requiredStr then
@@ -324,10 +325,37 @@ return function(parent, config)
                     local requiredLevel = tonumber(requiredStr)
                     
                     if currentLevel and requiredLevel and currentLevel >= requiredLevel then
+                        -- 1. Attempt Silent Network Rebirth via Remote Event
+                        local replicatedStorage = game:GetService("ReplicatedStorage")
+                        for _, desc in ipairs(replicatedStorage:GetDescendants()) do
+                            if desc:IsA("RemoteEvent") and (desc.Name:lower():find("rebirth") or desc.Name:lower() == "r") then
+                                desc:FireServer()
+                            end
+                        end
+
+                        -- 2. Trigger UI click sequence via mouse-interaction signals
                         if typeof(firesignal) == "function" then
                             firesignal(rebirthButton.MouseButton1Click)
+                            firesignal(rebirthButton.MouseButton1Down)
+                            firesignal(rebirthButton.MouseButton1Up)
                             firesignal(rebirthButton.Activated)
                         end
+
+                        -- 3. Clear any confirmation alerts that appear subsequently
+                        task.delay(0.1, function()
+                            for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
+                                if desc:IsA("TextButton") and desc.Visible then
+                                    local btnText = desc.Text:lower()
+                                    local titleBack = desc:FindFirstChild("TitleBack")
+                                    local titleText = titleBack and titleBack:IsA("TextLabel") and titleBack.Text:lower() or ""
+                                    
+                                    if btnText == "yes" or btnText == "confirm" or btnText:find("rebirth") or titleText:find("yes") or titleText:find("confirm") then
+                                        firesignal(desc.MouseButton1Click)
+                                        firesignal(desc.Activated)
+                                    end
+                                end
+                            end
+                        end)
                     end
                 end
             end
@@ -337,13 +365,13 @@ return function(parent, config)
     -- Helper: Verifies unlock status of specific goal markers dynamically
     local function isSpecificGateUnlocked(worldName, gateName)
         local success, result = pcall(function()
-            local goalFolder = workspace.Goals:FindFirstChild(worldName)
+            local goalFolder = resolveWorldFolder(worldName)
             if not goalFolder then 
                 -- If previous world is streamed out, assume unlocked as we have transitioned beyond it
                 return worldName ~= getActiveWorld()
             end
             
-            local gateFolder = goalFolder:FindFirstChild(gateName)
+            local gateFolder = resolveGateFolder(goalFolder, gateName)
             if not gateFolder then 
                 return worldName ~= getActiveWorld()
             end
@@ -408,9 +436,9 @@ return function(parent, config)
     local function checkCanBeatKeeper(gate)
         local activeWorld = getActiveWorld()
         local success, result = pcall(function()
-            local goalFolder = workspace.Goals:FindFirstChild(activeWorld)
+            local goalFolder = resolveWorldFolder(activeWorld)
             if not goalFolder then return false end
-            local gateFolder = goalFolder:FindFirstChild(gate)
+            local gateFolder = resolveGateFolder(goalFolder, gate)
             if not gateFolder then return false end
             local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
             if not keeperStatus then return false end
@@ -421,19 +449,12 @@ return function(parent, config)
             local billboard = anchor:FindFirstChildOfClass("BillboardGui")
             local frame = billboard and billboard:FindFirstChild("Frame")
             local powerFolder = frame and frame:FindFirstChild("Power")
-            local powerLabel = powerFolder and powerFolder:FindFirstChild("Power")
+            local powerLabel = powerFolder and (powerFolder:FindFirstChild("Power") or powerFolder)
             
             if powerLabel and powerLabel:IsA("TextLabel") then
                 local keeperPower = parseAbbreviatedNumber(powerLabel.Text)
                 local myPowerVal = LocalPlayer.leaderstats:FindFirstChild("Kicks")
-                local myPower = 0
-                if myPowerVal then
-                    if myPowerVal:IsA("StringValue") then
-                        myPower = parseAbbreviatedNumber(myPowerVal.Value)
-                    else
-                        myPower = tonumber(myPowerVal.Value) or 0
-                    end
-                end
+                local myPower = myPowerVal and myPowerVal.Value or 0
                 return myPower > keeperPower
             end
             return false
@@ -445,22 +466,14 @@ return function(parent, config)
     local function getKeeperPromptAndAnchor(gate)
         local activeWorld = getActiveWorld()
         local success, result = pcall(function()
-            local anchor = workspace.Goals[activeWorld][gate].KeeperStatus.Anchor
-            local prompt = anchor:FindFirstChild("FootballKeeperPrompt") or anchor:FindFirstChildOfClass("ProximityPrompt")
+            local goalFolder = resolveWorldFolder(activeWorld)
+            local gateFolder = goalFolder and resolveGateFolder(goalFolder, gate)
+            local keeperStatus = gateFolder and gateFolder:FindFirstChild("KeeperStatus")
+            local anchor = keeperStatus and keeperStatus:FindFirstChild("Anchor")
+            local prompt = anchor and (anchor:FindFirstChild("FootballKeeperPrompt") or anchor:FindFirstChildOfClass("ProximityPrompt"))
             return {Prompt = prompt, Anchor = anchor}
         end)
         return success and result or nil
-    end
-
-    -- Helper: Universally fires a proximity prompt (native hook first, simulation fallback)
-    local function firePrompt(prompt)
-        if not prompt then return end
-        if typeof(fireproximityprompt) == "function" then
-            fireproximityprompt(prompt)
-        else
-            local holdTime = prompt.HoldDuration or 0
-            simulatePhysicalKeyPress(holdTime, prompt.KeyboardKeyCode or Enum.KeyCode.E)
-        end
     end
 
     -- Helper: Performs a single simulated click in the middle of the Goal UI Click button
@@ -514,7 +527,9 @@ return function(parent, config)
     local function getTargetPart()
         local success, part = pcall(function()
             local activeWorld = getActiveWorld()
-            return workspace.Goals[activeWorld][selectedGate].Wins.Anchor
+            local goalFolder = resolveWorldFolder(activeWorld)
+            local gateFolder = resolveGateFolder(goalFolder, selectedGate)
+            return gateFolder.Wins.Anchor
         end)
         return success and part or nil
     end
