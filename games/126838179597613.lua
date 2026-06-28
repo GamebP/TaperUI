@@ -363,17 +363,21 @@ return function(parent, config)
             end
 
             if rebirth and rebirth:IsA("GuiObject") and not rebirth.Visible then
-                -- Click screen button to activate frame state
-                for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-                    if desc:IsA("TextButton") or desc:IsA("ImageButton") then
-                        local name = desc.Name:lower()
-                        local text = desc:IsA("TextButton") and desc.Text:lower() or ""
-                        if name:find("rebirth") or text:find("rebirth") then
-                            if typeof(firesignal) == "function" then
-                                firesignal(desc.MouseButton1Click)
-                                firesignal(desc.Activated)
+                -- Restrict opener button scanner strictly inside the game's native UI container (MainUI)
+                local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MainUI")
+                if mainUI then
+                    for _, desc in ipairs(mainUI:GetDescendants()) do
+                        if desc:IsA("TextButton") or desc:IsA("ImageButton") then
+                            local name = desc.Name:lower()
+                            local text = desc:IsA("TextButton") and desc.Text:lower() or ""
+                            if name:find("rebirth") or text:find("rebirth") then
+                                if typeof(firesignal) == "function" then
+                                    firesignal(desc.MouseButton1Click)
+                                    firesignal(desc.Activated)
+                                end
+                                clickButtonOnScreen(desc)
+                                break
                             end
-                            break
                         end
                     end
                 end
@@ -450,20 +454,23 @@ return function(parent, config)
                         -- 3. Physically click the button on-screen
                         clickButtonOnScreen(rebirthButton)
 
-                        -- 4. Clear any confirmation alerts that appear subsequently
+                        -- 4. Clear any confirmation alerts that appear subsequently inside MainUI
                         task.delay(0.15, function()
-                            for _, desc in ipairs(LocalPlayer.PlayerGui:GetDescendants()) do
-                                if desc:IsA("TextButton") and desc.Visible then
-                                    local btnText = desc.Text:lower()
-                                    local titleBack = desc:FindFirstChild("TitleBack")
-                                    local titleText = titleBack and titleBack:IsA("TextLabel") and titleBack.Text:lower() or ""
-                                    
-                                    if btnText == "yes" or btnText == "confirm" or btnText:find("rebirth") or titleText:find("yes") or titleText:find("confirm") then
-                                        if typeof(firesignal) == "function" then
-                                            firesignal(desc.MouseButton1Click)
-                                            firesignal(desc.Activated)
+                            local mainUI = LocalPlayer.PlayerGui:FindFirstChild("MainUI")
+                            if mainUI then
+                                for _, desc in ipairs(mainUI:GetDescendants()) do
+                                    if desc:IsA("TextButton") and desc.Visible then
+                                        local btnText = desc.Text:lower()
+                                        local titleBack = desc:FindFirstChild("TitleBack")
+                                        local titleText = titleBack and titleBack:IsA("TextLabel") and titleBack.Text:lower() or ""
+                                        
+                                        if btnText == "yes" or btnText == "confirm" or btnText:find("rebirth") or titleText:find("yes") or titleText:find("confirm") then
+                                            if typeof(firesignal) == "function" then
+                                                firesignal(desc.MouseButton1Click)
+                                                firesignal(desc.Activated)
+                                            end
+                                            clickButtonOnScreen(desc)
                                         end
-                                        clickButtonOnScreen(desc)
                                     end
                                 end
                             end
@@ -915,7 +922,7 @@ return function(parent, config)
                             local target = getKeeperPromptAndAnchor(targetGate)
                             if target and target.Prompt and target.Anchor then
                                 local char = LocalPlayer.Character
-                                local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+                               .local rootPart = char and char:FindFirstChild("HumanoidRootPart")
                                 if rootPart then
                                     savedCFrame = rootPart.CFrame
                                     currentlyFightingOrTeleporting = true -- Lock training teleport
