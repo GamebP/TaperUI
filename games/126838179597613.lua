@@ -1,7 +1,6 @@
 -- TOOD: Fix money silent platform teleport.
 
 -- TOOD: Add other upgradables
--- TODO: Add auto win Soccer AI
 
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
@@ -30,6 +29,9 @@ return function(parent, config)
 
     -- Localized State Configuration for Auto Rebirth
     local autoRebirthActive = false
+
+    -- Localized State Configuration for Auto Fight Keeper
+    local autoFightActive = false
 
     -- Tracks selected gates individually per world
     local selectedGates = {
@@ -303,12 +305,72 @@ return function(parent, config)
         end)
     end
 
+    -- Helper: Checks if player's kicks balance exceeds selected Keeper's power
+    local function checkCanBeatKeeper()
+        local success, result = pcall(function()
+            local goalFolder = workspace.Goals:FindFirstChild(selectedWorld)
+            if not goalFolder then return false end
+            local gateFolder = goalFolder:FindFirstChild(selectedGate)
+            if not gateFolder then return false end
+            local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
+            if not keeperStatus then return false end
+            
+            local anchor = keeperStatus:FindFirstChild("Anchor")
+            if not anchor then return false end
+            
+            local billboard = anchor:FindFirstChildOfClass("BillboardGui")
+            local frame = billboard and billboard:FindFirstChild("Frame")
+            local powerFolder = frame and frame:FindFirstChild("Power")
+            local powerLabel = powerFolder and powerFolder:FindFirstChild("Power")
+            
+            if powerLabel and powerLabel:IsA("TextLabel") then
+                local keeperPower = parseAbbreviatedNumber(powerLabel.Text)
+                local myPowerVal = LocalPlayer.leaderstats:FindFirstChild("Kicks")
+                local myPower = myPowerVal and myPowerVal.Value or 0
+                return myPower > keeperPower
+            end
+            return false
+        end)
+        return success and result
+    end
+
+    -- Helper: Gets Keeper prompt and Anchor part safely
+    local function getKeeperPromptAndAnchor()
+        local success, result = pcall(function()
+            local anchor = workspace.Goals[selectedWorld][selectedGate].KeeperStatus.Anchor
+            local prompt = anchor:FindFirstChild("FootballKeeperPrompt") or anchor:FindFirstChildOfClass("ProximityPrompt")
+            return {Prompt = prompt, Anchor = anchor}
+        end)
+        return success and result or nil
+    end
+
+    -- Helper: Performs a single simulated click in the middle of the Goal UI Click button
+    local function clickGoal()
+        pcall(function()
+            local goalGui = LocalPlayer.PlayerGui:FindFirstChild("Goal")
+            if goalGui and goalGui.Enabled then
+                local clickBtn = goalGui:FindFirstChild("Click") or (goalGui:FindFirstChild("Frame") and goalGui.Frame:FindFirstChild("Click"))
+                if clickBtn then
+                    local absPos = clickBtn.AbsolutePosition
+                    local absSize = clickBtn.AbsoluteSize
+                    local clickX = absPos.X + (absSize.X / 2)
+                    local clickY = absPos.Y + (absSize.Y / 2)
+                    if VirtualInputManager then
+                        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+                        task.wait(0.01)
+                        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+                    end
+                end
+            end
+        end)
+    end
+
     -- Helper: Teleports player's character to a Vector3 position
     local function teleportTo(pos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root then
-            root.CFrame = UDim2 or CFrame.new(pos)
+            root.CFrame = CFrame.new(pos)
             return true
         end
         return false
@@ -555,6 +617,66 @@ return function(parent, config)
             while autoRebirthActive do
                 checkAndExecuteRebirth()
                 task.wait(2.0)
+            end
+        end)
+    end)
+
+    -- Toggle for Auto Fight Keeper
+    elements:Toggle("Auto Fight Keeper", parent, false, function(state)
+        if not isReady() or not state then
+            autoFightActive = false
+            return
+        end
+
+        autoFightActive = true
+        task.spawn(function()
+            local fighting = false
+            local savedCFrame = nil
+
+            while autoFightActive do
+                local goalGui = LocalPlayer.PlayerGui:FindFirstChild("Goal")
+                local inFight = goalGui and goalGui.Enabled
+
+                if inFight then
+                    fighting = true
+                    clickGoal()
+                    task.wait(0.05) -- clicks at 20 CPS
+                else
+                    if fighting then
+                        -- Finished a fight, restore previous position
+                        fighting = false
+                        local char = LocalPlayer.Character
+                        local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+                        if rootPart and savedCFrame then
+                            rootPart.CFrame = savedCFrame
+                        end
+                        savedCFrame = nil
+                        task.wait(1.0)
+                    else
+                        -- Not fighting, check power capabilities
+                        local canBeat = checkCanBeatKeeper()
+                        if canBeat then
+                            local target = getKeeperPromptAndAnchor()
+                            if target and target.Prompt and target.Anchor then
+                                local char = LocalPlayer.Character
+                                local rootPart = char and char:FindFirstChild("HumanoidRootPart")
+                                if rootPart then
+                                    savedCFrame = rootPart.CFrame
+                                    
+                                    -- Teleport to the Keeper Anchor
+                                    rootPart.CFrame = target.Anchor.CFrame * CFrame.new(0, 0, 3)
+                                    task.wait(0.1)
+
+                                    -- Simulate key press to activate prompt
+                                    local holdTime = target.Prompt.HoldDuration or 0
+                                    simulatePhysicalKeyPress(holdTime, Enum.KeyCode.E)
+                                    task.wait(0.3)
+                                end
+                            end
+                        end
+                        task.wait(1.5)
+                    end
+                end
             end
         end)
     end)
