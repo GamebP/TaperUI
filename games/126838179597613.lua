@@ -1,3 +1,8 @@
+-- TOOD: Fix money silent platform teleport.
+
+-- TOOD: Add other upgradables
+-- TODO: Add auto win Soccer AI
+
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
@@ -22,6 +27,9 @@ return function(parent, config)
     local selectedWorld = "World1"
     local selectedGate = "4"
     local lastLockWarning = 0
+
+    -- Localized State Configuration for Auto Rebirth
+    local autoRebirthActive = false
 
     -- Tracks selected gates individually per world
     local selectedGates = {
@@ -228,12 +236,79 @@ return function(parent, config)
         return currentWins >= costParsed, costParsed, currentWins
     end
 
+    -- Helper: Returns the upgraded hatch limit count dynamically from PlayerGui
+    local function getUpgradedHatchAmount()
+        local amount = 2 -- Fallback default is 2
+        pcall(function()
+            local upgradesFrame = LocalPlayer.PlayerGui.MainUI.Frames.Upgrades.UpgradesFrame
+            local scrollingFrame = upgradesFrame:FindFirstChild("ScrollingFrame")
+            if scrollingFrame then
+                local targetLabel = nil
+                local template = scrollingFrame:FindFirstChild("Template")
+                if template then
+                    local stats = template:FindFirstChild("Stats")
+                    targetLabel = stats and stats:FindFirstChild("current")
+                end
+                
+                -- Fallback lookup if templates are renamed dynamically
+                if not targetLabel or not targetLabel:IsA("TextLabel") then
+                    for _, child in ipairs(scrollingFrame:GetChildren()) do
+                        local stats = child:FindFirstChild("Stats")
+                        local current = stats and stats:FindFirstChild("current")
+                        if current and current:IsA("TextLabel") then
+                            local text = current.Text
+                            if text:find("-") or text:find("%%") then
+                                targetLabel = current
+                                break
+                            end
+                        end
+                    end
+                end
+
+                if targetLabel and targetLabel:IsA("TextLabel") then
+                    local cleanText = targetLabel.Text:gsub("%-", ""):gsub("%%", "")
+                    local parsedVal = tonumber(cleanText)
+                    if parsedVal and parsedVal > 2 then
+                        amount = parsedVal
+                    end
+                end
+            end
+        end)
+        return amount
+    end
+
+    -- Helper: Parses active Level progress and safely triggers the rebirth button signals
+    local function checkAndExecuteRebirth()
+        pcall(function()
+            local rebirthFrame = LocalPlayer.PlayerGui.MainUI.Frames.Rebirth.RebirthFrame
+            local amountLabel = rebirthFrame:FindFirstChild("Cost") and rebirthFrame.Cost:FindFirstChild("Amount")
+            local rebirthButton = rebirthFrame:FindFirstChild("RebirthButton")
+
+            if amountLabel and amountLabel:IsA("TextLabel") and rebirthButton then
+                local text = amountLabel.Text -- expected format: "Level: 82/85"
+                local currentStr, requiredStr = text:match("(%d+)%s*/%s*(%d+)")
+                
+                if currentStr and requiredStr then
+                    local currentLevel = tonumber(currentStr)
+                    local requiredLevel = tonumber(requiredStr)
+                    
+                    if currentLevel and requiredLevel and currentLevel >= requiredLevel then
+                        if typeof(firesignal) == "function" then
+                            firesignal(rebirthButton.MouseButton1Click)
+                            firesignal(rebirthButton.Activated)
+                        end
+                    end
+                end
+            end
+        end)
+    end
+
     -- Helper: Teleports player's character to a Vector3 position
     local function teleportTo(pos)
         local char = LocalPlayer.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root then
-            root.CFrame = CFrame.new(pos)
+            root.CFrame = UDim2 or CFrame.new(pos)
             return true
         end
         return false
@@ -468,6 +543,22 @@ return function(parent, config)
         end
     end)
 
+    -- Toggle for Auto Rebirth Checking
+    elements:Toggle("Auto Rebirth", parent, false, function(state)
+        if not isReady() or not state then
+            autoRebirthActive = false
+            return
+        end
+
+        autoRebirthActive = true
+        task.spawn(function()
+            while autoRebirthActive do
+                checkAndExecuteRebirth()
+                task.wait(2.0)
+            end
+        end)
+    end)
+
     -- Toggle for Touch Farm Loop
     elements:Toggle("Auto Win Farm", parent, false, function(state)
         if not isReady() or not state then
@@ -529,8 +620,13 @@ return function(parent, config)
         hasPressedT = false
     end)
 
+    -- Dynamically read player upgrades to determine true visual hatch limit options
+    local dynamicHatchLimit = getUpgradedHatchAmount()
+    local modeROption = string.format("R (%dx Open)", dynamicHatchLimit)
+    local modeTOption = string.format("T (Auto %dx Open)", dynamicHatchLimit)
+
     -- Dropdown to select Key / Open Mode
-    elements:Dropdown("Hatch Mode (Key)", parent, {"E (1x Open)", "R (2x Open)", "T (Auto 2x Open)"}, "E (1x Open)", function(value)
+    elements:Dropdown("Hatch Mode (Key)", parent, {"E (1x Open)", modeROption, modeTOption}, "E (1x Open)", function(value)
         if value:sub(1, 1) == "E" then
             selectedHatchKey = Enum.KeyCode.E
         elseif value:sub(1, 1) == "R" then
