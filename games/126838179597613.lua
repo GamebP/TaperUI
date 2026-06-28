@@ -2,6 +2,22 @@
 
 -- TOOD: Add other upgradables
 
+--[[
+
+ok i see...
+so when you want to auto fight..
+`workspace.Goals.World#2["#14"].KeeperStatus.Anchor.FootballKeeperPrompt` you will need to tp to it close,
+ofc first of all check if you can beat it at `workspace.Goals.World#2["#14"].KeeperStatus.Anchor.BillboardGui.Frame.Power.Power` so if it's like MyPower > HisPower then we can do this!
+
+to be honest.. #14 can be any other goal .. but world can be different too..
+
+MyPower = game:GetService("Players").LocalPlayer.leaderstats.Kicks (206977186600) <- NumberValue
+
+So if you see if you can beat it, tp to him, press letter `E`, and whenever 
+`game:GetService("Players").LocalPlayer.PlayerGui.Goal` is active you will start clicking 20 cps at middle of the `game:GetService("Players").LocalPlayer.PlayerGui.Goal.Click`  x,y pos. 
+
+--]]
+
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
@@ -148,11 +164,11 @@ return function(parent, config)
         DC = 1e33
     }
 
-    -- Helper: Parses abbreviated formatted numbers into raw numerical values
+    -- Helper: Parses abbreviated formatted numbers into raw numerical values anywhere in a string
     local function parseAbbreviatedNumber(str)
         if not str then return 0 end
-        str = str:gsub(",", ""):match("^%s*(.-)%s*$")
-        local numPart, suffixPart = str:match("^([%d%.]+)%s*([%a]*)")
+        str = str:gsub(",", "")
+        local numPart, suffixPart = str:match("([%d%.]+)%s*([%a]*)")
         if not numPart then return 0 end
         
         local num = tonumber(numPart) or 0
@@ -311,11 +327,13 @@ return function(parent, config)
             local goalFolder = workspace.Goals:FindFirstChild(worldName)
             if not goalFolder then 
                 -- If previous world is streamed out, assume unlocked as we have transitioned beyond it
-                return true 
+                return worldName ~= selectedWorld 
             end
             
             local gateFolder = goalFolder:FindFirstChild(gateName)
-            if not gateFolder then return true end
+            if not gateFolder then 
+                return worldName ~= selectedWorld
+            end
             
             local keeperStatus = gateFolder:FindFirstChild("KeeperStatus")
             if not keeperStatus then 
@@ -344,7 +362,7 @@ return function(parent, config)
         end)
         
         if not success then
-            return true -- Fallback to prevent locking the loop on standard path errors
+            return worldName ~= selectedWorld -- Fallback to locked on active world error
         end
         return result
     end
@@ -393,7 +411,14 @@ return function(parent, config)
             if powerLabel and powerLabel:IsA("TextLabel") then
                 local keeperPower = parseAbbreviatedNumber(powerLabel.Text)
                 local myPowerVal = LocalPlayer.leaderstats:FindFirstChild("Kicks")
-                local myPower = myPowerVal and myPowerVal.Value or 0
+                local myPower = 0
+                if myPowerVal then
+                    if myPowerVal:IsA("StringValue") then
+                        myPower = parseAbbreviatedNumber(myPowerVal.Value)
+                    else
+                        myPower = tonumber(myPowerVal.Value) or 0
+                    end
+                end
                 return myPower > keeperPower
             end
             return false
@@ -409,6 +434,17 @@ return function(parent, config)
             return {Prompt = prompt, Anchor = anchor}
         end)
         return success and result or nil
+    end
+
+    -- Helper: Universally fires a proximity prompt (native hook first, simulation fallback)
+    local function firePrompt(prompt)
+        if not prompt then return end
+        if typeof(fireproximityprompt) == "function" then
+            fireproximityprompt(prompt)
+        else
+            local holdTime = prompt.HoldDuration or 0
+            simulatePhysicalKeyPress(holdTime, prompt.KeyboardKeyCode or Enum.KeyCode.E)
+        end
     end
 
     -- Helper: Performs a single simulated click in the middle of the Goal UI Click button
@@ -689,13 +725,12 @@ return function(parent, config)
                                 if rootPart then
                                     savedCFrame = rootPart.CFrame
                                     
-                                    -- Teleport to the Keeper Anchor
-                                    rootPart.CFrame = target.Anchor.CFrame * CFrame.new(0, 0, 3)
+                                    -- Teleport safely 2 studs above the Keeper Anchor
+                                    rootPart.CFrame = target.Anchor.CFrame * CFrame.new(0, 2, 0)
                                     task.wait(0.1)
 
-                                    -- Simulate key press to activate prompt
-                                    local holdTime = target.Prompt.HoldDuration or 0
-                                    simulatePhysicalKeyPress(holdTime, Enum.KeyCode.E)
+                                    -- Trigger prompt interaction
+                                    firePrompt(target.Prompt)
                                     task.wait(0.3)
                                 end
                             end
