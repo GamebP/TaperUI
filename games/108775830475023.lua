@@ -2,10 +2,7 @@
 
 To auto get a 5T wins you need to telport to 
 
-X: 1111.34, Y: 680.42, Z: 3224.36
-Vector3.new(1111.34, 680.42, 3224.36)
-
-Then use script walk commands to walk to z - 3228.36 until you touch the `workspace.SectionAwardParts:GetChildren()[11]`
+-1754.66, 680.42, 3225.36
 
 --]]
 
@@ -53,7 +50,6 @@ return function(parent, config)
         local clickX = absPos.X + (absSize.X / 2)
         local clickY = absPos.Y + (absSize.Y / 2)
         
-        -- Adjust for Topbar offset if IgnoreGuiInset is false on the ScreenGui
         local screenGui = button:FindFirstAncestorOfClass("ScreenGui")
         if screenGui and not screenGui.IgnoreGuiInset then
             local inset = GuiService:GetGuiInset()
@@ -61,13 +57,56 @@ return function(parent, config)
             clickY = clickY + inset.Y
         end
         
-        -- Simulate hardware-level mouse event
         VirtualInputManager:SendMouseMoveEvent(clickX, clickY, game)
         task.wait(0.05)
         VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
         task.wait(0.05)
         VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
         return true
+    end
+
+    -- ===== NO-FIRESIGNAL ROBUST CLICK HELPER =====
+    local function robustClick(button)
+        if not button then return false end
+        local clicked = false
+
+        -- Method A: Trigger connections directly (getconnections fallback)
+        if typeof(getconnections) == "function" then
+            pcall(function()
+                for _, conn in ipairs(getconnections(button.MouseButton1Click)) do
+                    if conn.Fire then conn:Fire() end
+                end
+                for _, conn in ipairs(getconnections(button.Activated)) do
+                    if conn.Fire then conn:Fire() end
+                end
+                clicked = true
+            end)
+        end
+
+        -- Method B: GuiSelection + Return key (native Roblox UI event trigger)
+        pcall(function()
+            local oldSelectable = button.Selectable
+            button.Selectable = true
+            local oldSelected = GuiService.SelectedObject
+            
+            GuiService.SelectedObject = button
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+            task.wait(0.05)
+            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+            
+            GuiService.SelectedObject = oldSelected
+            button.Selectable = oldSelectable
+            clicked = true
+        end)
+
+        -- Method C: Virtual mouse positioning fallback
+        pcall(function()
+            virtualClick(button)
+            clicked = true
+        end)
+
+        return clicked
     end
 
     -- ===== AUTO WIN FARM EXECUTION =====
@@ -99,15 +138,21 @@ return function(parent, config)
 
         if label and label:IsA("TextLabel") then
             local text = label.Text
-            -- Parse numbers from formatted "Level: XX/YY" text
-            local current, target = text:match("(%d+)/(%d+)")
+            -- Match pattern handles optional spaces around the slash
+            local current, target = text:match("(%d+)%s*/%s*(%d+)")
             if current and target then
                 local curLvl = tonumber(current)
                 local tgtLvl = tonumber(target)
-                if curLvl and tgtLvl and curLvl >= tgtLvl then
-                    return true
+                if curLvl and tgtLvl then
+                    if curLvl >= tgtLvl then
+                        return true
+                    end
                 end
+            else
+                warn("[AutoRebirth] Could not parse your level text: " .. tostring(text))
             end
+        else
+            warn("[AutoRebirth] Level Label UI element not found or invalid.")
         end
         return false
     end
@@ -116,7 +161,10 @@ return function(parent, config)
     local function performRebirth()
         local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
         local main = playerGui and playerGui:FindFirstChild("Main")
-        if not main then return false end
+        if not main then 
+            warn("[AutoRebirth] Main PlayerGui not found.")
+            return false 
+        end
 
         -- Resolve paths to necessary interactive UI elements
         local hudRebirthButton = main:FindFirstChild("HUD")
@@ -128,22 +176,27 @@ return function(parent, config)
         local closeMenuBtn = rebirthMenu and rebirthMenu:FindFirstChild("Close")
 
         if not hudRebirthButton then
+            warn("[AutoRebirth] Left HUD Rebirth Open Button ('_3Rebirth') not found.")
             return false
         end
 
-        -- Step 1: Click the main HUD Rebirth button to open the menu
-        virtualClick(hudRebirthButton)
-        task.wait(0.4)
+        print("[AutoRebirth] Eligibility met. Opening Rebirth Menu...")
+        robustClick(hudRebirthButton)
+        task.wait(0.5) -- Wait for the menu layout animations to load completely
 
-        -- Step 2: Click the confirmation Rebirth button inside the menu
         if rebirthActionBtn then
-            virtualClick(rebirthActionBtn)
-            task.wait(0.4)
+            print("[AutoRebirth] Clicking Rebirth Confirm Action button.")
+            robustClick(rebirthActionBtn)
+            task.wait(0.5) -- Wait for execution process
+        else
+            warn("[AutoRebirth] Menu was opened but Rebirth confirmation button was missing.")
         end
 
-        -- Step 3: Close the rebirth window
         if closeMenuBtn then
-            virtualClick(closeMenuBtn)
+            print("[AutoRebirth] Closing Rebirth window.")
+            robustClick(closeMenuBtn)
+        else
+            warn("[AutoRebirth] Close Menu button was not found.")
         end
 
         return true
