@@ -1,44 +1,61 @@
 return function(parent, config)
+    -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
         return loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/" .. path .. ".lua"))()
     end
     local elements = taperImport("helper/elements")
 
+    -- 2. Store player and service references
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-    -- State
+    -- Localized State Configuration
     local winFarmActive = false
-    local loopInterval = 1.0
+    local loopInterval = 1.0 -- Default start delay (in seconds)
     local autoRebirthActive = false
-    local requiredTrophiesString = "1K"
+    local requiredTrophiesString = "1K" -- Default target trophies
     local TARGET_POS = Vector3.new(-3204.50, 53.29, -20.50)
 
-    -- Suffix multipliers
+    -- Suffix multipliers to evaluate simulator values
     local suffixMultiplier = {
-        K = 1e3, M = 1e6, B = 1e9, T = 1e12,
-        QA = 1e15, QD = 1e15, QI = 1e18, QT = 1e18,
-        SX = 1e21, SP = 1e24, OC = 1e27, NO = 1e30,
-        NN = 1e30, DC = 1e33
+        K = 1e3,
+        M = 1e6,
+        B = 1e9,
+        T = 1e12,
+        QA = 1e15,
+        QD = 1e15,
+        QI = 1e18,
+        QT = 1e18,
+        SX = 1e21,
+        SP = 1e24,
+        OC = 1e27,
+        NO = 1e30,
+        NN = 1e30,
+        DC = 1e33
     }
 
+    -- Helper: Parses abbreviated formatted numbers (e.g., "1K", "5.4M") into raw numbers
     local function parseAbbreviatedNumber(str)
         if not str then return 0 end
         str = str:gsub(",", "")
         local numPart, suffixPart = str:match("([%d%.]+)%s*([%a]*)")
         if not numPart then return 0 end
+        
         local num = tonumber(numPart) or 0
         if suffixPart and suffixPart ~= "" then
-            local multiplier = suffixMultiplier[suffixPart:upper()]
-            if multiplier then return num * multiplier end
+            local suffix = suffixPart:upper()
+            local multiplier = suffixMultiplier[suffix]
+            if multiplier then
+                return num * multiplier
+            end
         end
         return num
     end
 
     local requiredTrophies = parseAbbreviatedNumber(requiredTrophiesString)
 
-    -- Teleport function
+    -- Helper: teleport local player to the designated position
     local function teleportTo(pos)
         local char = LocalPlayer.Character
         if not char then return false end
@@ -48,204 +65,157 @@ return function(parent, config)
         return true
     end
 
-    -- ===== REMOTE EVENT DETECTION =====
-    local rebirthRemote = nil
-    local remoteArgs = {}
-
-    -- Function to find the remote event
-    local function findRebirthRemote()
-        local remoteNames = {"Rebirth", "RebirthRemote", "RebirthEvent", "DoRebirth", "RebirthButton"}
-        for _, name in ipairs(remoteNames) do
-            local remote = ReplicatedStorage:FindFirstChild(name)
-            if remote and remote:IsA("RemoteEvent") then
-                return remote
+    -- Helper: Handles the clicking simulation safely on all executors
+    local function clickButton(button)
+        local clicked = false
+        
+        -- 1. Try firesignal (Most common exploit global)
+        if typeof(firesignal) == "function" then
+            local s1 = pcall(firesignal, button.MouseButton1Click)
+            local s2 = pcall(firesignal, button.Activated)
+            if s1 or s2 then
+                clicked = true
             end
-            for _, child in ipairs(ReplicatedStorage:GetChildren()) do
-                if child:IsA("Folder") then
-                    local found = child:FindFirstChild(name)
-                    if found and found:IsA("RemoteEvent") then
-                        return found
+        end
+
+        -- 2. Try getconnections (Alternative common exploit global)
+        if not clicked then
+            local getConnections = getconnections or get_signal_cons
+            if typeof(getConnections) == "function" then
+                local ok1, cons1 = pcall(getConnections, button.MouseButton1Click)
+                local ok2, cons2 = pcall(getConnections, button.Activated)
+                
+                if ok1 and type(cons1) == "table" then
+                    for _, connection in ipairs(cons1) do
+                        pcall(function() connection:Fire() end)
                     end
+                    clicked = true
                 end
-            end
-        end
-
-        local button = LocalPlayer:FindFirstChild("PlayerGui")
-        if button then
-            local parent = button
-            for i = 1, 10 do
-                if parent:IsA("RemoteEvent") then
-                    return parent
-                end
-                parent = parent.Parent
-                if not parent then break end
-            end
-        end
-
-        return nil
-    end
-
-    rebirthRemote = findRebirthRemote()
-
-    local function setupRemoteCapture()
-        local button = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI")
-        if not button then return end
-        button = button:FindFirstChild("Rebirth") and button.Rebirth:FindFirstChild("Frame") and button.Rebirth.Frame:FindFirstChild("Buttons") and button.Rebirth.Frame.Buttons:FindFirstChild("RebirthButton")
-        if not button then return end
-
-        local connections = getconnections(button.MouseButton1Click) or getconnections(button.Activated)
-        if connections and #connections > 0 then
-            local oldFire = connections[1].Fire
-            connections[1].Fire = function(self, ...)
-                local args = {...}
-                for _, arg in ipairs(args) do
-                    if arg and arg:IsA("RemoteEvent") then
-                        rebirthRemote = arg
-                        remoteArgs = {unpack(args)}
-                        print("[AutoRebirth] Captured RemoteEvent:", arg:GetFullName())
-                        break
+                if ok2 and type(cons2) == "table" then
+                    for _, connection in ipairs(cons2) do
+                        pcall(function() connection:Fire() end)
                     end
+                    clicked = true
                 end
-                oldFire(self, ...)
             end
-            print("[AutoRebirth] Remote capture installed. Click the rebirth button manually once to teach the script.")
+        end
+
+        -- 3. Fallback to VirtualInputManager (Built-in engine simulation)
+        if not clicked then
+            local success, vim = pcall(game.GetService, game, "VirtualInputManager")
+            if success and vim then
+                local absPos = button.AbsolutePosition
+                local absSize = button.AbsoluteSize
+                local clickX = absPos.X + (absSize.X / 2)
+                local clickY = absPos.Y + (absSize.Y / 2)
+                
+                -- Virtual click on center of the button
+                pcall(function()
+                    vim:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+                    task.wait(0.01)
+                    vim:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+                end)
+                clicked = true
+            end
         end
     end
 
-    if not rebirthRemote then
-        setupRemoteCapture()
-    end
-
-    -- Function to perform rebirth (either via remote or UI click)
+    -- Helper: Rebirth action via direct RemoteFunction, falling back to UI clicks
     local function performRebirth()
-        if rebirthRemote then
-            local args = {LocalPlayer}
-            if #remoteArgs > 0 then
-                args = remoteArgs
-            end
-            pcall(function()
-                rebirthRemote:FireServer(unpack(args))
-                print("[AutoRebirth] Fired RemoteEvent:", rebirthRemote:GetFullName())
+        local success, remote = pcall(function()
+            return ReplicatedStorage.Remotes.AuraRunnerRebirth
+        end)
+
+        if success and remote and remote:IsA("RemoteFunction") then
+            local ok, err = pcall(function()
+                remote:InvokeServer()
             end)
-            return true
-        else
-            local button = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI")
-            if button then
-                button = button:FindFirstChild("Rebirth") and button.Rebirth:FindFirstChild("Frame") and button.Rebirth.Frame:FindFirstChild("Buttons") and button.Rebirth.Frame.Buttons:FindFirstChild("RebirthButton")
-                if button then
-                    local clicked = false
-                    if typeof(firesignal) == "function" then
-                        pcall(firesignal, button.MouseButton1Click)
-                        clicked = true
-                    end
-                    if not clicked then
-                        local connections = getconnections(button.MouseButton1Click)
-                        if connections then
-                            for _, conn in ipairs(connections) do
-                                pcall(conn.Fire, conn)
-                            end
-                            clicked = true
-                        end
-                    end
-                    if not clicked then
-                        local vim = game:GetService("VirtualInputManager")
-                        if vim then
-                            local absPos = button.AbsolutePosition
-                            local absSize = button.AbsoluteSize
-                            vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, true, game, 0)
-                            task.wait(0.01)
-                            vim:SendMouseButtonEvent(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2, 0, false, game, 0)
-                            clicked = true
-                        end
-                    end
-                    if clicked then
-                        print("[AutoRebirth] UI click fallback used.")
-                        return true
-                    end
-                end
+            if ok then
+                print("[AutoRebirth] Successfully invoked AuraRunnerRebirth RemoteFunction!")
+                return true
+            else
+                warn("[AutoRebirth] Remote invocation failed:", tostring(err))
             end
-            warn("[AutoRebirth] All methods failed.")
-            return false
         end
-    end
 
-    -- ===== AUTO REBIRTH POLLING =====
-    local loopRunning = false
-    local characterAddedConn = nil
-
-    local function getUIElements()
+        -- Secondary Fallback: Use UI clicking if the remote path is missing/fails
         local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        if not playerGui then return nil, nil end
-        local ui = playerGui:FindFirstChild("UI")
-        if not ui then return nil, nil end
-        local rebirth = ui:FindFirstChild("Rebirth")
-        if not rebirth then return nil, nil end
-        local frame = rebirth:FindFirstChild("Frame")
-        if not frame then return nil, nil end
-        local buttons = frame:FindFirstChild("Buttons")
-        if not buttons then return nil, nil end
-        local button = buttons:FindFirstChild("RebirthButton")
-        if not button then return nil, nil end
+        local ui = playerGui and playerGui:FindFirstChild("UI")
+        local rebirth = ui and ui:FindFirstChild("Rebirth")
+        local frame = rebirth and rebirth:FindFirstChild("Frame")
+        local buttons = frame and frame:FindFirstChild("Buttons")
+        local button = buttons and buttons:FindFirstChild("RebirthButton")
 
-        local hud = ui:FindFirstChild("HUD")
-        if not hud then return button, nil end
-        local leftBar = hud:FindFirstChild("LeftBar")
-        if not leftBar then return button, nil end
-        local stats = leftBar:FindFirstChild("Statistics")
-        if not stats then return button, nil end
-        local trophies = stats:FindFirstChild("Trophies")
-        if not trophies then return button, nil end
-        local trophyAmount = trophies:FindFirstChild("TrophyAmount")
-        return button, trophyAmount
+        if button then
+            clickButton(button)
+            print("[AutoRebirth] UI click fallback executed.")
+            return true
+        end
+
+        warn("[AutoRebirth] All rebirth methods failed.")
+        return false
     end
 
+    -- Foolproof dynamic loop checking (Runs independently every 1.0 second)
+    local loopRunning = false
     local function startRebirthLoop()
         loopRunning = false
-        task.wait(0.1) -- settle threads
+        task.wait(0.1) -- settle previous threads
         loopRunning = true
 
         task.spawn(function()
             while loopRunning and autoRebirthActive do
                 pcall(function()
-                    -- Get trophy amount
-                    local _, trophyAmount = getUIElements()
-                    local currentTrophies = 0
-                    if trophyAmount and trophyAmount:IsA("TextLabel") then
-                        currentTrophies = parseAbbreviatedNumber(trophyAmount.Text)
-                    end
+                    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                    local ui = playerGui and playerGui:FindFirstChild("UI")
+                    
+                    -- Find TrophyAmount dynamically
+                    local hud = ui and ui:FindFirstChild("HUD")
+                    local leftBar = hud and hud:FindFirstChild("LeftBar")
+                    local stats = leftBar and leftBar:FindFirstChild("Statistics")
+                    local trophies = stats and stats:FindFirstChild("Trophies")
+                    local trophyAmount = trophies and trophies:FindFirstChild("TrophyAmount")
 
-                    if currentTrophies >= requiredTrophies then
-                        print(string.format("[AutoRebirth] Threshold met (%s). Attempting rebirth...", trophyAmount and trophyAmount.Text or "0"))
-                        performRebirth()
+                    if trophyAmount then
+                        local currentTrophies = parseAbbreviatedNumber(trophyAmount.Text)
+                        
+                        -- If trophies are equal or higher than the target, perform the rebirth
+                        if currentTrophies >= requiredTrophies then
+                            performRebirth()
+                        end
                     end
                 end)
-                task.wait(1.0) -- Checking once per second allows the game events to process safely
+                task.wait(1.0) -- Checking once per second to allow server processing
             end
         end)
     end
 
-    -- Handle respawn
+    -- Handle UI re-creation automatically on character respawn (after a rebirth)
+    local characterAddedConn
     characterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
-        task.wait(1.5)
+        task.wait(1.5) -- Settle physics loading before verifying state
         if autoRebirthActive then
             startRebirthLoop()
         end
     end)
 
-    -- ===== UI ELEMENTS =====
+    -- UI: Automation Utilities Section
     elements:Label("🔥 Automation Utilities", parent)
 
+    -- Textbox to change how fast it transmits (in seconds)
     elements:Textbox("Transmit Interval (s)", parent, tostring(loopInterval), function(text)
         local customInterval = tonumber(text)
         if customInterval and customInterval >= 0 then
             loopInterval = customInterval
         else
-            warn("[Invalid] Please enter a valid positive number.")
+            warn("[Invalid] Please enter a valid positive number for the interval.")
         end
     end)
 
+    -- Toggle to activate/deactivate the loop
     elements:Toggle("Auto Win Farm", parent, false, function(state)
         winFarmActive = state
+        
         if winFarmActive then
             task.spawn(function()
                 while winFarmActive do
@@ -256,6 +226,7 @@ return function(parent, config)
         end
     end)
 
+    -- Textbox to input custom trophy target limits (supports K, M, B, T, etc.)
     elements:Textbox("Trophy Target to Rebirth", parent, requiredTrophiesString, function(text)
         requiredTrophiesString = text
         requiredTrophies = parseAbbreviatedNumber(text)
@@ -264,19 +235,17 @@ return function(parent, config)
         end
     end)
 
+    -- Toggle to activate/deactivate Auto Rebirth
     elements:Toggle("Auto Rebirth", parent, false, function(state)
         autoRebirthActive = state
         if autoRebirthActive then
             startRebirthLoop()
-            if not rebirthRemote then
-                setupRemoteCapture()
-                print("[AutoRebirth] Remote not found – click the Rebirth button once manually to capture the event.")
-            end
         else
             loopRunning = false
         end
     end)
 
+    -- Clean up event connections upon UI uninject/destruction
     parent.Destroying:Connect(function()
         loopRunning = false
         if characterAddedConn then characterAddedConn:Disconnect() end
