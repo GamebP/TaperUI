@@ -65,22 +65,28 @@ return function(parent, config)
         return true
     end
 
-    -- ===== NO-FIRESIGNAL UNIVERSAL CLICK HELPER =====
+    -- ===== NO-FIRESIGNAL OS-LEVEL CLICK HELPER =====
     local function robustClick(button)
         if not button then return false end
         local clicked = false
 
-        -- Log coordinates to console for manual troubleshooting
-        pcall(function()
-            local absPos = button.AbsolutePosition
-            local absSize = button.AbsoluteSize
-            local clickX = absPos.X + (absSize.X / 2)
-            local clickY = absPos.Y + (absSize.Y / 2)
-            print(string.format("[Click Debug] Clicking %s (Pos: %s, Size: %s, Click Target: %d, %d)", 
-                button.Name, tostring(absPos), tostring(absSize), clickX, clickY))
-        end)
+        -- Calculate exact click coordinates
+        local absPos = button.AbsolutePosition
+        local absSize = button.AbsoluteSize
+        local clickX = absPos.X + (absSize.X / 2)
+        local clickY = absPos.Y + (absSize.Y / 2)
+        
+        local screenGui = button:FindFirstAncestorOfClass("ScreenGui")
+        if screenGui and not screenGui.IgnoreGuiInset then
+            local inset = GuiService:GetGuiInset()
+            clickX = clickX + inset.X
+            clickY = clickY + inset.Y
+        end
 
-        -- Method A: Trigger ALL Click and Input Connections directly (getconnections fallback)
+        print(string.format("[Click Debug] Clicking %s (Pos: %s, Size: %s, Click Target: %d, %d)", 
+            button.Name, tostring(absPos), tostring(absSize), clickX, clickY))
+
+        -- 1. Direct Connection Fire (Fires ALL click and input events)
         if typeof(getconnections) == "function" then
             pcall(function()
                 local events = {
@@ -105,7 +111,27 @@ return function(parent, config)
             end)
         end
 
-        -- Method B: GuiSelection + Return key (native Roblox UI event trigger)
+        -- 2. Native OS Mouse Move + Hold Click (the most reliable background/physical method)
+        pcall(function()
+            if mousemoveabs then
+                mousemoveabs(clickX, clickY)
+            else
+                VirtualInputManager:SendMouseMoveEvent(clickX, clickY, game)
+            end
+            task.wait(0.1) -- Allow hover to register in the UI
+
+            if mouse1press and mouse1release then
+                mouse1press()
+                task.wait(0.1) -- 100ms hold duration to guarantee click registration
+                mouse1release()
+                clicked = true
+            elseif mouse1click then
+                mouse1click()
+                clicked = true
+            end
+        end)
+
+        -- 3. Native GuiService Selection Focus + Return Key (Roblox Engine Action)
         pcall(function()
             local oldSelectable = button.Selectable
             button.Selectable = true
@@ -122,11 +148,17 @@ return function(parent, config)
             clicked = true
         end)
 
-        -- Method C: Virtual mouse positioning fallback
-        pcall(function()
-            virtualClick(button)
-            clicked = true
-        end)
+        -- 4. VirtualInputManager Fallback Click
+        if not clicked then
+            pcall(function()
+                VirtualInputManager:SendMouseMoveEvent(clickX, clickY, game)
+                task.wait(0.05)
+                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+                task.wait(0.1)
+                VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+                clicked = true
+            end)
+        end
 
         return clicked
     end
