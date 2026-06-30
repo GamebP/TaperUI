@@ -92,6 +92,19 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "+1 Magic Evolution",
+      "gameID": "116223724643557",
+      "gameStatus": "🟢",
+      "dateAdded": "30.06.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
