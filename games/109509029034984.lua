@@ -66,7 +66,7 @@ return function(parent, config)
         return true
     end
 
-    -- Helper: Handles the clicking simulation safely on all executors
+    -- Helper: Handles the clicking simulation safely on all executors (no :Activate() calls)
     local function clickButton(button)
         local clicked = false
         
@@ -189,7 +189,7 @@ return function(parent, config)
     end
 
     -- Handle UI re-creation automatically on character respawn (after a rebirth)
-    local characterAddedCon
+    local characterAddedConn
     characterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
         task.wait(1.5) -- Settle physics loading before verifying state
         if autoRebirthActive then
