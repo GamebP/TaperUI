@@ -1,3 +1,29 @@
+--[[
+
+To teleport to 1 billion wins in world 1
+
+X: 5129.87, Y: 699.76, Z: -2559.64
+Vector3.new(5129.87, 699.76, -2559.64)
+
+--]]
+
+--[[
+
+How to auto rebirth?
+
+Note: You always need to click the x, y center pos
+Note: to get the current trophy count from `game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Frames.Rebirth.Progress.Title` for example it will be like this: `Wins x/y` so `x` will be current trophy count and `y` will be the needed trophy count to rebirth.
+Note: When its x >= y the `game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Frames.Rebirth.Progress.Title` will change to `Ready` so its a clear indication to rebirth.
+
+1. Find `game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Buttons.Left.Rebirth` and finds its center x,y pos and click it.
+2. After clicking it will open a rebirt menu
+3. After finishing the 0.step and before hand clicking 1. and 2. and 3. step then you are 100% sure that you can rebirth.
+4. Then after the rebirth menu is opened by the script with clicks the things using a script it will open a rebirth menu.
+5. So after opening the rebirth menu you will need to find `game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Frames.Rebirth.Rebirth` and click it by getting the center of x,y pos.
+6. Then you will at the end click `game:GetService("Players").LocalPlayer.PlayerGui.MainUI.Frames.Rebirth.Top.X` using the user input using the script.. and then it will be done
+
+--]]
+
 return function(parent, config)
     local taperImport = getgenv().taperImport or function(path)
         return loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/" .. path .. ".lua"))()
@@ -6,7 +32,6 @@ return function(parent, config)
 
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local VirtualInputManager = game:GetService("VirtualInputManager")
     local GuiService = game:GetService("GuiService")
 
@@ -14,13 +39,11 @@ return function(parent, config)
     local winFarmActive = false
     local loopInterval = 1.0
     local autoRebirthActive = false
-    local requiredTrophiesString = "1K"
 
-    -- ===== TARGET POSITION (World 2 Stage 19) =====
-    -- Retrieved from workspace.Map.Stage_19.Win:GetChildren()[2]
-    local TARGET_POS = Vector3.new(-2874.20, 22.29, -1019.80)
+    -- ===== TARGET POSITION (1 Billion Wins spot) =====
+    local TARGET_POS = Vector3.new(5129.87, 699.76, -2559.64)
 
-    -- Suffix multipliers
+    -- ===== EXTENDED SUFFIX MULTIPLIERS (supports numbers up to 1e54) =====
     local suffixMultiplier = {
         K = 1e3,
         M = 1e6,
@@ -58,8 +81,7 @@ return function(parent, config)
         return num
     end
 
-    local requiredTrophies = parseAbbreviatedNumber(requiredTrophiesString)
-
+    -- Teleport helper
     local function teleportTo(pos)
         local char = LocalPlayer.Character
         if not char then return false end
@@ -69,24 +91,22 @@ return function(parent, config)
         return true
     end
 
-    -- ===== ROBUST SIMULATED CLICK HELPER =====
+    -- ===== ROBUST VIRTUAL CLICK (center of button) =====
     local function virtualClick(button)
         if not button then return false end
-        
+
         local absPos = button.AbsolutePosition
         local absSize = button.AbsoluteSize
         local clickX = absPos.X + (absSize.X / 2)
         local clickY = absPos.Y + (absSize.Y / 2)
-        
-        -- Fix scaling errors if IgnoreGuiInset is false on the ScreenGui
+
         local screenGui = button:FindFirstAncestorOfClass("ScreenGui")
         if screenGui and not screenGui.IgnoreGuiInset then
             local inset = GuiService:GetGuiInset()
             clickX = clickX + inset.X
             clickY = clickY + inset.Y
         end
-        
-        -- Simulate hovering and pressing the mouse
+
         VirtualInputManager:SendMouseMoveEvent(clickX, clickY, game)
         task.wait(0.05)
         VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
@@ -95,45 +115,49 @@ return function(parent, config)
         return true
     end
 
-    -- ===== REBIRTH EXECUTION (UI CLICK SEQUENCE) =====
+    -- ===== AUTO REBIRTH SEQUENCE =====
     local function performRebirth()
         local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        local ui = playerGui and playerGui:FindFirstChild("UI")
-        
-        -- Resolve Button 1: Left HUD Open Button
-        local hudButton = ui and ui:FindFirstChild("HUD") 
-            and ui.HUD:FindFirstChild("LeftBar") 
-            and ui.HUD.LeftBar:FindFirstChild("Buttons") 
-            and ui.HUD.LeftBar.Buttons:FindFirstChild("RebirthButton")
-            
-        -- Resolve Button 2 & 3: Rebirth Menu Buttons
-        local rebirthFrame = ui and ui:FindFirstChild("Rebirth") and ui.Rebirth:FindFirstChild("Frame")
-        local frameButton = rebirthFrame and rebirthFrame:FindFirstChild("Buttons") and rebirthFrame.Buttons:FindFirstChild("RebirthButton")
-        local closeButton = rebirthFrame and rebirthFrame:FindFirstChild("CloseButton")
-        
-        if not hudButton then
+        local mainUI = playerGui and playerGui:FindFirstChild("MainUI")
+        if not mainUI then return false end
+
+        local leftButton = mainUI:FindFirstChild("Buttons") and mainUI.Buttons:FindFirstChild("Left") and mainUI.Buttons.Left:FindFirstChild("Rebirth")
+        if not leftButton then
+            warn("[AutoRebirth] Left Rebirth button not found")
             return false
         end
-        
-        -- Step 1: Click HUD Button to open/re-open menu
-        virtualClick(hudButton)
-        task.wait(0.35) -- Wait for menu animation to complete
-        
-        -- Step 2: Click Rebirth confirmation Button inside the frame
-        if frameButton then
-            virtualClick(frameButton)
-            task.wait(0.35) -- Wait for server data update
+
+        local frames = mainUI:FindFirstChild("Frames")
+        local rebirthFrame = frames and frames:FindFirstChild("Rebirth")
+        if not rebirthFrame then
+            warn("[AutoRebirth] Rebirth Frame not found")
+            return false
         end
-        
-        -- Step 3: Click Close Button to hide/minimize the menu
+
+        local rebirthButton = rebirthFrame:FindFirstChild("Rebirth")
+        local top = rebirthFrame:FindFirstChild("Top")
+        local closeButton = top and top:FindFirstChild("X")
+
+        virtualClick(leftButton)
+        task.wait(0.4)
+
+        if rebirthButton then
+            virtualClick(rebirthButton)
+            task.wait(0.4)
+        else
+            warn("[AutoRebirth] Rebirth button inside menu not found")
+        end
+
         if closeButton then
             virtualClick(closeButton)
+        else
+            warn("[AutoRebirth] Close button (X) not found")
         end
-        
+
         return true
     end
 
-    -- ===== AUTO REBIRTH LOOP =====
+    -- ===== AUTO REBIRTH LOOP (dynamic target from UI) =====
     local loopActive = false
     local loopThread = nil
 
@@ -146,30 +170,47 @@ return function(parent, config)
         loopThread = task.spawn(function()
             while loopActive and autoRebirthActive do
                 pcall(function()
-                    -- Find trophy label
                     local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-                    local ui = playerGui and playerGui:FindFirstChild("UI")
-                    local hud = ui and ui:FindFirstChild("HUD")
-                    local leftBar = hud and hud:FindFirstChild("LeftBar")
-                    local stats = leftBar and leftBar:FindFirstChild("Statistics")
-                    local trophies = stats and stats:FindFirstChild("Trophies")
-                    local trophyAmount = trophies and trophies:FindFirstChild("TrophyAmount")
+                    local mainUI = playerGui and playerGui:FindFirstChild("MainUI")
+                    local frames = mainUI and mainUI:FindFirstChild("Frames")
+                    local rebirthFrame = frames and frames:FindFirstChild("Rebirth")
+                    local progress = rebirthFrame and rebirthFrame:FindFirstChild("Progress")
+                    local title = progress and progress:FindFirstChild("Title")
 
-                    if trophyAmount and trophyAmount:IsA("TextLabel") then
-                        local currentText = trophyAmount.Text
-                        local currentTrophies = parseAbbreviatedNumber(currentText)
-                        
-                        if currentTrophies >= requiredTrophies then
+                    if title and title:IsA("TextLabel") then
+                        local text = title.Text
+                        local shouldRebirth = false
+
+                        if text == "Ready" then
+                            shouldRebirth = true
+                        else
+                            -- Parse "Wins x/y"
+                            local current, target = text:match("Wins%s+(%S+)%s*/%s*(%S+)")
+                            if current and target then
+                                local cur = parseAbbreviatedNumber(current)
+                                local tgt = parseAbbreviatedNumber(target)
+                                if cur >= tgt then
+                                    shouldRebirth = true
+                                end
+                            else
+                                warn("[AutoRebirth] Could not parse title: " .. text)
+                            end
+                        end
+
+                        if shouldRebirth then
+                            print("[AutoRebirth] Conditions met – performing rebirth sequence.")
                             performRebirth()
                         end
+                    else
+                        warn("[AutoRebirth] Progress.Title not found")
                     end
                 end)
-                task.wait(1.2)  -- Check frequency interval
+                task.wait(1.2)
             end
         end)
     end
 
-    -- Handle respawn
+    -- Handle character respawn
     local characterAddedConn
     characterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
         task.wait(1.5)
@@ -181,7 +222,7 @@ return function(parent, config)
     -- ===== UI ELEMENTS =====
     elements:Label("🔥 Automation Utilities", parent)
 
-    elements:Textbox("Transmit Interval (s)", parent, tostring(loopInterval), function(text)
+    elements:Textbox("Teleport Interval (s)", parent, tostring(loopInterval), function(text)
         local customInterval = tonumber(text)
         if customInterval and customInterval >= 0 then
             loopInterval = customInterval
@@ -202,13 +243,7 @@ return function(parent, config)
         end
     end)
 
-    elements:Textbox("Trophy Target to Rebirth", parent, requiredTrophiesString, function(text)
-        requiredTrophiesString = text
-        requiredTrophies = parseAbbreviatedNumber(text)
-        if autoRebirthActive then
-            startRebirthLoop()
-        end
-    end)
+    -- Removed the manual target textbox – now fully dynamic.
 
     elements:Toggle("Auto Rebirth", parent, false, function(state)
         autoRebirthActive = state
@@ -228,4 +263,6 @@ return function(parent, config)
         if loopThread then task.cancel(loopThread) end
         if characterAddedConn then characterAddedConn:Disconnect() end
     end)
+
+    print("[AutoRebirth] +1 Speed Brick Escape script loaded (dynamic rebirth target).")
 end

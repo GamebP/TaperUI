@@ -18,7 +18,7 @@ return function(parent, config)
     local TARGET_POS = Vector3.new(-3204.50, 53.29, -20.50)
 
     -- Suffix multipliers
-        local suffixMultiplier = {
+    local suffixMultiplier = {
         K = 1e3,
         M = 1e6,
         B = 1e9,

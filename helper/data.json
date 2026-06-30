@@ -105,6 +105,19 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "+1 Speed Brick Escape",
+      "gameID": "109578395590751",
+      "gameStatus": "🟢",
+      "dateAdded": "30.06.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
