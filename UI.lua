@@ -448,7 +448,7 @@ local homeContainer = create("Frame", {
 }, {
     create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 8),
+        Padding = UDim.new(0, 12),
         HorizontalAlignment = Enum.HorizontalAlignment.Center
     }),
     create("UIPadding", { PaddingTop = UDim.new(0, 16) }),
@@ -469,6 +469,43 @@ local homeContainer = create("Frame", {
         TextColor3 = Color3.fromRGB(180, 180, 180),
         TextSize = 13,
         Font = Enum.Font.GothamMedium
+    }),
+    -- Added Information Card
+    create("Frame", {
+        Name = "infoCard",
+        Size = UDim2.new(0.9, 0, 0, 95),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        BorderSizePixel = 0
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
+        create("UIPadding", {
+            PaddingTop = UDim.new(0, 10),
+            PaddingBottom = UDim.new(0, 10),
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12)
+        }),
+        create("TextLabel", {
+            Size = UDim2.new(1, 0, 0, 18),
+            BackgroundTransparency = 1,
+            Text = "💡 Quick Tip: Alt. Join",
+            TextColor3 = Color3.fromRGB(220, 220, 225),
+            TextSize = 13,
+            Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Left
+        }),
+        create("TextLabel", {
+            Size = UDim2.new(1, 0, 1, -18),
+            Position = UDim2.new(0, 0, 0, 18),
+            BackgroundTransparency = 1,
+            Text = "• 'Alt. Join' indicates alternative joining. The game developer has set up settings such that from World 1 you can easily transition and join the other worlds.",
+            TextColor3 = Color3.fromRGB(150, 150, 155),
+            TextSize = 12,
+            Font = Enum.Font.GothamMedium,
+            TextWrapped = true,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top
+        })
     })
 })
 homeContainer.Parent = homeFrame
