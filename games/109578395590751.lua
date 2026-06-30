@@ -24,6 +24,12 @@ Note: When its x >= y the `game:GetService("Players").LocalPlayer.PlayerGui.Main
 
 --]]
 
+--[[
+
+TODO: Fix rebirthing
+
+]]
+
 return function(parent, config)
     local taperImport = getgenv().taperImport or function(path)
         return loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/" .. path .. ".lua"))()
