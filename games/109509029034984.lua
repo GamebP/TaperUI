@@ -50,18 +50,16 @@ return function(parent, config)
 
     -- ===== REMOTE EVENT DETECTION =====
     local rebirthRemote = nil
-    local remoteArgs = {}  -- store expected arguments
+    local remoteArgs = {}
 
     -- Function to find the remote event
     local function findRebirthRemote()
-        -- 1. Try to find a RemoteEvent in ReplicatedStorage with common names
         local remoteNames = {"Rebirth", "RebirthRemote", "RebirthEvent", "DoRebirth", "RebirthButton"}
         for _, name in ipairs(remoteNames) do
             local remote = ReplicatedStorage:FindFirstChild(name)
             if remote and remote:IsA("RemoteEvent") then
                 return remote
             end
-            -- Also search deeper (e.g., in a folder)
             for _, child in ipairs(ReplicatedStorage:GetChildren()) do
                 if child:IsA("Folder") then
                     local found = child:FindFirstChild(name)
@@ -72,11 +70,10 @@ return function(parent, config)
             end
         end
 
-        -- 2. Search the button's ancestors for a RemoteEvent
         local button = LocalPlayer:FindFirstChild("PlayerGui")
         if button then
             local parent = button
-            for i = 1, 10 do  -- climb up to 10 levels
+            for i = 1, 10 do
                 if parent:IsA("RemoteEvent") then
                     return parent
                 end
@@ -85,15 +82,11 @@ return function(parent, config)
             end
         end
 
-        -- 3. Use getconnections to intercept a manual click (first time you click the button manually)
-        -- This is a fallback – we'll set up a one-time listener to capture the remote.
         return nil
     end
 
-    -- Try to detect the remote
     rebirthRemote = findRebirthRemote()
 
-    -- If not found, set up a one‑time capture when the user manually clicks the button
     local function setupRemoteCapture()
         local button = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI")
         if not button then return end
@@ -102,11 +95,9 @@ return function(parent, config)
 
         local connections = getconnections(button.MouseButton1Click) or getconnections(button.Activated)
         if connections and #connections > 0 then
-            -- Hook the first connection to inspect what it fires
             local oldFire = connections[1].Fire
             connections[1].Fire = function(self, ...)
                 local args = {...}
-                -- Check if any argument is a RemoteEvent or contains one
                 for _, arg in ipairs(args) do
                     if arg and arg:IsA("RemoteEvent") then
                         rebirthRemote = arg
@@ -115,14 +106,12 @@ return function(parent, config)
                         break
                     end
                 end
-                -- Call the original
                 oldFire(self, ...)
             end
             print("[AutoRebirth] Remote capture installed. Click the rebirth button manually once to teach the script.")
         end
     end
 
-    -- If we haven't found it yet, set up capture
     if not rebirthRemote then
         setupRemoteCapture()
     end
@@ -130,7 +119,6 @@ return function(parent, config)
     -- Function to perform rebirth (either via remote or UI click)
     local function performRebirth()
         if rebirthRemote then
-            -- Fire the remote – typically it expects the player as first argument
             local args = {LocalPlayer}
             if #remoteArgs > 0 then
                 args = remoteArgs
@@ -141,12 +129,10 @@ return function(parent, config)
             end)
             return true
         else
-            -- Fallback: use UI clicking
             local button = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("UI")
             if button then
                 button = button:FindFirstChild("Rebirth") and button.Rebirth:FindFirstChild("Frame") and button.Rebirth.Frame:FindFirstChild("Buttons") and button.Rebirth.Frame.Buttons:FindFirstChild("RebirthButton")
                 if button then
-                    -- Try to click using the robust method from earlier
                     local clicked = false
                     if typeof(firesignal) == "function" then
                         pcall(firesignal, button.MouseButton1Click)
@@ -162,7 +148,6 @@ return function(parent, config)
                         end
                     end
                     if not clicked then
-                        -- VirtualInputManager fallback
                         local vim = game:GetService("VirtualInputManager")
                         if vim then
                             local absPos = button.AbsolutePosition
@@ -185,7 +170,7 @@ return function(parent, config)
     end
 
     -- ===== AUTO REBIRTH POLLING =====
-    local rebirthLoopConnection = nil
+    local loopRunning = false
     local characterAddedConn = nil
 
     local function getUIElements()
@@ -215,30 +200,26 @@ return function(parent, config)
     end
 
     local function startRebirthLoop()
-        if rebirthLoopConnection then
-            rebirthLoopConnection:Disconnect()
-            rebirthLoopConnection = nil
-        end
+        loopRunning = false
+        task.wait(0.1) -- settle threads
+        loopRunning = true
 
-        rebirthLoopConnection = game:GetService("RunService").Heartbeat:Connect(function()
-            if not autoRebirthActive then return end
+        task.spawn(function()
+            while loopRunning and autoRebirthActive do
+                pcall(function()
+                    -- Get trophy amount
+                    local _, trophyAmount = getUIElements()
+                    local currentTrophies = 0
+                    if trophyAmount and trophyAmount:IsA("TextLabel") then
+                        currentTrophies = parseAbbreviatedNumber(trophyAmount.Text)
+                    end
 
-            -- Get trophy amount
-            local _, trophyAmount = getUIElements()
-            local currentTrophies = 0
-            if trophyAmount and trophyAmount:IsA("TextLabel") then
-                currentTrophies = parseAbbreviatedNumber(trophyAmount.Text)
-            end
-
-            -- Debug output every 10 seconds
-            if tick() % 10 < 0.05 then
-                print(string.format("[AutoRebirth] Trophies: %s (parsed: %.2e), Required: %.2e", 
-                    trophyAmount and trophyAmount.Text or "??", currentTrophies, requiredTrophies))
-            end
-
-            if currentTrophies >= requiredTrophies then
-                print("[AutoRebirth] Trophy threshold met. Attempting rebirth...")
-                performRebirth()
+                    if currentTrophies >= requiredTrophies then
+                        print(string.format("[AutoRebirth] Threshold met (%s). Attempting rebirth...", trophyAmount and trophyAmount.Text or "0"))
+                        performRebirth()
+                    end
+                end)
+                task.wait(1.0) -- Checking once per second allows the game events to process safely
             end
         end)
     end
@@ -287,23 +268,17 @@ return function(parent, config)
         autoRebirthActive = state
         if autoRebirthActive then
             startRebirthLoop()
-            -- If remote not found, try to capture it again
             if not rebirthRemote then
                 setupRemoteCapture()
                 print("[AutoRebirth] Remote not found – click the Rebirth button once manually to capture the event.")
             end
         else
-            if rebirthLoopConnection then
-                rebirthLoopConnection:Disconnect()
-                rebirthLoopConnection = nil
-            end
+            loopRunning = false
         end
     end)
 
     parent.Destroying:Connect(function()
-        if rebirthLoopConnection then rebirthLoopConnection:Disconnect() end
+        loopRunning = false
         if characterAddedConn then characterAddedConn:Disconnect() end
     end)
-
-    print("[AutoRebirth] Script loaded. If the remote isn't auto-detected, click the Rebirth button once manually to teach the script.")
 end
