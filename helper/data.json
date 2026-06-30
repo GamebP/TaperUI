@@ -6,8 +6,8 @@
       "gameName": "+1 Speed Evolve 🦊 (World 2)",
       "gameID": "107654875426558",
       "gameStatus": "🟢",
-      "canJoinGame": true,
-      "joinAlternativeGameID": null,
+      "canJoinGame": false,
+      "joinAlternativeGameID": "83569851223739",
       "dateAdded": "27.06.2026",
       "dateRemoved": null,
       "addedBy": [
