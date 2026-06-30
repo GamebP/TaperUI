@@ -15,6 +15,9 @@ return function(parent, config)
     local winFarmActive = false
     local loopInterval = 1.0
     local autoRebirthActive = false
+    
+    local currentTargetLevel = nil -- Cached target level (prevents menu flashing)
+    local lastForceCheck = 0       -- Prevent spamming force-checks
 
     -- Target Position for 100 Billion Wins
     local TARGET_POS = Vector3.new(3568.008, 2.045, 8.190)
@@ -55,8 +58,18 @@ return function(parent, config)
         return true
     end
 
-    -- Parse current/target level requirements from the text label
-    local function checkRebirthEligibility()
+    -- Safely read current level directly from your leaderstats
+    local function getCurrentLevel()
+        local leaderstats = LocalPlayer:FindFirstChild("leaderstats")
+        local levelVal = leaderstats and leaderstats:FindFirstChild("Level")
+        if levelVal then
+            return tonumber(levelVal.Value) or 0
+        end
+        return 0
+    end
+
+    -- Read target level from Rebirth bar when the window is open
+    local function updateTargetLevel()
         local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
         local gui = playerGui and playerGui:FindFirstChild("GUI")
         local levelLabel = gui and gui:FindFirstChild("Frames")
@@ -67,7 +80,7 @@ return function(parent, config)
 
         if levelLabel and levelLabel:IsA("TextLabel") then
             local text = levelLabel.Text
-            -- Match the two numeric values from format pattern: "Level X/Y" or "X/Y"
+            -- Match the two numeric values from format pattern: e.g., "Level 2/12"
             local current, target = text:match("(%d+)/(%d+)")
             if current and target then
                 local curLvl = tonumber(current)
@@ -103,9 +116,12 @@ return function(parent, config)
         
         -- Step 1: Click HUD Button to open/re-open menu
         virtualClick(hudButton)
-        task.wait(0.5) -- Delay to allow the server to register rebirth
+        task.wait(0.8) -- Delay to allow the server to register rebirth
         
-        -- Step 2: Click the close button to close the rebirth window
+        -- Step 2: Grab the next escalated target requirement while the menu is open
+        updateTargetLevel()
+        
+        -- Step 3: Click the close button to close the rebirth window
         if closeButton then
             virtualClick(closeButton)
         end
@@ -124,9 +140,38 @@ return function(parent, config)
         rebirthThread = task.spawn(function()
             while autoRebirthActive do
                 pcall(function()
-                    if checkRebirthEligibility() then
+                    local currentLevel = getCurrentLevel()
+                    
+                    -- Step 1: Initialize target level or force update every 30s
+                    if not currentTargetLevel or (tick() - lastForceCheck > 30) then
+                        lastForceCheck = tick()
+                        
+                        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                        local gui = playerGui and playerGui:FindFirstChild("GUI")
+                        local hudButton = gui and gui:FindFirstChild("HUD") 
+                            and gui.HUD:FindFirstChild("Left") 
+                            and gui.HUD.Left:FindFirstChild("Buttons1") 
+                            and gui.HUD.Left.Buttons1:FindFirstChild("Rebirth")
+                            
+                        if hudButton then
+                            virtualClick(hudButton)
+                            task.wait(0.3) -- Wait for frame instantiation
+                            updateTargetLevel()
+                            
+                            -- Close it immediately
+                            local closeButton = gui and gui:FindFirstChild("Frames") 
+                                and gui.Frames:FindFirstChild("Rebirth") 
+                                and gui.Frames.Rebirth:FindFirstChild("Title") 
+                                and gui.Frames.Rebirth.Title:FindFirstChild("Close")
+                            if closeButton then
+                                virtualClick(closeButton)
+                            end
+                        end
+                    end
+                    
+                    -- Step 2: Trigger rebirth sequence when requirement met
+                    if currentTargetLevel and currentLevel >= currentTargetLevel then
                         performRebirth()
-                        task.wait(1.5) -- Prevention lock to avoid rapid clicking
                     end
                 end)
                 task.wait(1.0)
