@@ -49,22 +49,35 @@ return function(parent, config)
 
     -- ===== REBIRTH EXECUTION (REMOTE ONLY) =====
     local function performRebirth()
-        local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("AuraRunnerRebirth")
-        if remote and remote:IsA("RemoteFunction") then
-            local success, result = pcall(function()
-                -- Invoking the RemoteFunction with the verified handshake string "AuraRunnerRebirth"
-                return remote:InvokeServer("AuraRunnerRebirth")
-            end)
-            if success then
-                print("[AutoRebirth] RemoteFunction invocation successful!")
-                return true
-            else
-                warn("[AutoRebirth] RemoteFunction failed:", tostring(result))
-            end
-        else
-            warn("[AutoRebirth] Rebirth RemoteFunction ('AuraRunnerRebirth') not found under ReplicatedStorage.Remotes.")
+        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
+        if not remotes then
+            warn("[Rebirth] ReplicatedStorage.Remotes not found")
+            return false
         end
-        return false
+
+        local remote = remotes:FindFirstChild("AuraRunnerRebirth")
+        if not remote then
+            warn("[Rebirth] AuraRunnerRebirth not found")
+            return false
+        end
+
+        print("[Rebirth] Found:", remote:GetFullName())
+        print("[Rebirth] Class:", remote.ClassName)
+
+        local ok, result = pcall(function()
+            return remote:InvokeServer("AuraRunnerRebirth")
+        end)
+
+        print("========== REBIRTH LOG ==========")
+        print("Success:", ok)
+        print("Return:", result)
+        print("=================================")
+
+        if not ok then
+            warn(result)
+        end
+
+        return ok
     end
 
     -- ===== AUTO REBIRTH LOOP =====
