@@ -1,13 +1,5 @@
 --[[
 
-To auto get a 5T wins you need to telport to 
-
--1754.66, 680.42, 3225.36
-
---]]
-
---[[
-
 Note to auto rebirth you will always click the elements in the x,y center
 
 1. To check if you can rebirth you will check `game:GetService("Players").LocalPlayer.PlayerGui.Main.Rebirth.LevelBar.Label` TextLabel and you will see `Level: 57/75`
@@ -16,6 +8,13 @@ Note to auto rebirth you will always click the elements in the x,y center
 2. You will find `game:GetService("Players").LocalPlayer.PlayerGui.Main.HUD.Buttons._3Rebirth` and click center of x, y pos
 3. You will find the button `game:GetService("Players").LocalPlayer.PlayerGui.Main.Rebirth.Rebirth` and click center of x, y pos.. this will rebirth you.
 4. After rebirthing you will click `game:GetService("Players").LocalPlayer.PlayerGui.Main.Rebirth.Close` and click center of x, y pos to close the rebirth window.
+
+
+UPDATE:
+
+1. Find `game:GetService("Players").LocalPlayer.PlayerGui.Main.Rebirth` and change :Visible from false to true
+2. Click `game:GetService("Players").LocalPlayer.PlayerGui.Main.Rebirth.Rebirth` center of x, y pos
+3. Change `game:GetService("Players").LocalPlayer.PlayerGui.Main.Rebirth` :Visible from true to false
 
 --]]
 
@@ -238,56 +237,31 @@ return function(parent, config)
             return false 
         end
 
-        -- Resolve paths to necessary interactive UI elements
-        local hudRebirthButton = main:FindFirstChild("HUD")
-            and main.HUD:FindFirstChild("Buttons")
-            and main.HUD.Buttons:FindFirstChild("_3Rebirth")
-
         local rebirthMenu = main:FindFirstChild("Rebirth")
-        local rebirthActionBtn = rebirthMenu and rebirthMenu:FindFirstChild("Rebirth")
-        local closeMenuBtn = rebirthMenu and rebirthMenu:FindFirstChild("Close")
-
-        if not hudRebirthButton then
-            warn("[AutoRebirth] Left HUD Rebirth Open Button ('_3Rebirth') not found.")
-            return false
-        end
-
         if not rebirthMenu then
             warn("[AutoRebirth] Rebirth Menu frame could not be resolved.")
             return false
         end
 
-        -- Step 1: Open the menu with an interactive check loop
-        local attempts = 0
-        while not rebirthMenu.Visible and attempts < 3 do
-            print("[AutoRebirth] Eligibility met. Attempting to open Rebirth Menu (Attempt " .. tostring(attempts + 1) .. ")...")
-            robustClick(hudRebirthButton)
-            task.wait(0.6) -- Give transitions time to complete
-            attempts = attempts + 1
-        end
-
-        -- Stop execution if the menu did not open successfully
-        if not rebirthMenu.Visible then
-            warn("[AutoRebirth] Failed to open Rebirth Menu after 3 attempts.")
+        local rebirthActionBtn = rebirthMenu:FindFirstChild("Rebirth")
+        if not rebirthActionBtn then
+            warn("[AutoRebirth] Rebirth confirmation button inside menu was missing.")
             return false
         end
 
-        -- Step 2: Click the confirmation Rebirth button inside the menu
-        if rebirthActionBtn then
-            print("[AutoRebirth] Menu successfully opened. Clicking Rebirth Confirm Action button.")
-            robustClick(rebirthActionBtn)
-            task.wait(0.5) -- Wait for confirmation to register
-        else
-            warn("[AutoRebirth] Rebirth confirmation button inside menu was missing.")
-        end
+        -- Step 1: Force visibility of the rebirth menu to true
+        print("[AutoRebirth] Opening Rebirth UI manually...")
+        rebirthMenu.Visible = true
+        task.wait(0.15) -- Minimal latency window to register UI active bounds
 
-        -- Step 3: Close the rebirth window
-        if closeMenuBtn then
-            print("[AutoRebirth] Closing Rebirth window.")
-            robustClick(closeMenuBtn)
-        else
-            warn("[AutoRebirth] Close Menu button was not found.")
-        end
+        -- Step 2: Trigger the click sequence inside the confirmation button
+        print("[AutoRebirth] Sending click to confirm button.")
+        robustClick(rebirthActionBtn)
+        task.wait(0.5) -- Wait for configuration values to update
+
+        -- Step 3: Change visibility of the rebirth menu to false
+        print("[AutoRebirth] Closing Rebirth UI manually...")
+        rebirthMenu.Visible = false
 
         return true
     end
