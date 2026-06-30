@@ -55,8 +55,21 @@
       "isActiveInUI": true
     },
     {
-      "gameName": "+1 Aura Per Click",
+      "gameName": "+1 Aura Per Click (World 1)",
       "gameID": "109509029034984",
+      "gameStatus": "🟢",
+      "dateAdded": "30.06.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
+    },
+    {
+      "gameName": "+1 Aura Per Click (World 2)",
+      "gameID": "100807904956772",
       "gameStatus": "🟢",
       "dateAdded": "30.06.2026",
       "dateRemoved": null,

@@ -1,3 +1,5 @@
+-- World 2
+
 return function(parent, config)
     local taperImport = getgenv().taperImport or function(path)
         return loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/" .. path .. ".lua"))()
@@ -15,7 +17,10 @@ return function(parent, config)
     local loopInterval = 1.0
     local autoRebirthActive = false
     local requiredTrophiesString = "1K"
-    local TARGET_POS = Vector3.new(-3204.50, 53.29, -20.50)
+
+    -- ===== TARGET POSITION (World 2 Stage 19) =====
+    -- Retrieved from workspace.Map.Stage_19.Win:GetChildren()[2]
+    local TARGET_POS = Vector3.new(-2874.20, 22.29, -1019.80)
 
     -- Suffix multipliers
     local suffixMultiplier = {
