@@ -677,12 +677,29 @@ if #activeGames == 0 then
 else
     for _, g in ipairs(activeGames) do
         local isCurrentGame = (tostring(g.gameID) == tostring(game.PlaceId))
-        local btnText = isCurrentGame and "Active" or "Launch"
-        local callback = isCurrentGame and function() end or function()
-            ExperienceService:LaunchExperience({placeId = g.gameID})
+        local btnText
+        local callback
+        local isAltStyle = false
+        
+        if isCurrentGame then
+            btnText = "Active"
+            callback = function() end
+        elseif g.canJoinGame == false then
+            btnText = "Alt. Join"
+            isAltStyle = true
+            callback = function()
+                if g.joinAlternativeGameID then
+                    ExperienceService:LaunchExperience({placeId = tonumber(g.joinAlternativeGameID)})
+                end
+            end
+        else
+            btnText = "Launch"
+            callback = function()
+                ExperienceService:LaunchExperience({placeId = tonumber(g.gameID)})
+            end
         end
         
-        elements:addGame(Sections.GamesList.Content, g.gameName, g.gameStatus, callback, btnText)
+        elements:addGame(Sections.GamesList.Content, g.gameName, g.gameStatus, callback, btnText, isAltStyle)
     end
 end
 

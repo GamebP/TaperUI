@@ -710,7 +710,7 @@ function elements:Dropdown(str, parent, options, def, cb)
     return dropdownFrame
 end
 
-function elements:addGame(parent, gname, gstate, cb, btnText)
+function elements:addGame(parent, gname, gstate, cb, btnText, isAltStyle)
     local buttonText = btnText or "Launch"
     local isActiveGame = (buttonText == "Active")
 
@@ -719,6 +719,21 @@ function elements:addGame(parent, gname, gstate, cb, btnText)
         statusColor = Color3.fromRGB(59, 164, 57)
     elseif gstate == "🟡" then
         statusColor = Color3.fromRGB(220, 180, 50)
+    end
+
+    -- Determine colors based on active, normal launch, or greyed-out alternative style
+    local bgCol = Color3.fromRGB(32, 32, 38)
+    local textCol = Color3.fromRGB(240, 240, 245)
+    local strokeCol = Color3.fromRGB(45, 45, 50)
+
+    if isActiveGame then
+        bgCol = Color3.fromRGB(18, 18, 22)
+        textCol = Color3.fromRGB(110, 110, 115)
+        strokeCol = Color3.fromRGB(30, 30, 35)
+    elseif isAltStyle then
+        bgCol = Color3.fromRGB(22, 22, 26)       -- Darkened background
+        textCol = Color3.fromRGB(120, 120, 125)   -- Greyed out text
+        strokeCol = Color3.fromRGB(32, 32, 36)   -- Blended stroke
     end
 
     local gameItem = create("Frame", {
@@ -743,7 +758,7 @@ function elements:addGame(parent, gname, gstate, cb, btnText)
             Position = UDim2.new(0, 34, 0, 0),
             BackgroundTransparency = 1,
             Text = gname,
-            TextColor3 = Color3.fromRGB(220, 220, 225),
+            TextColor3 = isAltStyle and Color3.fromRGB(150, 150, 155) or Color3.fromRGB(220, 220, 225),
             TextSize = 13,
             Font = Enum.Font.GothamMedium,
             TextXAlignment = Enum.TextXAlignment.Left
@@ -752,16 +767,16 @@ function elements:addGame(parent, gname, gstate, cb, btnText)
             Name = "ButtonElement",
             Size = UDim2.new(0, 70, 0, 28),
             Position = UDim2.new(1, -82, 0.5, -14),
-            BackgroundColor3 = isActiveGame and Color3.fromRGB(18, 18, 22) or Color3.fromRGB(32, 32, 38),
+            BackgroundColor3 = bgCol,
             Text = buttonText,
-            TextColor3 = isActiveGame and Color3.fromRGB(110, 110, 115) or Color3.fromRGB(240, 240, 245),
+            TextColor3 = textCol,
             TextSize = 11,
             Font = Enum.Font.GothamBold,
             Active = not isActiveGame,
             AutoButtonColor = not isActiveGame
         }, {
             create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-            create("UIStroke", { Color = isActiveGame and Color3.fromRGB(30, 30, 35) or Color3.fromRGB(45, 45, 50), Thickness = 1 })
+            create("UIStroke", { Color = strokeCol, Thickness = 1 })
         })
     })
 
@@ -825,12 +840,29 @@ function elements:Searchbar(parent, gameList)
                 matchCount = matchCount + 1
                 
                 local isCurrentGame = (tostring(g.gameID) == tostring(game.PlaceId))
-                local btnText = isCurrentGame and "Active" or "Launch"
-                local callback = isCurrentGame and function() end or function()
-                    ExperienceService:LaunchExperience({placeId = g.gameID})
+                local btnText
+                local callback
+                local isAltStyle = false
+                
+                if isCurrentGame then
+                    btnText = "Active"
+                    callback = function() end
+                elseif g.canJoinGame == false then
+                    btnText = "Alt. Join"
+                    isAltStyle = true
+                    callback = function()
+                        if g.joinAlternativeGameID then
+                            ExperienceService:LaunchExperience({placeId = tonumber(g.joinAlternativeGameID)})
+                        end
+                    end
+                else
+                    btnText = "Launch"
+                    callback = function()
+                        ExperienceService:LaunchExperience({placeId = tonumber(g.gameID)})
+                    end
                 end
                 
-                elements:addGame(parent, g.gameName, g.gameStatus, callback, btnText)
+                elements:addGame(parent, g.gameName, g.gameStatus, callback, btnText, isAltStyle)
             end
         end
         

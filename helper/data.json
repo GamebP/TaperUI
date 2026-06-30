@@ -6,6 +6,8 @@
       "gameName": "+1 Speed Evolve 🦊 (World 2)",
       "gameID": "107654875426558",
       "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
       "dateAdded": "27.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -19,6 +21,8 @@
       "gameName": "+1 Speed Evolve 🦊 (World 1)",
       "gameID": "83569851223739",
       "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
       "dateAdded": "27.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -32,6 +36,8 @@
       "gameName": "[🏖️DUELS] Murderers VS Sheriffs",
       "gameID": "135856908115931",
       "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
       "dateAdded": "28.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -45,6 +51,8 @@
       "gameName": "[🏆Cup] +1 Kick to Score Goals ⚽️",
       "gameID": "126838179597613",
       "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
       "dateAdded": "28.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -58,6 +66,8 @@
       "gameName": "+1 Aura Per Click (World 1)",
       "gameID": "109509029034984",
       "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
       "dateAdded": "30.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -71,6 +81,8 @@
       "gameName": "+1 Aura Per Click (World 2)",
       "gameID": "100807904956772",
       "gameStatus": "🟢",
+      "canJoinGame": false,
+      "joinAlternativeGameID": "109509029034984",
       "dateAdded": "30.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -84,6 +96,8 @@
       "gameName": "+1 Aura Per Click (World 3)",
       "gameID": "121956648506820",
       "gameStatus": "🟢",
+      "canJoinGame": false,
+      "joinAlternativeGameID": "109509029034984",
       "dateAdded": "30.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -97,6 +111,8 @@
       "gameName": "+1 Magic Evolution",
       "gameID": "116223724643557",
       "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
       "dateAdded": "30.06.2026",
       "dateRemoved": null,
       "addedBy": [
@@ -110,6 +126,8 @@
       "gameName": "+1 Speed Brick Escape",
       "gameID": "109578395590751",
       "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
       "dateAdded": "30.06.2026",
       "dateRemoved": null,
       "addedBy": [
