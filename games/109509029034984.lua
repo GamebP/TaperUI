@@ -66,13 +66,62 @@ return function(parent, config)
         return true
     end
 
-    -- Helper: Handles the clicking simulation
+    -- Helper: Handles the clicking simulation safely on all executors
     local function clickButton(button)
+        local clicked = false
+        
+        -- 1. Try firesignal (Most common exploit global)
         if typeof(firesignal) == "function" then
-            firesignal(button.MouseButton1Click)
-            firesignal(button.Activated)
-        else
-            button:Activate() -- Fallback vanilla method
+            local s1 = pcall(firesignal, button.MouseButton1Click)
+            local s2 = pcall(firesignal, button.Activated)
+            if s1 or s2 then
+                clicked = true
+            end
+        end
+
+        -- 2. Try getconnections (Alternative common exploit global)
+        if not clicked then
+            local getConnections = getconnections or get_signal_cons
+            if typeof(getConnections) == "function" then
+                local ok1, cons1 = pcall(getConnections, button.MouseButton1Click)
+                local ok2, cons2 = pcall(getConnections, button.Activated)
+                
+                if ok1 and type(cons1) == "table" then
+                    for _, connection in ipairs(cons1) do
+                        pcall(function() connection:Fire() end)
+                    end
+                    clicked = true
+                end
+                if ok2 and type(cons2) == "table" then
+                    for _, connection in ipairs(cons2) do
+                        pcall(function() connection:Fire() end)
+                    end
+                    clicked = true
+                end
+            end
+        end
+
+        -- 3. Fallback to VirtualInputManager (Built-in engine simulation)
+        if not clicked then
+            local success, vim = pcall(game.GetService, game, "VirtualInputManager")
+            if success and vim then
+                local absPos = button.AbsolutePosition
+                local absSize = button.AbsoluteSize
+                local clickX = absPos.X + (absSize.X / 2)
+                local clickY = absPos.Y + (absSize.Y / 2)
+                
+                -- Virtual click on center of the button
+                pcall(function()
+                    vim:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+                    task.wait(0.01)
+                    vim:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+                end)
+                clicked = true
+            end
+        end
+
+        if not clicked then
+            warn("[TaperUI] Click simulation failed: No supported methods (firesignal, getconnections, or VirtualInputManager) were successful.")
         end
     end
 
@@ -143,14 +192,10 @@ return function(parent, config)
     local characterAddedCon
     characterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
         task.wait(1.5) -- Settle physics loading before verifying state
-        if autoTrainActive or winFarmActive or autoHatchActive then
-            -- Safely re-checks structural path properties
+        if autoRebirthActive then
+            setupAutoRebirthListener()
         end
     end)
-
-    for _, sect in pairs(creditsList or {}) do
-        -- Settle references matching core UI loaders
-    end
 
     -- UI: Automation Utilities Section
     elements:Label("🔥 Automation Utilities", parent)
