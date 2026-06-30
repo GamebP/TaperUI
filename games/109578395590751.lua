@@ -39,9 +39,8 @@ return function(parent, config)
     local winFarmActive = false
     local loopInterval = 1.0
     local autoRebirthActive = false
-
-    -- ===== TARGET POSITION (1 Billion Wins spot) =====
     local TARGET_POS = Vector3.new(5129.87, 699.76, -2559.64)
+    local MIN_TELEPORT_COOLDOWN = 25.5
 
     -- ===== EXTENDED SUFFIX MULTIPLIERS (supports numbers up to 1e54) =====
     local suffixMultiplier = {
@@ -81,7 +80,6 @@ return function(parent, config)
         return num
     end
 
-    -- Teleport helper
     local function teleportTo(pos)
         local char = LocalPlayer.Character
         if not char then return false end
@@ -91,10 +89,9 @@ return function(parent, config)
         return true
     end
 
-    -- ===== ROBUST VIRTUAL CLICK (center of button) =====
+    -- Virtual click (center of button)
     local function virtualClick(button)
         if not button then return false end
-
         local absPos = button.AbsolutePosition
         local absSize = button.AbsoluteSize
         local clickX = absPos.X + (absSize.X / 2)
@@ -115,18 +112,20 @@ return function(parent, config)
         return true
     end
 
-    -- ===== AUTO REBIRTH SEQUENCE =====
+    -- ===== REBIRTH SEQUENCE =====
     local function performRebirth()
         local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
         local mainUI = playerGui and playerGui:FindFirstChild("MainUI")
         if not mainUI then return false end
 
+        -- Left HUD button
         local leftButton = mainUI:FindFirstChild("Buttons") and mainUI.Buttons:FindFirstChild("Left") and mainUI.Buttons.Left:FindFirstChild("Rebirth")
         if not leftButton then
             warn("[AutoRebirth] Left Rebirth button not found")
             return false
         end
 
+        -- Rebirth frame
         local frames = mainUI:FindFirstChild("Frames")
         local rebirthFrame = frames and frames:FindFirstChild("Rebirth")
         if not rebirthFrame then
@@ -135,12 +134,13 @@ return function(parent, config)
         end
 
         local rebirthButton = rebirthFrame:FindFirstChild("Rebirth")
-        local top = rebirthFrame:FindFirstChild("Top")
-        local closeButton = top and top:FindFirstChild("X")
+        local closeButton = rebirthFrame:FindFirstChild("Top") and rebirthFrame.Top:FindFirstChild("X")
 
+        -- Step 1: Open menu
         virtualClick(leftButton)
         task.wait(0.4)
 
+        -- Step 2: Click rebirth button
         if rebirthButton then
             virtualClick(rebirthButton)
             task.wait(0.4)
@@ -148,6 +148,7 @@ return function(parent, config)
             warn("[AutoRebirth] Rebirth button inside menu not found")
         end
 
+        -- Step 3: Close menu
         if closeButton then
             virtualClick(closeButton)
         else
@@ -210,7 +211,7 @@ return function(parent, config)
         end)
     end
 
-    -- Handle character respawn
+    -- Character respawn handler
     local characterAddedConn
     characterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
         task.wait(1.5)
@@ -222,7 +223,7 @@ return function(parent, config)
     -- ===== UI ELEMENTS =====
     elements:Label("🔥 Automation Utilities", parent)
 
-    elements:Textbox("Teleport Interval (s)", parent, tostring(loopInterval), function(text)
+    elements:Textbox("Teleport Interval (s) [min 25.5]", parent, tostring(loopInterval), function(text)
         local customInterval = tonumber(text)
         if customInterval and customInterval >= 0 then
             loopInterval = customInterval
@@ -235,15 +236,22 @@ return function(parent, config)
         winFarmActive = state
         if winFarmActive then
             task.spawn(function()
+                local lastTeleport = 0
                 while winFarmActive do
+                    local now = tick()
+                    local waitTime = math.max(loopInterval, MIN_TELEPORT_COOLDOWN)
+                    local elapsed = now - lastTeleport
+                    if elapsed < waitTime then
+                        task.wait(waitTime - elapsed)
+                    end
                     teleportTo(TARGET_POS)
-                    task.wait(loopInterval)
+                    lastTeleport = tick()
                 end
             end)
         end
     end)
 
-    -- Removed the manual target textbox – now fully dynamic.
+    -- No manual target textbox – everything is dynamic.
 
     elements:Toggle("Auto Rebirth", parent, false, function(state)
         autoRebirthActive = state
