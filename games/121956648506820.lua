@@ -1,3 +1,5 @@
+-- World 3
+
 return function(parent, config)
     local taperImport = getgenv().taperImport or function(path)
         return loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/" .. path .. ".lua"))()
@@ -16,12 +18,11 @@ return function(parent, config)
     local autoRebirthActive = false
     local requiredTrophiesString = "1K"
 
-    -- ===== TARGET POSITION (World 2 Stage 19) =====
-    -- Retrieved from workspace.Map.Stage_19.Win:GetChildren()[2]
-    local TARGET_POS = Vector3.new(-2874.20, 22.29, -1019.80)
+    -- ===== TARGET POSITION (World 3) =====
+    local TARGET_POS = Vector3.new(-2163.90, 62.79, -15.70)
 
     -- Suffix multipliers
-        local suffixMultiplier = {
+    local suffixMultiplier = {
         K = 1e3,
         M = 1e6,
         B = 1e9,
@@ -160,6 +161,7 @@ return function(parent, config)
                         local currentTrophies = parseAbbreviatedNumber(currentText)
                         
                         if currentTrophies >= requiredTrophies then
+                            print("[AutoRebirth] Threshold reached! Performing rebirth sequence.")
                             performRebirth()
                         end
                     end

@@ -18,11 +18,28 @@ return function(parent, config)
     local TARGET_POS = Vector3.new(-3204.50, 53.29, -20.50)
 
     -- Suffix multipliers
-    local suffixMultiplier = {
-        K = 1e3, M = 1e6, B = 1e9, T = 1e12,
-        QA = 1e15, QD = 1e15, QI = 1e18, QT = 1e18,
-        SX = 1e21, SP = 1e24, OC = 1e27, NO = 1e30,
-        NN = 1e30, DC = 1e33
+        local suffixMultiplier = {
+        K = 1e3,
+        M = 1e6,
+        B = 1e9,
+        T = 1e12,
+        Qa = 1e15,
+        Qd = 1e15,
+        Qi = 1e18,
+        Qt = 1e18,
+        Sx = 1e21,
+        Sp = 1e24,
+        Oc = 1e27,
+        No = 1e30,
+        Nn = 1e30,
+        Dc = 1e33,
+        Ud = 1e36,
+        Dd = 1e39,
+        Td = 1e42,
+        Qu = 1e45,
+        Qn = 1e48,
+        Se = 1e51,
+        Ss = 1e54,
     }
 
     local function parseAbbreviatedNumber(str)
