@@ -13,7 +13,7 @@ return function(parent, config)
     local winFarmActive = false
     local loopInterval = 1.0 -- Default start delay (in seconds)
     local autoRebirthActive = false
-    local requiredTrophiesString = "1K" -- Default target trophies set to 1K for the first rebirth
+    local requiredTrophiesString = "1K" -- Default target trophies
 
     -- Target coordinates for 50 Billion wins
     local TARGET_POS = Vector3.new(-3204.50, 53.29, -20.50)
@@ -36,7 +36,7 @@ return function(parent, config)
         DC = 1e33
     }
 
-    -- Helper: Parses abbreviated formatted numbers (e.g., "1K", "5.4M") into raw numbers
+    -- Helper: Parses abbreviated formatted numbers (e.g., "1K", "535B") into raw numbers
     local function parseAbbreviatedNumber(str)
         if not str then return 0 end
         str = str:gsub(",", "")
@@ -66,7 +66,7 @@ return function(parent, config)
         return true
     end
 
-    -- Helper: Handles the clicking simulation safely on all executors (no :Activate() calls)
+    -- Helper: Handles the clicking simulation safely on all executors
     local function clickButton(button)
         local clicked = false
         
@@ -119,81 +119,41 @@ return function(parent, config)
                 clicked = true
             end
         end
-
-        if not clicked then
-            warn("[TaperUI] Click simulation failed: No supported methods (firesignal, getconnections, or VirtualInputManager) were successful.")
-        end
     end
 
-    -- Rebirth Listener references for garbage collection/updates
-    local currentConnection = nil
-    local currentTrophyConnection = nil
-    local currentDestroyConnection = nil
+    -- Foolproof dynamic loop checking (Runs independently every 1.0 second)
+    local loopRunning = true
+    task.spawn(function()
+        while loopRunning do
+            task.wait(1.0)
+            if autoRebirthActive then
+                pcall(function()
+                    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+                    local ui = playerGui and playerGui:FindFirstChild("UI")
+                    
+                    -- Find RebirthButton dynamically
+                    local rebirth = ui and ui:FindFirstChild("Rebirth")
+                    local frame = rebirth and rebirth:FindFirstChild("Frame")
+                    local buttons = frame and frame:FindFirstChild("Buttons")
+                    local button = buttons and buttons:FindFirstChild("RebirthButton")
 
-    -- Helper: Setup the auto-rebirth listener for the active UI
-    local function setupAutoRebirthListener()
-        -- Clean up old connections if they exist to prevent memory leaks
-        if currentConnection then currentConnection:Disconnect() currentConnection = nil end
-        if currentTrophyConnection then currentTrophyConnection:Disconnect() currentTrophyConnection = nil end
-        if currentDestroyConnection then currentDestroyConnection:Disconnect() currentDestroyConnection = nil end
+                    -- Find TrophyAmount dynamically
+                    local hud = ui and ui:FindFirstChild("HUD")
+                    local leftBar = hud and hud:FindFirstChild("LeftBar")
+                    local stats = leftBar and leftBar:FindFirstChild("Statistics")
+                    local trophies = stats and stats:FindFirstChild("Trophies")
+                    local trophyAmount = trophies and trophies:FindFirstChild("TrophyAmount")
 
-        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
-        local ui = playerGui and playerGui:FindFirstChild("UI")
-        local rebirth = ui and ui:FindFirstChild("Rebirth")
-        local frame = rebirth and rebirth:FindFirstChild("Frame")
-        local buttons = frame and frame:FindFirstChild("Buttons")
-        local button = buttons and buttons:FindFirstChild("RebirthButton")
-
-        local hud = ui and ui:FindFirstChild("HUD")
-        local leftBar = hud and hud:FindFirstChild("LeftBar")
-        local stats = leftBar and leftBar:FindFirstChild("Statistics")
-        local trophies = stats and stats:FindFirstChild("Trophies")
-        local trophyAmount = trophies and trophies:FindFirstChild("TrophyAmount")
-
-        if not button then return end
-
-        local function checkAndClick()
-            if not autoRebirthActive then return end
-            
-            -- 1. Verify if the button is active (lit up)
-            local color = button.ImageColor3
-            local isLit = (color.R > 0.95 and color.G > 0.95 and color.B > 0.95)
-            if not isLit then return end
-
-            -- 2. Verify if the player has met the trophy requirement
-            local currentTrophies = 0
-            if trophyAmount and trophyAmount:IsA("TextLabel") then
-                currentTrophies = parseAbbreviatedNumber(trophyAmount.Text)
+                    if button and trophyAmount then
+                        local currentTrophies = parseAbbreviatedNumber(trophyAmount.Text)
+                        
+                        -- If trophies are equal or higher than the target, perform the rebirth click
+                        if currentTrophies >= requiredTrophies then
+                            clickButton(button)
+                        end
+                    end
+                end)
             end
-
-            if currentTrophies >= requiredTrophies then
-                clickButton(button)
-            end
-        end
-
-        -- Check when button color updates
-        currentConnection = button:GetPropertyChangedSignal("ImageColor3"):Connect(checkAndClick)
-        
-        -- Check when trophy text updates
-        if trophyAmount then
-            currentTrophyConnection = trophyAmount:GetPropertyChangedSignal("Text"):Connect(checkAndClick)
-        end
-
-        checkAndClick()
-
-        currentDestroyConnection = button.Destroying:Connect(function()
-            if currentConnection then currentConnection:Disconnect() currentConnection = nil end
-            if currentTrophyConnection then currentTrophyConnection:Disconnect() currentTrophyConnection = nil end
-            if currentDestroyConnection then currentDestroyConnection:Disconnect() currentDestroyConnection = nil end
-        end)
-    end
-
-    -- Handle UI re-creation automatically on character respawn (after a rebirth)
-    local characterAddedConn
-    characterAddedConn = LocalPlayer.CharacterAdded:Connect(function()
-        task.wait(1.5) -- Settle physics loading before verifying state
-        if autoRebirthActive then
-            setupAutoRebirthListener()
         end
     end)
 
@@ -228,24 +188,15 @@ return function(parent, config)
     elements:Textbox("Trophy Target to Rebirth", parent, requiredTrophiesString, function(text)
         requiredTrophiesString = text
         requiredTrophies = parseAbbreviatedNumber(text)
-        if autoRebirthActive then
-            setupAutoRebirthListener()
-        end
     end)
 
     -- Toggle to activate/deactivate Auto Rebirth
     elements:Toggle("Auto Rebirth", parent, false, function(state)
         autoRebirthActive = state
-        if autoRebirthActive then
-            setupAutoRebirthListener()
-        end
     end)
 
     -- Clean up event connections upon UI uninject/destruction
     parent.Destroying:Connect(function()
-        if currentConnection then currentConnection:Disconnect() end
-        if currentTrophyConnection then currentTrophyConnection:Disconnect() end
-        if currentDestroyConnection then currentDestroyConnection:Disconnect() end
-        if characterAddedConn then characterAddedConn:Disconnect() end
+        loopRunning = false
     end)
 end
