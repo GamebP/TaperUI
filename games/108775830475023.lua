@@ -41,6 +41,21 @@ return function(parent, config)
     local TELEPORT_START_POS = Vector3.new(-1754.66, 680.42, 3225.36)
     local WALK_TARGET_POS = Vector3.new(-1754.66, 680.42, 3230.36)
 
+    -- ===== RECURSIVE CLICKABLE RESOLVER =====
+    local function getClickableTarget(element)
+        if not element then return nil end
+        if element:IsA("GuiButton") then
+            return element
+        end
+        -- Search through nested children to locate the actual TextButton/ImageButton
+        for _, desc in ipairs(element:GetDescendants()) do
+            if desc:IsA("GuiButton") then
+                return desc
+            end
+        end
+        return element -- Fallback if no nested button exists
+    end
+
     -- ===== ROBUST SIMULATED CLICK HELPER =====
     local function virtualClick(button)
         if not button then return false end
@@ -65,12 +80,15 @@ return function(parent, config)
         return true
     end
 
-    -- ===== NO-FIRESIGNAL OS-LEVEL CLICK HELPER =====
-    local function robustClick(button)
-        if not button then return false end
+    -- ===== UNIVERSAL PHYSICAL/CONNECTION CLICKER =====
+    local function robustClick(element)
+        if not element then return false end
+        
+        -- Automatically resolve nested clickable target
+        local button = getClickableTarget(element)
         local clicked = false
 
-        -- Calculate exact click coordinates
+        -- Calculate exact click coordinates of the target button
         local absPos = button.AbsolutePosition
         local absSize = button.AbsoluteSize
         local clickX = absPos.X + (absSize.X / 2)
@@ -83,10 +101,10 @@ return function(parent, config)
             clickY = clickY + inset.Y
         end
 
-        print(string.format("[Click Debug] Clicking %s (Pos: %s, Size: %s, Click Target: %d, %d)", 
-            button.Name, tostring(absPos), tostring(absSize), clickX, clickY))
+        print(string.format("[Click Debug] Element: %s | Target: %s (%s) | Pos: %d, %d", 
+            element.Name, button.Name, button.ClassName, clickX, clickY))
 
-        -- 1. Direct Connection Fire (Fires ALL click and input events)
+        -- 1. Direct Connection Fire (Fires ALL click and input events on the actual button)
         if typeof(getconnections) == "function" then
             pcall(function()
                 local events = {
