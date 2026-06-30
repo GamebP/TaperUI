@@ -72,6 +72,7 @@ local assetPaths = {
     home = "images/icons/home.png",
     game = "images/icons/game.png",
     list = "images/icons/list.png",
+    script = "images/icons/script.png"
     collapse = "images/icons/collapse-arrow.png",
     expand = "images/icons/expand-arrow.png",
     search = "images/icons/magnifying-glass.png",
@@ -436,6 +437,9 @@ gameFrame.Parent = SectionContainers
 local gamelistFrame = createSectionFrame("gamelistFrame", false)
 gamelistFrame.Parent = SectionContainers
 
+local scriptsFrame = createSectionFrame("scriptsFrame", false)
+scriptsFrame.Parent = SectionContainers
+
 local settingsFrame = createSectionFrame("settingsFrame", false)
 settingsFrame.Parent = SectionContainers
 
@@ -547,8 +551,9 @@ local Tabs = {
     HomeTab = createTabBtn("Home", TaperAssets.home, 1),
     GameTab = createTabBtn("Game", TaperAssets.game, 2),
     GameslistTab = createTabBtn("Games List", TaperAssets.list, 3),
-    SettingsTab = createTabBtn("Settings", TaperAssets.settings, 4),
-    CreditsTab = createTabBtn("Credits", TaperAssets.user, 5)
+    ScriptsTab = createTabBtn("Scripts", TaperAssets.script, 4),
+    SettingsTab = createTabBtn("Settings", TaperAssets.settings, 5),
+    CreditsTab = createTabBtn("Credits", TaperAssets.user, 6)
 }
 for _, btn in pairs(Tabs) do
     btn.Parent = TabButtonContainer
@@ -569,6 +574,11 @@ local Sections = {
         TabBtn = Tabs.GameslistTab,
         Container = gamelistFrame,
         Content = convertToScrolling(gamelistFrame)
+    },
+    Scripts = {
+        TabBtn = Tabs.ScriptsTab,
+        Container = scriptsFrame,
+        Content = convertToScrolling(scriptsFrame)
     },
     Settings = {
         TabBtn = Tabs.SettingsTab,
@@ -748,6 +758,32 @@ for sect, c in pairs(creditsList) do
         end
     end
 end
+
+elements:Label("⚙️ Workspace & Diagnostics Utilities", Sections.Scripts.Content)
+
+elements:Button("Copy ReplicatedStorage Tree", Sections.Scripts.Content, function()
+    local success, err = pcall(function()
+        import("scripts/replicated-tree")
+    end)
+    if not success then
+        warn("Failed to run replicated-tree: " .. tostring(err))
+        showToast("Error", "Failed to run tree-dumper script.", 2.5)
+    else
+        showToast("Success", "📋 ReplicatedStorage tree dumped.", 2.5)
+    end
+end)
+
+elements:Button("Copy Game ID", Sections.Scripts.Content, function()
+    local success, err = pcall(function()
+        import("scripts/game-id")
+    end)
+    if not success then
+        warn("Failed to run game-id: " .. tostring(err))
+        showToast("Error", "Failed to run game-id script.", 2.5)
+    else
+        showToast("Success", "📋 Game Place ID copied.", 2.5)
+    end
+end)
 
 local dec1 = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
 
