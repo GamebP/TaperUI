@@ -65,21 +65,43 @@ return function(parent, config)
         return true
     end
 
-    -- ===== NO-FIRESIGNAL ROBUST CLICK HELPER =====
+    -- ===== NO-FIRESIGNAL UNIVERSAL CLICK HELPER =====
     local function robustClick(button)
         if not button then return false end
         local clicked = false
 
-        -- Method A: Trigger connections directly (getconnections fallback)
+        -- Log coordinates to console for manual troubleshooting
+        pcall(function()
+            local absPos = button.AbsolutePosition
+            local absSize = button.AbsoluteSize
+            local clickX = absPos.X + (absSize.X / 2)
+            local clickY = absPos.Y + (absSize.Y / 2)
+            print(string.format("[Click Debug] Clicking %s (Pos: %s, Size: %s, Click Target: %d, %d)", 
+                button.Name, tostring(absPos), tostring(absSize), clickX, clickY))
+        end)
+
+        -- Method A: Trigger ALL Click and Input Connections directly (getconnections fallback)
         if typeof(getconnections) == "function" then
             pcall(function()
-                for _, conn in ipairs(getconnections(button.MouseButton1Click)) do
-                    if conn.Fire then conn:Fire() end
+                local events = {
+                    "MouseButton1Click",
+                    "MouseButton1Down",
+                    "MouseButton1Up",
+                    "Activated",
+                    "InputBegan",
+                    "InputEnded"
+                }
+                for _, eventName in ipairs(events) do
+                    local event = button[eventName]
+                    if event then
+                        for _, conn in ipairs(getconnections(event)) do
+                            if conn.Fire then 
+                                pcall(conn.Fire, conn) 
+                                clicked = true
+                            end
+                        end
+                    end
                 end
-                for _, conn in ipairs(getconnections(button.Activated)) do
-                    if conn.Fire then conn:Fire() end
-                end
-                clicked = true
             end)
         end
 
@@ -180,18 +202,36 @@ return function(parent, config)
             return false
         end
 
-        print("[AutoRebirth] Eligibility met. Opening Rebirth Menu...")
-        robustClick(hudRebirthButton)
-        task.wait(0.5) -- Wait for the menu layout animations to load completely
-
-        if rebirthActionBtn then
-            print("[AutoRebirth] Clicking Rebirth Confirm Action button.")
-            robustClick(rebirthActionBtn)
-            task.wait(0.5) -- Wait for execution process
-        else
-            warn("[AutoRebirth] Menu was opened but Rebirth confirmation button was missing.")
+        if not rebirthMenu then
+            warn("[AutoRebirth] Rebirth Menu frame could not be resolved.")
+            return false
         end
 
+        -- Step 1: Open the menu with an interactive check loop
+        local attempts = 0
+        while not rebirthMenu.Visible and attempts < 3 do
+            print("[AutoRebirth] Eligibility met. Attempting to open Rebirth Menu (Attempt " .. tostring(attempts + 1) .. ")...")
+            robustClick(hudRebirthButton)
+            task.wait(0.6) -- Give transitions time to complete
+            attempts = attempts + 1
+        end
+
+        -- Stop execution if the menu did not open successfully
+        if not rebirthMenu.Visible then
+            warn("[AutoRebirth] Failed to open Rebirth Menu after 3 attempts.")
+            return false
+        end
+
+        -- Step 2: Click the confirmation Rebirth button inside the menu
+        if rebirthActionBtn then
+            print("[AutoRebirth] Menu successfully opened. Clicking Rebirth Confirm Action button.")
+            robustClick(rebirthActionBtn)
+            task.wait(0.5) -- Wait for confirmation to register
+        else
+            warn("[AutoRebirth] Rebirth confirmation button inside menu was missing.")
+        end
+
+        -- Step 3: Close the rebirth window
         if closeMenuBtn then
             print("[AutoRebirth] Closing Rebirth window.")
             robustClick(closeMenuBtn)
