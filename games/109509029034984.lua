@@ -7,6 +7,8 @@ return function(parent, config)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local VirtualInputManager = game:GetService("VirtualInputManager")
+    local GuiService = game:GetService("GuiService")
 
     -- State
     local winFarmActive = false
@@ -47,37 +49,76 @@ return function(parent, config)
         return true
     end
 
-    -- ===== REBIRTH EXECUTION (REMOTE ONLY) =====
+    -- ===== ROBUST SIMULATED CLICK HELPER =====
+    local function virtualClick(button)
+        if not button then return false end
+        
+        local absPos = button.AbsolutePosition
+        local absSize = button.AbsoluteSize
+        local clickX = absPos.X + (absSize.X / 2)
+        local clickY = absPos.Y + (absSize.Y / 2)
+        
+        -- Fix scaling errors if IgnoreGuiInset is false on the ScreenGui
+        local screenGui = button:FindFirstAncestorOfClass("ScreenGui")
+        if screenGui and not screenGui.IgnoreGuiInset then
+            local inset = GuiService:GetGuiInset()
+            clickX = clickX + inset.X
+            clickY = clickY + inset.Y
+        end
+        
+        -- Simulate hovering and pressing the mouse
+        VirtualInputManager:SendMouseMoveEvent(clickX, clickY, game)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, true, game, 0)
+        task.wait(0.05)
+        VirtualInputManager:SendMouseButtonEvent(clickX, clickY, 0, false, game, 0)
+        return true
+    end
+
+    -- ===== REBIRTH EXECUTION (UI CLICK SEQUENCE) =====
     local function performRebirth()
-        local remotes = ReplicatedStorage:FindFirstChild("Remotes")
-        if not remotes then
-            warn("[Rebirth] ReplicatedStorage.Remotes not found")
+        local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+        local ui = playerGui and playerGui:FindFirstChild("UI")
+        
+        -- Resolve Button 1: Left HUD Open Button
+        local hudButton = ui and ui:FindFirstChild("HUD") 
+            and ui.HUD:FindFirstChild("LeftBar") 
+            and ui.HUD.LeftBar:FindFirstChild("Buttons") 
+            and ui.HUD.LeftBar.Buttons:FindFirstChild("RebirthButton")
+            
+        -- Resolve Button 2 & 3: Rebirth Menu Buttons
+        local rebirthFrame = ui and ui:FindFirstChild("Rebirth") and ui.Rebirth:FindFirstChild("Frame")
+        local frameButton = rebirthFrame and rebirthFrame:FindFirstChild("Buttons") and rebirthFrame.Buttons:FindFirstChild("RebirthButton")
+        local closeButton = rebirthFrame and rebirthFrame:FindFirstChild("CloseButton")
+        
+        if not hudButton then
+            warn("[Rebirth Sequence] HUD Rebirth button not found!")
             return false
         end
-
-        local remote = remotes:FindFirstChild("AuraRunnerRebirth")
-        if not remote then
-            warn("[Rebirth] AuraRunnerRebirth not found")
-            return false
+        
+        -- Step 1: Click HUD Button to open/re-open menu
+        print("[Rebirth Sequence] Opening Rebirth Frame...")
+        virtualClick(hudButton)
+        task.wait(0.35) -- Wait for menu animation to complete
+        
+        -- Step 2: Click Rebirth confirmation Button inside the frame
+        if frameButton then
+            print("[Rebirth Sequence] Triggering Rebirth...")
+            virtualClick(frameButton)
+            task.wait(0.35) -- Wait for server data update
+        else
+            warn("[Rebirth Sequence] Frame RebirthButton not found!")
         end
-
-        print("[Rebirth] Found:", remote:GetFullName())
-        print("[Rebirth] Class:", remote.ClassName)
-
-        local ok, result = pcall(function()
-            return remote:InvokeServer("AuraRunnerRebirth")
-        end)
-
-        print("========== REBIRTH LOG ==========")
-        print("Success:", ok)
-        print("Return:", result)
-        print("=================================")
-
-        if not ok then
-            warn(result)
+        
+        -- Step 3: Click Close Button to hide/minimize the menu
+        if closeButton then
+            print("[Rebirth Sequence] Closing Rebirth Frame...")
+            virtualClick(closeButton)
+        else
+            warn("[Rebirth Sequence] CloseButton not found!")
         end
-
-        return ok
+        
+        return true
     end
 
     -- ===== AUTO REBIRTH LOOP =====
@@ -107,14 +148,14 @@ return function(parent, config)
                         local currentTrophies = parseAbbreviatedNumber(currentText)
                         
                         if currentTrophies >= requiredTrophies then
-                            print("[AutoRebirth] Threshold reached! Performing rebirth.")
+                            print("[AutoRebirth] Threshold reached! Performing rebirth sequence.")
                             performRebirth()
                         end
                     else
                         warn("[AutoRebirth] TrophyAmount not found.")
                     end
                 end)
-                task.wait(1.0)  -- check every second
+                task.wait(1.2)  -- Check frequency interval
             end
         end)
     end
