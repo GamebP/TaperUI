@@ -181,6 +181,21 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "Clean the Supermarket!",
+      "gameID": "70632710874255",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "01.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
