@@ -14,12 +14,34 @@ return function(parent, config)
     local autoOrganizeActive = false
     local loopThread = nil
 
-    -- 2. Direct physical requires (Bypasses the custom "Loader" class to avoid executor hook conflicts)
+    -- 2. Thread identity helpers to bypass "Cannot require a non-RobloxScript module from a RobloxScript"
+    local setidentity = setidentity or setthreadidentity or set_thread_identity or setthreadcontext or set_thread_context or (syn and syn.set_thread_identity)
+    local getidentity = getidentity or getthreadidentity or get_thread_identity or getthreadcontext or get_thread_context or (syn and syn.get_thread_identity)
+
+    local function safeRequire(module)
+        local oldIdentity = getidentity and getidentity()
+        if setidentity then
+            setidentity(2) -- Temporarily lower to standard client context (Identity 2)
+        end
+        
+        local success, result = pcall(require, module)
+        
+        if setidentity and oldIdentity then
+            setidentity(oldIdentity) -- Safely restore the original thread identity context
+        end
+        
+        if not success then
+            error(result)
+        end
+        return result
+    end
+
+    -- 3. Load game modules directly using safeRequire
     local ReplicaController, BooksData
     local success, err = pcall(function()
         local Shared = ReplicatedStorage:WaitForChild("Shared")
-        ReplicaController = require(Shared:WaitForChild("Utility"):WaitForChild("ReplicaController"))
-        BooksData = require(Shared:WaitForChild("Data"):WaitForChild("Books"))
+        ReplicaController = safeRequire(Shared:WaitForChild("Utility"):WaitForChild("ReplicaController"))
+        BooksData = safeRequire(Shared:WaitForChild("Data"):WaitForChild("Books"))
     end)
 
     if not success then
@@ -28,7 +50,7 @@ return function(parent, config)
         return
     end
 
-    -- 3. Locate the Active Library Replica instance
+    -- 4. Locate the Active Library Replica instance
     local LibraryReplica = nil
     for _, r in pairs(ReplicaController._replicas) do
         if r.Class == "Library" then
@@ -52,7 +74,7 @@ return function(parent, config)
         shelfModels[shelfModel.Name] = shelfModel
     end
 
-    -- 4. Sorting Decision Helpers
+    -- 5. Sorting Decision Helpers
     local function getShelfAssignedSeries(shelfId)
         local shelfData = LibraryReplica.Data.Shelves[shelfId]
         if not shelfData then return nil end
@@ -100,7 +122,7 @@ return function(parent, config)
         end
     end
 
-    -- 5. Main Sorting Execution
+    -- 6. Main Sorting Execution
     local function organizeBooks()
         if not LibraryReplica or not BooksFolder then return end
         
@@ -134,7 +156,7 @@ return function(parent, config)
         end
     end
 
-    -- 6. Setup Visual Interface Elements
+    -- 7. Setup Visual Interface Elements
     elements:Label("📚 Library Clean Up", parent)
 
     elements:Toggle("Auto Organize Books", parent, false, function(state)
@@ -171,7 +193,7 @@ return function(parent, config)
         end
     end)
 
-    -- 7. Memory Leak Cleanup on Tab/UI Close
+    -- 8. Memory Leak Cleanup on Tab/UI Close
     parent.Destroying:Connect(function()
         autoOrganizeActive = false
         if loopThread then
