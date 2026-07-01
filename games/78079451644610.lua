@@ -14,16 +14,16 @@ return function(parent, config)
     local autoOrganizeActive = false
     local loopThread = nil
 
-    -- 2. Resolve internal game modules safely
-    local Loader, ReplicaController, BooksData
+    -- 2. Direct physical requires (Bypasses the custom "Loader" class to avoid executor hook conflicts)
+    local ReplicaController, BooksData
     local success, err = pcall(function()
-        Loader = require(ReplicatedStorage.Packages.Loader)
-        ReplicaController = require(Loader.Shared.Utility.ReplicaController)
-        BooksData = require(Loader.Shared.Data.Books)
+        local Shared = ReplicatedStorage:WaitForChild("Shared")
+        ReplicaController = require(Shared:WaitForChild("Utility"):WaitForChild("ReplicaController"))
+        BooksData = require(Shared:WaitForChild("Data"):WaitForChild("Books"))
     end)
 
     if not success then
-        warn("[TaperUI] Failed to load internal game modules. Game may have updated:", err)
+        warn("[TaperUI] Failed to load internal game modules directly:", err)
         elements:Label("⚠️ Error Loading Game Modules", parent)
         return
     end
