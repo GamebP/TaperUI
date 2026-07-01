@@ -1,119 +1,184 @@
--- games/78079451644610.lua
 return function(parent, config)
-    -- Import TaperUI helpers
     local taperImport = getgenv().taperImport or function(path)
         return loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/" .. path .. ".lua"))()
     end
     local elements = taperImport("helper/elements")
 
     local Players = game:GetService("Players")
-    local LocalPlayer = Players.LocalPlayer
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
     local Workspace = game:GetService("Workspace")
+    local CollectionService = game:GetService("CollectionService")
+    
+    local player = Players.LocalPlayer
+    local autoOrganizeActive = false
+    local loopThread = nil
 
-    -- State
-    local autoFarmActive = false
-    local loopInterval = 1.0
+    -- Load game modules
+    local ReplicaController, BooksData
+    local ok, err = pcall(function()
+        ReplicaController = require(ReplicatedStorage.Shared.Utility.ReplicaController)
+        BooksData = require(ReplicatedStorage.Shared.Data.Books)
+    end)
+    if not ok then
+        elements:Label("❌ Failed to load modules: " .. tostring(err), parent)
+        return
+    end
 
-    -- Try to find a default book spawn position from the game's BookSpawns folder
-    local defaultPos = Vector3.new(0, 0, 0)
-    local bookSpawns = Workspace:FindFirstChild("BookSpawns")
-    if bookSpawns then
-        local children = bookSpawns:GetChildren()
-        if #children > 0 then
-            local firstPart = children[1]
-            if firstPart:IsA("BasePart") then
-                defaultPos = firstPart.Position
+    -- Get LibraryReplica
+    local LibraryReplica
+    for _, r in pairs(ReplicaController._replicas) do
+        if r.Class == "Library" then LibraryReplica = r break end
+    end
+    if not LibraryReplica then
+        ReplicaController.ReplicaOfClassCreated("Library", function(r) LibraryReplica = r end)
+        while not LibraryReplica do task.wait() end
+    end
+
+    local Library = Workspace:FindFirstChild("Library")
+    if not Library then elements:Label("❌ Library not found", parent) return end
+    local BooksFolder = Library:FindFirstChild("Books")
+    if not BooksFolder then elements:Label("❌ Books folder not found", parent) return end
+
+    -- Cache shelf models
+    local shelfModels = {}
+    for _, shelf in ipairs(CollectionService:GetTagged("Shelf")) do
+        shelfModels[shelf.Name] = shelf
+    end
+
+    -- Helper: get series name from a book model name (assumes "SeriesName_Volume")
+    local function getSeriesAndVolume(bookName)
+        local series, vol = bookName:match("^(.-)_(%d+)$")
+        if series and vol then
+            return series, tonumber(vol)
+        end
+        return nil, nil
+    end
+
+    -- Helper: check if a book is already placed on any shelf
+    local function isBookPlaced(book)
+        for _, shelfData in pairs(LibraryReplica.Data.Shelves) do
+            for _, placed in pairs(shelfData.Books) do
+                if placed == book then
+                    return true
+                end
             end
         end
+        return false
     end
-    local targetPos = defaultPos
+
+    -- Helper: find the best shelf for a series (same as before)
+    local function findShelfForSeries(seriesName, genreName, volumeCount)
+        -- First, try a shelf already assigned to this series
+        for shelfId, shelfData in pairs(LibraryReplica.Data.Shelves) do
+            if not shelfData.Completed and shelfData.Category == genreName then
+                local shelfModel = shelfModels[shelfId]
+                if shelfModel and shelfModel:GetAttribute("Width") == volumeCount then
+                    -- Check if this shelf is already holding books of this series
+                    local assignedSeries
+                    for _, placedBook in pairs(shelfData.Books) do
+                        local s, _ = getSeriesAndVolume(placedBook.Name)
+                        if s then assignedSeries = s break end
+                    end
+                    if assignedSeries == seriesName then
+                        return shelfModel
+                    end
+                end
+            end
+        end
+        -- Then, try an empty shelf of the correct width
+        for shelfId, shelfData in pairs(LibraryReplica.Data.Shelves) do
+            if not shelfData.Completed and shelfData.Category == genreName then
+                local shelfModel = shelfModels[shelfId]
+                if shelfModel and shelfModel:GetAttribute("Width") == volumeCount then
+                    if next(shelfData.Books) == nil then
+                        return shelfModel
+                    end
+                end
+            end
+        end
+        return nil
+    end
 
     -- Teleport helper
-    local function teleportTo(pos)
-        local char = LocalPlayer.Character
-        if not char then return false end
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if not root then return false end
-        root.CFrame = CFrame.new(pos)
-        return true
+    local function teleportTo(obj)
+        local char = player.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        local part = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildOfClass("BasePart")) or obj
+        if root and part then
+            root.CFrame = CFrame.new(part.Position + Vector3.new(0, 2, 0))
+            task.wait(0.05)
+        end
     end
 
-    -- ===== UI Elements =====
-    elements:Label("📚 Library Automation", parent)
+    -- Main sorting routine (fixed)
+    local function organizeBooks()
+        for _, book in ipairs(BooksFolder:GetChildren()) do
+            if not autoOrganizeActive then break end
+            task.wait(0.02)
 
-    -- Target position input
-    elements:Textbox(
-        "Target Position (x, y, z)",
-        parent,
-        string.format("%.2f, %.2f, %.2f", targetPos.X, targetPos.Y, targetPos.Z),
-        function(text)
-            local parts = {}
-            for part in string.gmatch(text, "[-%d.]+") do
-                table.insert(parts, tonumber(part))
-            end
-            if #parts >= 3 then
-                targetPos = Vector3.new(parts[1], parts[2], parts[3])
-                print("[Library] Target position updated to", targetPos)
-            else
-                warn("[Library] Invalid position format. Use comma or space separated numbers.")
+            local seriesName, volumeNum = getSeriesAndVolume(book.Name)
+            if not seriesName or not volumeNum then continue end
+
+            local genreName, bookInfo = BooksData.GetCategory(seriesName)
+            if not genreName or not bookInfo then continue end
+
+            local shelfModel = findShelfForSeries(seriesName, genreName, bookInfo.VolumeCount)
+            if not shelfModel then continue end
+
+            local shelfData = LibraryReplica.Data.Shelves[shelfModel.Name]
+            -- Use 0‑based index for the slot
+            local slotIndex = volumeNum - 1
+
+            -- Check if this volume is already on this shelf at the correct slot
+            local alreadyPlaced = shelfData and shelfData.Books[slotIndex] == book
+
+            if not alreadyPlaced then
+                -- If the book is already placed somewhere else, we need to grab it first
+                if isBookPlaced(book) then
+                    teleportTo(book)
+                    LibraryReplica:FireServer("Grab", book)
+                    task.wait(0.1)
+                end
+                -- Now teleport to the shelf and place it
+                teleportTo(shelfModel)
+                LibraryReplica:FireServer("Place", shelfModel, slotIndex)
+                task.wait(0.4)
             end
         end
-    )
+    end
 
-    -- Auto‑farm toggle
-    elements:Toggle("Auto Farm Books", parent, false, function(state)
-        autoFarmActive = state
-        if autoFarmActive then
+    -- UI
+    elements:Label("📚 Library Organizer (fixed)", parent)
+
+    elements:Toggle("Auto Organize Books", parent, false, function(state)
+        autoOrganizeActive = state
+        if autoOrganizeActive then
+            player.CameraMode = Enum.CameraMode.Classic
+            player.CameraMinZoomDistance = 20
             task.spawn(function()
-                while autoFarmActive do
-                    teleportTo(targetPos)
-                    task.wait(loopInterval)
+                task.wait(0.1)
+                player.CameraMinZoomDistance = 0.5
+            end)
+            loopThread = task.spawn(function()
+                while autoOrganizeActive do
+                    pcall(organizeBooks)
+                    task.wait(5)
                 end
             end)
-        end
-    end)
-
-    -- Interval input
-    elements:Textbox("Teleport Interval (s)", parent, tostring(loopInterval), function(text)
-        local val = tonumber(text)
-        if val and val > 0 then
-            loopInterval = val
         else
-            warn("[Library] Invalid interval. Must be a positive number.")
-        end
-    end)
-
-    -- Manual teleport button
-    elements:Button("Teleport Once", parent, function()
-        teleportTo(targetPos)
-        print("[Library] Teleported to", targetPos)
-    end)
-
-    -- Auto‑detect first book spawn
-    elements:Button("Use First Book Spawn", parent, function()
-        local newPos = Vector3.new(0, 0, 0)
-        local bookSpawns = Workspace:FindFirstChild("BookSpawns")
-        if bookSpawns then
-            local children = bookSpawns:GetChildren()
-            if #children > 0 then
-                local firstPart = children[1]
-                if firstPart:IsA("BasePart") then
-                    newPos = firstPart.Position
-                end
+            if loopThread then
+                task.cancel(loopThread)
+                loopThread = nil
             end
         end
-        if newPos ~= Vector3.new(0,0,0) then
-            targetPos = newPos
-            print("[Library] Target set to first book spawn:", targetPos)
-        else
-            warn("[Library] No book spawns found.")
+    end)
+
+    parent.Destroying:Connect(function()
+        autoOrganizeActive = false
+        if loopThread then
+            task.cancel(loopThread)
         end
     end)
 
-    -- Cleanup
-    parent.Destroying:Connect(function()
-        autoFarmActive = false
-    end)
-
-    print("[TaperUI] Clean The Library script loaded.")
+    print("✅ Book Organizer (fixed) loaded!")
 end
