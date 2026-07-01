@@ -181,21 +181,6 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
-    },
-    {
-      "gameName": "Clean The Library 📖",
-      "gameID": "78079451644610",
-      "gameStatus": "🟢",
-      "canJoinGame": true,
-      "joinAlternativeGameID": null,
-      "dateAdded": "01.07.2026",
-      "dateRemoved": null,
-      "addedBy": [
-        "SkyDash"
-      ],
-      "removedBy": null,
-      "contributors": [],
-      "isActiveInUI": true
     }
   ],
   "creditsList": {
