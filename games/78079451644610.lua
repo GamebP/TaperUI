@@ -17,13 +17,13 @@ return function(parent, config)
     local Blacklist    = Library and Library:WaitForChild("Blacklist", 15)
 
     -- ===================== GENRE MAPPING =====================
-    -- Derived from DataModel: shelf prefix → genre model name
     local PREFIX_TO_GENRE = {
         ["1A"] = "Studio",     ["1B"] = "Simulators",  ["1D"] = "Myths",
         ["1E"] = "DevEx",      ["1F"] = "Rules",       ["1G"] = "Obby",
         ["1H"] = "Horror",     ["1I"] = "Economy",     ["1J"] = "History",
         ["2A"] = "Magic",      ["2C"] = "Meditation",  ["2D"] = "Military",
         ["2E"] = "Brainrot",
+        ["1C"] = "Avatar",     ["2B"] = "Anime",       ["2F"] = "ThemeParks",
     }
     local GENRE_TO_PREFIX = {}
     for prefix, genre in pairs(PREFIX_TO_GENRE) do
@@ -34,10 +34,78 @@ return function(parent, config)
     for _, g in pairs(PREFIX_TO_GENRE) do table.insert(ALL_GENRES, g) end
     table.sort(ALL_GENRES)
 
-    -- Floor labels from map GUIs for quick reference
-    local FLOOR_LABELS = {
-        "1A","1B","1C","1D","1E","1F","1G","1H","1I","1J",  -- 1st floor
-        "2A","2B","2C","2D","2E","2F"                        -- 2nd floor
+    -- Hardcoded mapping based on the game's DataModel to properly sort books
+    local TITLE_TO_GENRE = {
+        ["ArcaneTheory"] = "Magic", ["BeginnerSpellcasting"] = "Magic", ["SummoningRituals"] = "Magic",
+        ["ElementalMastery"] = "Magic", ["EnchantedArtifacts"] = "Magic", ["WandCrafting"] = "Magic",
+        ["ForbiddenTomes"] = "Magic", ["IllusionMagic"] = "Magic", ["NecromancyStudies"] = "Magic",
+        ["PotionBrewing"] = "Magic", ["GrandWizardArchives"] = "Magic", ["DimensionalPortals"] = "Magic",
+        ["GuidedRelaxation"] = "Meditation", ["InnerBalance"] = "Meditation", ["AdvancedMeditation"] = "Meditation",
+        ["ZenPhilosophy"] = "Meditation", ["FocusTraining"] = "Meditation", ["StressManagement"] = "Meditation",
+        ["MindfulnessBasics"] = "Meditation", ["SleepImprovement"] = "Meditation", ["PositiveThinking"] = "Meditation",
+        ["NatureMeditation"] = "Meditation", ["PeacefulLiving"] = "Meditation", ["BreathingTechniques"] = "Meditation",
+        ["AnimeSoundTracks"] = "Anime", ["HeroAcademies"] = "Anime", ["DragonBallads"] = "Anime",
+        ["LegendaryAnimeFighters"] = "Anime", ["NinjaChronicles"] = "Anime", ["DemonHunters"] = "Anime",
+        ["MonsterTamers"] = "Anime", ["VillainOrigins"] = "Anime", ["TournamentArcs"] = "Anime",
+        ["Top10Anime"] = "Anime", ["SpiritHunters"] = "Anime",
+        ["ItalianBrainrot"] = "Brainrot", ["CoreCoreArchives"] = "Brainrot", ["RizzTechniques"] = "Brainrot",
+        ["OhioMysteries"] = "Brainrot", ["InternetOddities"] = "Brainrot", ["SkibidiResearch"] = "Brainrot",
+        ["AuraFarming"] = "Brainrot", ["UltimateBrainrots"] = "Brainrot", ["SigmaStudies"] = "Brainrot",
+        ["NPCBehavior"] = "Brainrot", ["MemeEvolution"] = "Brainrot",
+        ["DevExMyths"] = "DevEx", ["DevExOrLimiteds"] = "DevEx", ["RobuxRentMoney"] = "DevEx",
+        ["DevExWhatAreTaxes"] = "DevEx", ["RiseOfFullTimeDevs"] = "DevEx", ["WonderfulWorldofGroupPayouts"] = "DevEx",
+        ["TheBiggestDevExEver"] = "DevEx", ["GetRich"] = "DevEx", ["WhyMostDevsGoBroke"] = "DevEx",
+        ["WhatToBuyAfterDevEx"] = "DevEx", ["IsDevExSustainable"] = "DevEx", ["MakeMillionsDoingNothing"] = "DevEx",
+        ["WhyEveryoneIsSuddenlyBroke"] = "Economy", ["TheHiddenCostOfFlexingRareItems"] = "Economy", 
+        ["TheMythof\"Underpay\""] = "Economy", ["HowTradeBotsBroketheEconomyTwice"] = "Economy", 
+        ["ThePsychologyofOverpayinginTradeRequests"] = "Economy", ["LimitedItemPumpandDumpTactics"] = "Economy",
+        ["RobuxInflationCrisisReport"] = "Economy", ["DuplicateItemCrisisReport"] = "Economy", 
+        ["WhyEveryoneSuddenlyBecameaCollector"] = "Economy", ["TradeRequestSpamStudies"] = "Economy", 
+        ["TheArtOfScammingLimiteds"] = "Economy", ["WhyEveryServerHasRichKid"] = "Economy",
+        ["InflationofVirtualHats"] = "Economy", ["HowtoSpotaScammerIn3Seconds"] = "Economy", 
+        ["ValueList:TrustNoOneEdition"] = "Economy", ["TheRobloxBMThatDoesn't Exist"] = "Economy", 
+        ["FakeValueListsandTheirRealConsequences"] = "Economy", ["TheRiseOfThe1RapEmpire"] = "Economy",
+        ["TheDeclineOfFairTrade"] = "Economy", ["TheRiseofFakeRichPlayers"] = "Economy",
+        ["AncientWarfare"] = "History", ["AvoidingMines"] = "History", ["NoobArmies"] = "History",
+        ["AirCombat"] = "Military", ["MilitaryTechnology"] = "Military", ["TankOperations"] = "Military",
+        ["NavalFleets"] = "Military", ["FamousClans"] = "Military", ["OperatingSubmarines"] = "Military",
+        ["FutureWarfare"] = "Military", ["ColdWar"] = "Military", ["Commander'sHandbook"] = "Military",
+        ["TheGuestThatKeepAppearing"] = "Myths", ["TheGameThatLoadsButHasNoSpawns"] = "Myths", ["Server0"] = "Myths",
+        ["TheAudioFileThatOnlyPlayersAfterLogout"] = "Myths", ["ThePlayerWhoNeverLeftTheTutorial"] = "Myths", 
+        ["WhenYourFriendBecomesAnNPC"] = "Myths", ["MissingKnifeTexture"] = "Myths", 
+        ["AnimatroFRFromADeletedAccountnicDesign"] = "Myths", ["ShadowPlayerInIdleAnimation"] = "Myths",
+        ["SoundOfOOF"] = "Myths", ["TheLobbyThatRefusestoLoad"] = "Myths", ["TheLobbyWhereYourNameIsTaken"] = "Myths",
+        ["FalseReports"] = "Rules", ["BeingAutomicallyMuted"] = "Rules", ["ListOfForbiddenEmotes"] = "Rules",
+        ["TheBanAndWhyYouDeservedIt"] = "Rules", ["ReportSystemTimeStudy"] = "Rules", ["ReviewedTextures"] = "Rules",
+        ["TheAppealProcess"] = "Rules", ["ModerationNotes"] = "Rules", ["What'sROBLOXSuspiciousActivity"] = "Rules",
+        ["ChangingRules"] = "Rules", ["HowWarningsStack"] = "Rules", ["ChatFilter"] = "Rules",
+        ["TheGuestThatBypassedDeletion"] = "Rules", ["TheHiddenSword"] = "Rules", 
+        ["TheAdminWhoNeverAppearedonPlayerLists"] = "Rules", ["AdminCommandsTheySayDon'tExist"] = "Rules", 
+        ["ThePlayerWithNoRecordInChatLog"] = "Rules", ["MythSightings:JohnDoe"] = "Rules",
+        ["BanWavesThatTargetedNobodySpecific"] = "Rules", ["TheServerThatKicksTheOwner"] = "Rules", 
+        ["MythSightingsBuilderman"] = "Rules", ["TheInvisibleServer"] = "Rules", 
+        ["MythSightings1x1x1x1"] = "Rules", ["MythSightingsTheLastGuest"] = "Rules",
+        ["TerrainGenerationThatRegretsItself"] = "Studio", ["FolderThatBrokeTheGame"] = "Studio", 
+        ["TheHiddenGridAllMapsFollow"] = "Studio", ["WhySomePartsFloatWhenNobodyIsWatching"] = "Studio", 
+        ["TheTruthAboutPhysicsOwnership"] = "Studio", ["HowtheWorkspaceDecidesWhatExists"] = "Studio",
+        ["WhyPartsSometimesRefusetoCollide"] = "Studio", ["WhatHappensWhenAScriptThinksFirst"] = "Studio", 
+        ["AnchoredvsUnanchored"] = "Studio", ["ReplicationDelay:TheSpaceBetweenTruths"] = "Studio", 
+        ["ModelHierarchyandEmotionalStability"] = "Studio", ["TheInvisibleUpdateThatChangedEverything"] = "Studio",
+        ["WhySimulatorPlayersLoveBiggerNumbers"] = "Simulators", ["AFKGrindingandtheDeathofAttentionSpan"] = "Simulators", 
+        ["Rebirth#10,000:WhenProgressStopsFeelingReal"] = "Simulators", ["TheSecretFormulaBehindAddictiveProgressBars"] = "Simulators", 
+        ["UpgradeButtonsDesignedtoDrainYourCurrency"] = "Simulators", ["Auto-FarmTechnologyandItsConsequences"] = "Simulators",
+        ["TheSimulatorMapThatNeverTrulyEnds"] = "Simulators", ["TheInfiniteTycoonExpansionStrategy"] = "Simulators", 
+        ["ThePsychologyofClickingFaster"] = "Simulators", ["FromOneCointoOneQuintillion:ScalingSystemsExplained"] = "Simulators", 
+        ["HowEverySimulatorEventuallyAddsRebirths"] = "Simulators", ["PetSimulatorEconomicsforBeginners"] = "Simulators",
+        ["RollerCoasterEngineering"] = "ThemeParks", ["DarkRideAdventures"] = "ThemeParks", ["HauntedAttractions"] = "ThemeParks",
+        ["FamousThemePark"] = "ThemeParks", ["ParkOperations"] = "ThemeParks", ["CoasterEnthusiastArchives"] = "ThemeParks",
+        ["ThemeParkHistory"] = "ThemeParks", ["WaterAttractions"] = "ThemeParks", ["ThrillRideRecords"] = "ThemeParks",
+        ["RideSafetyStandards"] = "ThemeParks", ["QueueLineSecrets"] = "ThemeParks", ["AnimatronicDesign"] = "ThemeParks",
+        ["TheLavaFloorsAlwaysRising"] = "Obby", ["EscapingScratch"] = "Obby", ["100WaystoMissaJump"] = "Obby",
+        ["CheckpointPlacementPsychology"] = "Obby", ["KillBricks"] = "Obby", ["EscapingBarky"] = "Obby",
+        ["YouBeatTheObby"] = "Obby", ["WaysToDie"] = "Obby", ["SpeedCoilAbuse"] = "Obby",
+        ["ObbyWithACar"] = "Obby", ["EscapingBees"] = "Obby", ["CaseFilesInvisibleKillBrick"] = "Obby",
+        ["ViralSoundEffects"] = "Avatar",
     }
 
     -- ===================== STATE =====================
@@ -48,23 +116,17 @@ return function(parent, config)
     local shelfEspActive   = false
     local loopInterval     = 1.5
     local sortDelay        = 1.0
-    local heldGenre        = nil     -- cached genre of currently held book
-    local skipBlacklist    = true    -- avoid teleporting into blacklisted zones
+    local heldGenre        = nil     
+    local skipBlacklist    = true    
 
-    -- Thread handles
     local fullAutoThread   = nil
     local collectThread    = nil
     local sortThread       = nil
     local espThread        = nil
 
-    -- ESP object pool
     local espPool = {}
 
-    -- Cached remote references
-    local cachedSortRemotes = nil
-
     -- ===================== HELPERS =====================
-
     local function getRoot()
         local char = LocalPlayer.Character
         if not char then return nil end
@@ -89,22 +151,25 @@ return function(parent, config)
     end
 
     -- ===================== BOOK GENRE DETECTION =====================
-
     local function getBookGenre(book)
         if not book then return nil end
+
+        -- Check hardcoded title mapping first (strips suffix like _8)
+        local cleanName = book.Name:match("^(.-)_%d+$") or book.Name
+        if TITLE_TO_GENRE[cleanName] then
+            return TITLE_TO_GENRE[cleanName]
+        end
 
         --- Attribute scan
         for _, attr in ipairs({"Genre","Category","Type","BookGenre","ShelfGenre","SortCategory"}) do
             local v = book:GetAttribute(attr)
             if v and v ~= "" then
-                -- Normalize to known genre
                 for _, genre in ipairs(ALL_GENRES) do
                     if v:lower() == genre:lower() then return genre end
                 end
-                -- Could be a prefix like "1A"
                 local pfx = v:match("^(%d[A-Z])")
                 if pfx and PREFIX_TO_GENRE[pfx] then return PREFIX_TO_GENRE[pfx] end
-                return v   -- return raw value even if unknown
+                return v   
             end
         end
 
@@ -120,7 +185,7 @@ return function(parent, config)
             end
         end
 
-        --- Parse object name (e.g. "Book_Studio_1", "1A_Book", "MagicBook")
+        --- Parse object name
         local nameLower = book.Name:lower()
         for _, genre in ipairs(ALL_GENRES) do
             if nameLower:find(genre:lower()) then return genre end
@@ -130,7 +195,7 @@ return function(parent, config)
             return PREFIX_TO_GENRE[namePrefix]
         end
 
-        --- Parent chain – if book is inside a shelf's Books folder
+        --- Parent chain 
         local parent = book.Parent
         if parent then
             if parent.Name == "Books" and parent.Parent then
@@ -142,7 +207,7 @@ return function(parent, config)
             if pp and PREFIX_TO_GENRE[pp] then return PREFIX_TO_GENRE[pp] end
         end
 
-        --- Descendant TextLabels / SurfaceGuis / BillboardGuis
+        --- Descendant TextLabels
         for _, desc in ipairs(book:GetDescendants()) do
             if desc:IsA("TextLabel") or desc:IsA("TextButton") then
                 local t = desc.Text
@@ -160,40 +225,45 @@ return function(parent, config)
     end
 
     -- ===================== FIND UNSORTED BOOKS =====================
-
     local function findUnsortedBooks()
         local books = {}
 
-        -- Primary: BookSpawns folder
-        if BookSpawns then
-            for _, child in ipairs(BookSpawns:GetChildren()) do
-                if child:IsA("Model") or child:IsA("Part") then
-                    table.insert(books, child)
+        local function addBook(child)
+            if child:IsA("Model") or child:IsA("MeshPart") or child:IsA("Part") then
+                -- Exclude books already inside genre shelves
+                local inShelf = false
+                local p = child.Parent
+                while p do
+                    if p == Genres then inShelf = true; break end
+                    p = p.Parent
                 end
-            end
-            -- Some games nest deeper
-            for _, child in ipairs(BookSpawns:GetDescendants()) do
-                if child:IsA("Model") or child:IsA("Part") then
-                    if child.Name:lower():find("book") then
-                        table.insert(books, child)
-                    end
+                if not inShelf then 
+                    table.insert(books, child) 
                 end
             end
         end
 
-        -- Secondary: Scan workspace top-level for book objects
+        -- Primary: BookSpawns folder
+        if BookSpawns then
+            for _, child in ipairs(BookSpawns:GetDescendants()) do
+                addBook(child)
+            end
+        end
+
+        -- Secondary: Library.Books folder (common in this game based on DataModel)
+        if Library then
+            local libBooks = Library:FindFirstChild("Books")
+            if libBooks then
+                for _, child in ipairs(libBooks:GetChildren()) do
+                    addBook(child)
+                end
+            end
+        end
+
+        -- Tertiary: Scan workspace top-level for book objects
         for _, child in ipairs(workspace:GetChildren()) do
             if child.Name:lower():find("book") and child ~= BookSpawns then
-                if child:IsA("Model") or child:IsA("Part") then
-                    -- Exclude books already inside genre shelves
-                    local inShelf = false
-                    local p = child.Parent
-                    while p do
-                        if p == Genres then inShelf = true; break end
-                        p = p.Parent
-                    end
-                    if not inShelf then table.insert(books, child) end
-                end
+                addBook(child)
             end
         end
 
@@ -201,7 +271,6 @@ return function(parent, config)
     end
 
     -- ===================== SHELF LOOKUP =====================
-
     local function findNearestShelf(genre, fromPos)
         if not Genres then return nil, nil end
         local genreModel = Genres:FindFirstChild(genre)
@@ -225,36 +294,10 @@ return function(parent, config)
         return bestPos, bestShelf
     end
 
-    -- Returns ALL shelf positions for a genre (for cycling through them)
-    local function getAllShelfPositions(genre)
-        if not Genres then return {} end
-        local genreModel = Genres:FindFirstChild(genre)
-        if not genreModel then return {} end
-
-        local positions = {}
-        for _, shelf in ipairs(genreModel:GetChildren()) do
-            if shelf:IsA("Model") then
-                local base = shelf:FindFirstChild("Base")
-                if base then
-                    table.insert(positions, {
-                        pos   = base.Position + Vector3.new(0, 3, 0),
-                        shelf = shelf,
-                        name  = shelf.Name
-                    })
-                end
-            end
-        end
-        -- Sort by name for consistent ordering
-        table.sort(positions, function(a, b) return a.name < b.name end)
-        return positions
-    end
-
     -- ===================== INTERACTION =====================
-
     local function interactWith(obj)
         if not obj then return false end
 
-        -- ProximityPrompt
         for _, desc in ipairs(obj:GetDescendants()) do
             if desc:IsA("ProximityPrompt") then
                 pcall(function()
@@ -264,7 +307,6 @@ return function(parent, config)
             end
         end
 
-        -- ClickDetector
         for _, desc in ipairs(obj:GetDescendants()) do
             if desc:IsA("ClickDetector") then
                 pcall(function()
@@ -277,48 +319,7 @@ return function(parent, config)
         return false
     end
 
-    -- ===================== REMOTE SORTING =====================
-
-    local function discoverSortRemotes()
-        if cachedSortRemotes then return cachedSortRemotes end
-        cachedSortRemotes = {}
-        for _, desc in ipairs(ReplicatedStorage:GetDescendants()) do
-            if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
-                local n = desc.Name:lower()
-                if n:find("sort") or n:find("place") or n:find("shelve")
-                    or n:find("return") or n:find("deposit") or n:find("put")
-                    or n:find("book") or n:find("collect") or n:find("grab")
-                    or n:find("pickup") or n:find("deliver") then
-                    table.insert(cachedSortRemotes, desc)
-                end
-            end
-        end
-        return cachedSortRemotes
-    end
-
-    local function fireSortRemotes(book, shelf)
-        local remotes = discoverSortRemotes()
-        for _, remote in ipairs(remotes) do
-            pcall(function()
-                if remote:IsA("RemoteEvent") then
-                    remote:FireServer()
-                    remote:FireServer(book)
-                    remote:FireServer(book, shelf)
-                    remote:FireServer(shelf)
-                    remote:FireServer(shelf.Name)
-                elseif remote:IsA("RemoteFunction") then
-                    remote:InvokeServer()
-                    remote:InvokeServer(book)
-                    remote:InvokeServer(book, shelf)
-                    remote:InvokeServer(shelf)
-                    remote:InvokeServer(shelf.Name)
-                end
-            end)
-        end
-    end
-
     -- ===================== CORE ACTIONS =====================
-
     local function collectBook(book)
         local root = getRoot()
         if not root then return false, nil end
@@ -326,12 +327,11 @@ return function(parent, config)
         local pos = getObjectPos(book)
         if not pos then return false, nil end
 
-        -- Check if position is in a blacklisted zone
         if skipBlacklist and Blacklist then
             for _, bp in ipairs(Blacklist:GetChildren()) do
                 if bp:IsA("BasePart") then
                     if (bp.Position - pos).Magnitude < bp.Size.Magnitude / 2 then
-                        return false, nil  -- skip blacklisted
+                        return false, nil  
                     end
                 end
             end
@@ -340,9 +340,7 @@ return function(parent, config)
         teleportTo(pos + Vector3.new(0, 2, 0))
         task.wait(0.35)
 
-        -- Try interaction methods
         interactWith(book)
-        fireSortRemotes(book, nil)  -- some games use remotes for pickup
 
         local genre = getBookGenre(book)
         return true, genre
@@ -360,13 +358,8 @@ return function(parent, config)
         teleportTo(shelfPos)
         task.wait(sortDelay)
 
-        -- Fire remotes for server-side sorting
-        fireSortRemotes(nil, shelf)
-
-        -- Interaction-based sorting
         interactWith(shelf)
 
-        -- Also try the HoverArea (some games use it for placement)
         local hover = shelf:FindFirstChild("HoverArea")
         if hover then
             interactWith(hover)
@@ -376,8 +369,6 @@ return function(parent, config)
     end
 
     -- ===================== LOOP WORKERS =====================
-
-    -- Full Auto: Collect → Detect Genre → Sort → Repeat
     local function startFullAuto()
         if fullAutoThread then task.cancel(fullAutoThread) end
         fullAutoThread = task.spawn(function()
@@ -386,10 +377,9 @@ return function(parent, config)
                     local books = findUnsortedBooks()
                     if #books == 0 then
                         task.wait(loopInterval)
-                        return  -- no books found this cycle
+                        return  
                     end
 
-                    -- Sort books by distance for efficiency
                     local root = getRoot()
                     if root then
                         table.sort(books, function(a, b)
@@ -416,7 +406,7 @@ return function(parent, config)
                                     warn("[AutoSort] ⚠ Could not detect genre for: " .. book.Name)
                                 end
                                 heldGenre = nil
-                                break  -- process one book per cycle
+                                break  
                             end
                         end
                     end
@@ -426,7 +416,6 @@ return function(parent, config)
         end)
     end
 
-    -- Auto Collect Only
     local function startAutoCollect()
         if collectThread then task.cancel(collectThread) end
         collectThread = task.spawn(function()
@@ -458,13 +447,11 @@ return function(parent, config)
         end)
     end
 
-    -- Auto Sort Only (sorts whatever book you're holding)
     local function startAutoSort()
         if sortThread then task.cancel(sortThread) end
         sortThread = task.spawn(function()
             while autoSortOnly do
                 pcall(function()
-                    -- Try to detect held book from character or backpack
                     if not heldGenre then
                         local char = LocalPlayer.Character
                         if char then
@@ -500,7 +487,6 @@ return function(parent, config)
     end
 
     -- ===================== ESP SYSTEM =====================
-
     local function clearEsp()
         for _, obj in ipairs(espPool) do
             pcall(function() obj:Destroy() end)
@@ -522,6 +508,9 @@ return function(parent, config)
         Meditation = Color3.fromRGB(64, 224, 208),
         Military   = Color3.fromRGB(85, 107, 47),
         Brainrot   = Color3.fromRGB(255, 105, 180),
+        Avatar     = Color3.fromRGB(255, 0, 128),
+        Anime      = Color3.fromRGB(255, 182, 193),
+        ThemeParks = Color3.fromRGB(102, 205, 170),
     }
 
     local function getGenreColor(genre)
@@ -539,13 +528,11 @@ return function(parent, config)
                 local color = getGenreColor(genre)
                 local label = genre and (genre .. " [" .. (GENRE_TO_PREFIX[genre] or "?") .. "]") or "❓ Unknown"
 
-                -- Determine adornee
                 local adornee = book
                 if book:IsA("Model") and not book.PrimaryPart then
                     adornee = book:FindFirstChildWhichIsA("BasePart") or book
                 end
 
-                -- Highlight
                 local hl = Instance.new("Highlight")
                 hl.Name = "ESP_HL"
                 hl.Adornee = adornee
@@ -556,7 +543,6 @@ return function(parent, config)
                 hl.Parent = book
                 table.insert(espPool, hl)
 
-                -- Billboard label
                 local basePart = book:IsA("BasePart") and book
                     or (book:IsA("Model") and (book.PrimaryPart or book:FindFirstChildWhichIsA("BasePart")))
                     or nil
@@ -654,12 +640,9 @@ return function(parent, config)
     end
 
     -- ===================== QUICK TELEPORT =====================
-
     local function teleportToGenre(input)
-        -- Accept genre name or shelf prefix
         local genre = nil
 
-        -- Try direct genre name match
         for _, g in ipairs(ALL_GENRES) do
             if g:lower() == input:lower() then
                 genre = g
@@ -667,7 +650,6 @@ return function(parent, config)
             end
         end
 
-        -- Try prefix match (e.g. "1A", "2E")
         if not genre then
             local prefix = input:match("^(%d[A-Z])") or input:upper():match("^(%d[A-Z])")
             if prefix and PREFIX_TO_GENRE[prefix] then
@@ -692,23 +674,7 @@ return function(parent, config)
         end
     end
 
-    -- ===================== REMOTE SCANNER =====================
-
-    local function scanAndPrintRemotes()
-        print("\n===== REMOTE SCAN =====")
-        local count = 0
-        for _, desc in ipairs(ReplicatedStorage:GetDescendants()) do
-            if desc:IsA("RemoteEvent") or desc:IsA("RemoteFunction") then
-                count = count + 1
-                print(string.format("  [%s] %s", desc.ClassName, desc:GetFullName()))
-            end
-        end
-        print(string.format("  Total: %d remotes found", count))
-        print("========================\n")
-    end
-
     -- ===================== CHARACTER RESPAWN =====================
-
     local charAddedConn
     charAddedConn = LocalPlayer.CharacterAdded:Connect(function()
         task.wait(2)
@@ -722,13 +688,11 @@ return function(parent, config)
     -- ===================== TAPER UI =========================
     -- ========================================================
 
-    -- ── Section: Main Automation ──
     elements:Label("📚 Library Auto-Sort", parent)
 
     elements:Toggle("Full Auto (Collect → Sort)", parent, false, function(state)
         fullAutoActive = state
         if fullAutoActive then
-            -- Disable individual toggles to avoid conflicts
             autoCollectOnly = false
             autoSortOnly = false
             startFullAuto()
@@ -759,7 +723,6 @@ return function(parent, config)
         end
     end)
 
-    -- ── Section: Timing Controls ──
     elements:Label("⏱ Timing Controls", parent)
 
     elements:Slider("Loop Interval (s)", parent, 0.5, 5.0, loopInterval, 1, function(val)
@@ -770,7 +733,6 @@ return function(parent, config)
         sortDelay = val
     end)
 
-    -- ── Section: ESP ──
     elements:Label("🔍 Visual ESP", parent)
 
     elements:Toggle("Book ESP (Genre Labels)", parent, false, function(state)
@@ -793,7 +755,6 @@ return function(parent, config)
         end
     end)
 
-    -- ── Section: Quick Teleport ──
     elements:Label("🚀 Quick Teleport to Genre", parent)
 
     elements:Textbox("Genre or Prefix (e.g. Magic / 2A)", parent, "", function(text)
@@ -802,7 +763,6 @@ return function(parent, config)
         end
     end)
 
-    -- ── Section: Genre Reference ──
     elements:Label("📋 Genre → Shelf Reference", parent)
 
     local refText = ""
@@ -812,14 +772,7 @@ return function(parent, config)
     end
     elements:Textbox("Reference (read-only)", parent, refText, function() end)
 
-    -- ── Section: Debug / Utility ──
     elements:Label("🔧 Debug & Utilities", parent)
-
-    elements:Textbox("Type 'scan' to list all remotes", parent, "", function(text)
-        if text:lower() == "scan" then
-            scanAndPrintRemotes()
-        end
-    end)
 
     elements:Textbox("Type 'detect' to check held book", parent, "", function(text)
         if text:lower() == "detect" then
