@@ -14,55 +14,44 @@ return function(parent, config)
     local autoOrganizeActive = false
     local loopThread = nil
 
-    -- 2. Thread identity helpers to bypass "Cannot require a non-RobloxScript module from a RobloxScript"
-    local setidentity = setidentity or setthreadidentity or set_thread_identity or setthreadcontext or set_thread_context or (syn and syn.set_thread_identity)
-    local getidentity = getidentity or getthreadidentity or get_thread_identity or getthreadcontext or get_thread_context or (syn and syn.get_thread_identity)
-
-    local function safeRequire(module)
-        local oldIdentity = getidentity and getidentity()
-        if setidentity then
-            setidentity(2) -- Temporarily lower to standard client context (Identity 2)
-        end
-        
-        local success, result = pcall(require, module)
-        
-        if setidentity and oldIdentity then
-            setidentity(oldIdentity) -- Safely restore the original thread identity context
-        end
-        
-        if not success then
-            error(result)
-        end
-        return result
-    end
-
-    -- 3. Load game modules directly using safeRequire
-    local ReplicaController, BooksData
+    -- 2. Dynamically build Books database from ReplicatedStorage to avoid requiring any modules
+    local BooksMap = {}
     local success, err = pcall(function()
-        local Shared = ReplicatedStorage:WaitForChild("Shared")
-        ReplicaController = safeRequire(Shared:WaitForChild("Utility"):WaitForChild("ReplicaController"))
-        BooksData = safeRequire(Shared:WaitForChild("Data"):WaitForChild("Books"))
+        local Assets = ReplicatedStorage:WaitForChild("Assets")
+        local Books = Assets:WaitForChild("Books")
+        for _, categoryFolder in ipairs(Books:GetChildren()) do
+            for _, seriesFolder in ipairs(categoryFolder:GetChildren()) do
+                local seriesName = seriesFolder.Name
+                local volumeCount = #seriesFolder:GetChildren()
+                BooksMap[seriesName] = {
+                    Genre = categoryFolder.Name,
+                    VolumeCount = volumeCount
+                }
+            end
+        end
     end)
 
     if not success then
-        warn("[TaperUI] Failed to load internal game modules directly:", err)
-        elements:Label("⚠️ Error Loading Game Modules", parent)
+        warn("[TaperUI] Failed to build Books database from Assets:", err)
+        elements:Label("⚠️ Error Parsing Book Data", parent)
         return
     end
 
-    -- 4. Locate the Active Library Replica instance
+    -- 3. Garbage Collector scanner to find the active replica safely
     local LibraryReplica = nil
-    for _, r in pairs(ReplicaController._replicas) do
-        if r.Class == "Library" then
-            LibraryReplica = r
-            break
+    local function getLibraryReplica()
+        if LibraryReplica then return LibraryReplica end
+        
+        local success, gc = pcall(getgc, true)
+        if not success then return nil end
+        
+        for _, obj in ipairs(gc) do
+            if type(obj) == "table" and rawget(obj, "Class") == "Library" and type(rawget(obj, "Data")) == "table" then
+                LibraryReplica = obj
+                return obj
+            end
         end
-    end
-
-    if not LibraryReplica then
-        ReplicaController.ReplicaOfClassCreated("Library", function(replica)
-            LibraryReplica = replica
-        end)
+        return nil
     end
 
     local Library = Workspace:FindFirstChild("Library")
@@ -74,9 +63,9 @@ return function(parent, config)
         shelfModels[shelfModel.Name] = shelfModel
     end
 
-    -- 5. Sorting Decision Helpers
-    local function getShelfAssignedSeries(shelfId)
-        local shelfData = LibraryReplica.Data.Shelves[shelfId]
+    -- 4. Sorting Decision Helpers
+    local function getShelfAssignedSeries(replica, shelfId)
+        local shelfData = replica.Data.Shelves[shelfId]
         if not shelfData then return nil end
         for _, placedBook in pairs(shelfData.Books) do
             local bookName = typeof(placedBook) == "Instance" and placedBook.Name or placedBook
@@ -86,24 +75,24 @@ return function(parent, config)
         return nil
     end
 
-    local function findShelfForSeries(seriesName, genreName, volumeCount)
+    local function findShelfForSeries(replica, seriesName, genreName, volumeCount)
         -- Attempt to find a shelf already containing this specific series
-        for shelfId, shelfData in pairs(LibraryReplica.Data.Shelves) do
+        for shelfId, shelfData in pairs(replica.Data.Shelves) do
             if not shelfData.Completed and shelfData.Category == genreName then
                 local shelfModel = shelfModels[shelfId]
                 if shelfModel and shelfModel:GetAttribute("Width") == volumeCount then
-                    if getShelfAssignedSeries(shelfId) == seriesName then
+                    if getShelfAssignedSeries(replica, shelfId) == seriesName then
                         return shelfModel
                     end
                 end
             end
         end
         -- Alternatively, locate an empty, unassigned shelf of the same width
-        for shelfId, shelfData in pairs(LibraryReplica.Data.Shelves) do
+        for shelfId, shelfData in pairs(replica.Data.Shelves) do
             if not shelfData.Completed and shelfData.Category == genreName then
                 local shelfModel = shelfModels[shelfId]
                 if shelfModel and shelfModel:GetAttribute("Width") == volumeCount then
-                    if not getShelfAssignedSeries(shelfId) and next(shelfData.Books) == nil then
+                    if not getShelfAssignedSeries(replica, shelfId) and next(shelfData.Books) == nil then
                         return shelfModel
                     end
                 end
@@ -122,9 +111,10 @@ return function(parent, config)
         end
     end
 
-    -- 6. Main Sorting Execution
+    -- 5. Main Sorting Execution
     local function organizeBooks()
-        if not LibraryReplica or not BooksFolder then return end
+        local replica = getLibraryReplica()
+        if not replica or not BooksFolder then return end
         
         for _, book in ipairs(BooksFolder:GetChildren()) do
             if not autoOrganizeActive then break end
@@ -134,20 +124,20 @@ return function(parent, config)
             local volumeNum = tonumber(volumeStr)
             
             if seriesName and volumeNum then
-                local genreName, bookInfo = BooksData.GetCategory(seriesName)
-                if genreName and bookInfo then
-                    local shelfModel = findShelfForSeries(seriesName, genreName, bookInfo.VolumeCount)
+                local bookInfo = BooksMap[seriesName]
+                if bookInfo then
+                    local shelfModel = findShelfForSeries(replica, seriesName, bookInfo.Genre, bookInfo.VolumeCount)
                     if shelfModel then
-                        local shelfData = LibraryReplica.Data.Shelves[shelfModel.Name]
+                        local shelfData = replica.Data.Shelves[shelfModel.Name]
                         if not (shelfData and shelfData.Books[tostring(volumeNum)]) then
                             -- Teleport to target book and invoke replication Grab
                             teleportTo(book)
-                            LibraryReplica:FireServer("Grab", book)
+                            replica:FireServer("Grab", book)
                             task.wait(0.12)
                             
                             -- Teleport to target shelf and invoke replication Place
                             teleportTo(shelfModel)
-                            LibraryReplica:FireServer("Place", shelfModel, volumeNum - 1)
+                            replica:FireServer("Place", shelfModel, volumeNum - 1)
                             task.wait(0.4) -- Settle buffer to prevent server disconnects
                         end
                     end
@@ -156,35 +146,18 @@ return function(parent, config)
         end
     end
 
-    -- 7. Setup Visual Interface Elements
+    -- 6. Setup Visual Interface Elements
     elements:Label("📚 Library Clean Up", parent)
 
     elements:Toggle("Auto Organize Books", parent, false, function(state)
         autoOrganizeActive = state
         if autoOrganizeActive then
-            if not LibraryReplica then
-                -- Wait for replica initialization if run at startup
-                task.spawn(function()
-                    while autoOrganizeActive and not LibraryReplica do
-                        task.wait(0.5)
-                    end
-                    if autoOrganizeActive then
-                        loopThread = task.spawn(function()
-                            while autoOrganizeActive do
-                                pcall(organizeBooks)
-                                task.wait(1.0)
-                            end
-                        end)
-                    end
-                end)
-            else
-                loopThread = task.spawn(function()
-                    while autoOrganizeActive do
-                        pcall(organizeBooks)
-                        task.wait(1.0)
-                    end
-                end)
-            end
+            loopThread = task.spawn(function()
+                while autoOrganizeActive do
+                    pcall(organizeBooks)
+                    task.wait(1.0)
+                end
+            end)
         else
             if loopThread then
                 task.cancel(loopThread)
@@ -193,7 +166,7 @@ return function(parent, config)
         end
     end)
 
-    -- 8. Memory Leak Cleanup on Tab/UI Close
+    -- 7. Memory Leak Cleanup on Tab/UI Close
     parent.Destroying:Connect(function()
         autoOrganizeActive = false
         if loopThread then
