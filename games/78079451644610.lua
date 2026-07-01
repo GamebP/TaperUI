@@ -15,18 +15,17 @@ return function(parent, config)
     local autoOrganizeActive = false
     local loopThread = nil
 
-    -- 2. Load game modules safely
-    local Loader, ReplicaController, BooksData
+    -- 2. Load game modules directly from the correct paths
+    local ReplicaController, BooksData
     local moduleLoadSuccess, loadErr = pcall(function()
-        Loader = require(ReplicatedStorage.Packages.Loader)
-        ReplicaController = require(Loader.Shared.Utility.ReplicaController)
-        BooksData = require(Loader.Shared.Data.Books)
+        ReplicaController = require(ReplicatedStorage.Shared.Utility.ReplicaController)
+        BooksData = require(ReplicatedStorage.Shared.Data.Books)
     end)
 
     if not moduleLoadSuccess then
         warn("[TaperUI] Failed to load required modules:", loadErr)
         elements:Label("❌ Failed to load game modules", parent)
-        elements:Label("Check ReplicatedStorage.Packages", parent)
+        elements:Label("Check Shared.Utility & Shared.Data", parent)
         return
     end
 
