@@ -9,7 +9,11 @@ return function(parent, config)
     local Players = game:GetService("Players")
     local LocalPlayer = Players.LocalPlayer
     local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    
     local Network = ReplicatedStorage:WaitForChild("Network", 5)
+    if not Network then
+        warn("[TaperUI Error] 'Network' folder not found in ReplicatedStorage after 5s. Core loops may fail.")
+    end
 
     -- ===== STATE CONFIGURATION =====
     -- Cash (Throw) Settings
@@ -40,12 +44,20 @@ return function(parent, config)
 
     -- ===== AUTOMATION HELPER FUNCTIONS =====
     local function fireThrowSequence()
-        if not Network then return end
+        if not Network then 
+            warn("[TaperUI Warning] Throw sequence cancelled: 'Network' folder is missing.")
+            return 
+        end
+        
         local beginEvent = Network:FindFirstChild("Throw/Begin")
         local updateEvent = Network:FindFirstChild("Throw/Update")
         local endEvent = Network:FindFirstChild("Throw/End")
 
-        pcall(function()
+        if not beginEvent then warn("[TaperUI Warning] Missing 'Throw/Begin' RemoteFunction!") end
+        if not updateEvent then warn("[TaperUI Warning] Missing 'Throw/Update' RemoteEvent!") end
+        if not endEvent then warn("[TaperUI Warning] Missing 'Throw/End' RemoteEvent!") end
+
+        local success, err = pcall(function()
             if beginEvent and beginEvent:IsA("RemoteFunction") then
                 beginEvent:InvokeServer()
             end
@@ -60,6 +72,10 @@ return function(parent, config)
                 endEvent:FireServer()
             end
         end)
+
+        if not success then
+            warn("[TaperUI Error] Firing throw sequence failed: " .. tostring(err))
+        end
     end
 
     -- ===== UI ELEMENTS =====
@@ -83,7 +99,6 @@ return function(parent, config)
         if autoThrowActive then
             task.spawn(function()
                 while autoThrowActive do
-                    -- Spawns the sequential event sequence in a separate, non-blocking task
                     task.spawn(fireThrowSequence)
                     task.wait(throwInterval)
                 end
@@ -106,15 +121,22 @@ return function(parent, config)
         if autoStrengthActive then
             task.spawn(function()
                 while autoStrengthActive do
-                    -- Spawns each network invocation inside its own task thread to prevent throttling
                     task.spawn(function()
-                        if Network then
-                            local trainEvent = Network:FindFirstChild("Training/Throw")
-                            if trainEvent and trainEvent:IsA("RemoteEvent") then
-                                pcall(function()
-                                    trainEvent:FireServer(selectedWall, false)
-                                end)
+                        if not Network then
+                            warn("[TaperUI Warning] Training sequence aborted: 'Network' folder is missing.")
+                            return
+                        end
+
+                        local trainEvent = Network:FindFirstChild("Training/Throw")
+                        if trainEvent and trainEvent:IsA("RemoteEvent") then
+                            local success, err = pcall(function()
+                                trainEvent:FireServer(selectedWall, false)
+                            end)
+                            if not success then
+                                warn("[TaperUI Error] Training request failed: " .. tostring(err))
                             end
+                        else
+                            warn("[TaperUI Warning] Missing or invalid 'Training/Throw' RemoteEvent!")
                         end
                     end)
                     task.wait(strengthInterval)
@@ -126,14 +148,23 @@ return function(parent, config)
     elements:Label("🥚 Egg & Pet Utilities", parent)
 
     elements:Button("Equip Best Pets", parent, function()
-        if Network then
-            local equipEvent = Network:FindFirstChild("Pets/EquipBest")
-            if equipEvent and equipEvent:IsA("RemoteEvent") then
-                pcall(function() equipEvent:FireServer() end)
+        if not Network then
+            warn("[TaperUI Warning] Cannot equip pets: 'Network' folder is missing.")
+            return
+        end
+
+        local equipEvent = Network:FindFirstChild("Pets/EquipBest")
+        if equipEvent and equipEvent:IsA("RemoteEvent") then
+            local success, err = pcall(function() equipEvent:FireServer() end)
+            if success then
                 if getgenv().showToast then
                     getgenv().showToast("Pets Upgraded", "Best pets equipped!", 2.0)
                 end
+            else
+                warn("[TaperUI Error] Failed to equip best pets: " .. tostring(err))
             end
+        else
+            warn("[TaperUI Warning] Missing 'Pets/EquipBest' RemoteEvent!")
         end
     end)
 
@@ -154,13 +185,24 @@ return function(parent, config)
         if autoEggActive then
             task.spawn(function()
                 while autoEggActive do
-                    if Network then
-                        local openEvent = Network:FindFirstChild("Egg/Open")
-                        if openEvent and openEvent:IsA("RemoteFunction") then
-                            pcall(function()
-                                openEvent:InvokeServer(selectedEgg, selectedEggAmount)
-                            end)
+                    if not Network then
+                        warn("[TaperUI Warning] Egg opening halted: 'Network' folder is missing.")
+                        task.wait(2.0) -- Extended wait to prevent spamming warnings
+                        continue
+                    end
+
+                    local openEvent = Network:FindFirstChild("Egg/Open")
+                    if openEvent and openEvent:IsA("RemoteFunction") then
+                        local success, err = pcall(function()
+                            openEvent:InvokeServer(selectedEgg, selectedEggAmount)
+                        end)
+                        if not success then
+                            warn("[TaperUI Error] Failed to complete egg opening: " .. tostring(err))
                         end
+                    else
+                        warn("[TaperUI Warning] Missing 'Egg/Open' RemoteFunction!")
+                        task.wait(2.0)
+                        continue
                     end
                     task.wait(eggInterval)
                 end
@@ -179,13 +221,24 @@ return function(parent, config)
         if autoRebirthActive then
             task.spawn(function()
                 while autoRebirthActive do
-                    if Network then
-                        local rebirthEvent = Network:FindFirstChild("Rebirth/Upgrade")
-                        if rebirthEvent and rebirthEvent:IsA("RemoteFunction") then
-                            pcall(function()
-                                rebirthEvent:InvokeServer()
-                            end)
+                    if not Network then
+                        warn("[TaperUI Warning] Rebirth loop halted: 'Network' folder is missing.")
+                        task.wait(2.0)
+                        continue
+                    end
+
+                    local rebirthEvent = Network:FindFirstChild("Rebirth/Upgrade")
+                    if rebirthEvent and rebirthEvent:IsA("RemoteFunction") then
+                        local success, err = pcall(function()
+                            rebirthEvent:InvokeServer()
+                        end)
+                        if not success then
+                            warn("[TaperUI Error] Failed to complete rebirth request: " .. tostring(err))
                         end
+                    else
+                        warn("[TaperUI Warning] Missing 'Rebirth/Upgrade' RemoteFunction!")
+                        task.wait(2.0)
+                        continue
                     end
                     task.wait(rebirthInterval)
                 end
