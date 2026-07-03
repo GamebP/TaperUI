@@ -1,25 +1,3 @@
---[=[
--- 110064275358409.lua
---[[
-
--- Get the best gun in the game
-
-local Event = game:GetService("ReplicatedStorage").AddSkinEvent
-Event:FireServer(
-    "Gemini_Generated_Image_52v5nk52v5nk52v5-removebg-preview"
-)
-
--- Get 5K cash
-
-local Event = game:GetService("ReplicatedStorage").RewardFromRangeEvent
-Event:FireServer(
-    5000
-)
-
---]]
--- Note that selling all items will not sell all it will take time beacuse game is fucking russian
---]=]
-
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
