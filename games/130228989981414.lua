@@ -1,4 +1,4 @@
---[[
+--[=[
     -- World 1: 
 
     -- Walls:
@@ -90,7 +90,7 @@
         `0 0.960784 0.976471 0.403922 0 1 1 0.8 0 0` = Legendary
     --]]
 
---]]
+--]=]
 
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
