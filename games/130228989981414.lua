@@ -1,3 +1,5 @@
+-- World 1 & 2 Config Metadata
+
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
@@ -17,6 +19,8 @@ return function(parent, config)
     end
 
     -- ===== STATE CONFIGURATION =====
+    local selectedWorld = "World 1"
+
     -- Cash (Throw) Settings
     local autoThrowActive = false
     local throwInterval = 1.0
@@ -27,18 +31,28 @@ return function(parent, config)
     local strengthInterval = 0.1
     local selectedWall = "Wall1"
 
-    local wallOptions = {
-        "Wall1", "Wall2", "Wall3", "Wall4", "Wall5", "Wall6",
-        "Wall7", "Wall8", "Wall9", "Wall10", "Wall11", "Wall12"
+    local wallOptionsW1 = {
+        "Wall1 (+3)", "Wall2 (+6)", "Wall3 (+8)", "Wall4 (+12)", "Wall5 (+15)", "Wall6 (+20)",
+        "Wall7 (+25)", "Wall8 (+30)", "Wall9 (+35)", "Wall10 (+45)", "Wall11 (+60)", "Wall12 (+85)"
+    }
+    local wallOptionsW2 = {
+        "Wall1 (+140)", "Wall2 (+160)", "Wall3 (+170)", "Wall4 (+195)", "Wall5 (+225)", "Wall6 (+260)",
+        "Wall7 (+300)", "Wall8 (+375)", "Wall9 (+450)", "Wall10 (+550)", "Wall11 (+675)", "Wall12 (+800)"
     }
 
     -- Shop Settings
     local selectedShopItem = "Paper Airplane"
     local autoBuyEquipActive = false
-    local shopItems = {
+    
+    local shopItemsW1 = {
         "Paper Airplane", "Balloon", "Kite", "Umbrella", "Fan", "Leaf Blower",
         "Hang Glider", "WindTurbine", "Parachute", "Firework", "Triple Balloon",
         "Blimp", "Hot Air Balloon", "Airplane Turbine", "Jetpack", "Rocket"
+    }
+    local shopItemsW2 = {
+        "BeachBall", "SharkFin", "LifeGuardFloatie", "Hat", "SandBucket", "BeachUmbrella",
+        "Anchor", "DonutFloatie", "Barrel", "TurtleFloatie", "SurfBoard", "Trident",
+        "CrabFloatie", "Kayak", "SandCastle", "FlamingoFloatie"
     }
 
     -- Egg Open Settings
@@ -46,7 +60,9 @@ return function(parent, config)
     local eggInterval = 1.0
     local selectedEgg = "Egg1"
     local selectedEggAmount = 1
-    local eggOptions = {"Egg1", "Egg2", "Egg3"} -- World 1 Eggs
+    
+    local eggOptionsW1 = {"Egg1", "Egg2", "Egg3"}
+    local eggOptionsW2 = {"Egg4", "Egg5", "Egg6"}
     local eggAmounts = {"1", "3"}
 
     -- Pet Deletion Settings
@@ -64,7 +80,7 @@ return function(parent, config)
     local rebirthInterval = 2.0
 
     -- Safety & AFK Settings
-    local autoAntiAfkActive = true -- Active by default
+    local autoAntiAfkActive = true
     local idledConnection = nil
 
     -- ===== AUTOMATION HELPER FUNCTIONS =====
@@ -153,16 +169,12 @@ return function(parent, config)
         local c1 = keypoints[1].Value
         local c2 = keypoints[2].Value
 
-        -- Common Gradient: 0.317647, 1, 0  and  0.0745098, 0.745098, 0.00392157
         if colorsMatch(c1, Color3.new(0.317647, 1, 0)) and colorsMatch(c2, Color3.new(0.0745098, 0.745098, 0.00392157)) then
             return "Common"
-        -- Rare Gradient: 0, 0.662745, 0.996078  and  0.0823529, 0.419608, 0.733333
         elseif colorsMatch(c1, Color3.new(0, 0.662745, 0.996078)) and colorsMatch(c2, Color3.new(0.0823529, 0.419608, 0.733333)) then
             return "Rare"
-        -- Epic Gradient: 0.984314, 0.207843, 0.92549  and  0.682353, 0.32549, 0.996078
         elseif colorsMatch(c1, Color3.new(0.984314, 0.207843, 0.92549)) and colorsMatch(c2, Color3.new(0.682353, 0.32549, 0.996078)) then
             return "Epic"
-        -- Legendary Gradient: 0.960784, 0.976471, 0.403922  and  1, 0.8, 0
         elseif colorsMatch(c1, Color3.new(0.960784, 0.976471, 0.403922)) and colorsMatch(c2, Color3.new(1, 0.8, 0)) then
             return "Legendary"
         end
@@ -183,7 +195,6 @@ return function(parent, config)
             for _, petFrame in ipairs(petContent:GetChildren()) do
                 if petFrame:IsA("GuiObject") then
                     local uuid = petFrame.Name
-                    -- Standard UUID basic format check
                     if string.match(uuid, "^{[%w%-]+}$") then
                         local petMain = petFrame:FindFirstChild("main")
                         local uiGradient = petMain and petMain:FindFirstChildOfClass("UIGradient")
@@ -201,6 +212,41 @@ return function(parent, config)
     end
 
     -- ===== UI ELEMENTS =====
+    elements:Label("🌍 World Selection", parent)
+
+    -- Pre-declare dropdown visual variables
+    local wallDropdownW1, wallDropdownW2
+    local shopDropdownW1, shopDropdownW2
+    local eggDropdownW1, eggDropdownW2
+
+    local function updateWorldVisibility()
+        local isW1 = (selectedWorld == "World 1")
+        local isW2 = (selectedWorld == "World 2")
+
+        if wallDropdownW1 then wallDropdownW1.Visible = isW1 end
+        if wallDropdownW2 then wallDropdownW2.Visible = isW2 end
+
+        if shopDropdownW1 then shopDropdownW1.Visible = isW1 end
+        if shopDropdownW2 then shopDropdownW2.Visible = isW2 end
+
+        if eggDropdownW1 then eggDropdownW1.Visible = isW1 end
+        if eggDropdownW2 then eggDropdownW2.Visible = isW2 end
+    end
+
+    elements:Dropdown("Select Active World", parent, {"World 1", "World 2"}, selectedWorld, function(value)
+        selectedWorld = value
+        if value == "World 1" then
+            selectedWall = "Wall1"
+            selectedShopItem = "Paper Airplane"
+            selectedEgg = "Egg1"
+        else
+            selectedWall = "Wall1"
+            selectedShopItem = "BeachBall"
+            selectedEgg = "Egg4"
+        end
+        updateWorldVisibility()
+    end)
+
     elements:Label("💵 Cash (Throw) Utilities", parent)
     elements:Label("Throw Power: LOCKED AT 9e200 (Maximum)", parent)
 
@@ -222,8 +268,16 @@ return function(parent, config)
 
     elements:Label("💪 Strength Utilities", parent)
 
-    elements:Dropdown("Select Training Wall", parent, wallOptions, selectedWall, function(value)
-        selectedWall = value
+    -- World 1 Wall Dropdown
+    wallDropdownW1 = elements:Dropdown("Select Training Wall (W1)", parent, wallOptionsW1, "Wall1 (+3)", function(value)
+        local baseWallName = value:match("^(Wall%d+)")
+        if baseWallName then selectedWall = baseWallName end
+    end)
+
+    -- World 2 Wall Dropdown
+    wallDropdownW2 = elements:Dropdown("Select Training Wall (W2)", parent, wallOptionsW2, "Wall1 (+140)", function(value)
+        local baseWallName = value:match("^(Wall%d+)")
+        if baseWallName then selectedWall = baseWallName end
     end)
 
     elements:Slider("Training Rate (s)", parent, 0.01, 5.0, strengthInterval, 2, function(val)
@@ -261,7 +315,13 @@ return function(parent, config)
 
     elements:Label("🛒 Shop Utilities", parent)
 
-    elements:Dropdown("Select Shop Item", parent, shopItems, selectedShopItem, function(value)
+    -- World 1 Shop Dropdown
+    shopDropdownW1 = elements:Dropdown("Select Shop Item (W1)", parent, shopItemsW1, "Paper Airplane", function(value)
+        selectedShopItem = value
+    end)
+
+    -- World 2 Shop Dropdown
+    shopDropdownW2 = elements:Dropdown("Select Shop Item (W2)", parent, shopItemsW2, "BeachBall", function(value)
         selectedShopItem = value
     end)
 
@@ -338,7 +398,13 @@ return function(parent, config)
         end
     end)
 
-    elements:Dropdown("Select Egg", parent, eggOptions, selectedEgg, function(value)
+    -- World 1 Egg Dropdown
+    eggDropdownW1 = elements:Dropdown("Select Egg (W1)", parent, eggOptionsW1, "Egg1", function(value)
+        selectedEgg = value
+    end)
+
+    -- World 2 Egg Dropdown
+    eggDropdownW2 = elements:Dropdown("Select Egg (W2)", parent, eggOptionsW2, "Egg4", function(value)
         selectedEgg = value
     end)
 
@@ -467,6 +533,9 @@ return function(parent, config)
         autoAntiAfkActive = state
         setupAntiAfk()
     end)
+
+    -- Adjust initial visibility state based on selectedWorld
+    updateWorldVisibility()
 
     -- Cleanup active threads and connections when UI is destroyed
     parent.Destroying:Connect(function()
