@@ -181,6 +181,36 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "Throw A Friend",
+      "gameID": "130228989981414",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "03.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
+    },
+    {
+      "gameName": "⚡Skin Upgrader CS2⚡",
+      "gameID": "110064275358409",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "03.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
