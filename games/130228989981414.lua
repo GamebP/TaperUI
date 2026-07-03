@@ -1,4 +1,4 @@
--- World 1, 2 & 3 Config Metadata
+-- World 1, 2, 3 & 4 Config Metadata
 
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
@@ -43,6 +43,10 @@ return function(parent, config)
         "Wall1 (+850)", "Wall2 (+950)", "Wall3 (+1100)", "Wall4 (+1200)", "Wall5 (+1400)", "Wall6 (+1600)",
         "Wall7 (+1800)", "Wall8 (+2100)", "Wall9 (+2700)", "Wall10 (+3400)", "Wall11 (+4300)", "Wall12 (+5500)"
     }
+    local wallOptionsW4 = {
+        "Wall1 (+6.5k)", "Wall2 (+7.2k)", "Wall3 (+8k)", "Wall4 (+9.2k)", "Wall5 (+10.5k)", "Wall6 (+12.2k)",
+        "Wall7 (+14.5k)", "Wall8 (+17.5k)", "Wall9 (+22k)", "Wall10 (+27.5k)", "Wall11 (+33.5k)", "Wall12 (+42k)"
+    }
 
     -- Shop Settings
     local selectedShopItem = "Paper Airplane"
@@ -63,6 +67,11 @@ return function(parent, config)
         "PresentBag", "TreeStar", "ChristmasTrain", "CandyCane", "SantaHat", "Igloo",
         "ChristmasSock", "Turkey", "Chimney", "SnowMan"
     }
+    local shopItemsW4 = {
+        "Chains", "TNT", "Lantern", "ExplosiveBarrel", "Tomb", "Crystals",
+        "DeadlySign", "WitchPot", "Skull", "MonsterBones", "Chest", "EvilWings",
+        "Coffin", "EvilTrident", "Catapult", "EvilCape"
+    }
 
     -- Egg Open Settings
     local autoEggActive = false
@@ -73,6 +82,7 @@ return function(parent, config)
     local eggOptionsW1 = {"Egg1", "Egg2", "Egg3"}
     local eggOptionsW2 = {"Egg4", "Egg5", "Egg6"}
     local eggOptionsW3 = {"Egg7", "Egg8", "Egg9"}
+    local eggOptionsW4 = {"Egg10", "Egg11", "Egg12"}
     local eggAmounts = {"1", "3"}
 
     -- Pet Deletion Settings
@@ -225,29 +235,33 @@ return function(parent, config)
     elements:Label("🌍 World Selection", parent)
 
     -- Pre-declare dropdown visual variables
-    local wallDropdownW1, wallDropdownW2, wallDropdownW3
-    local shopDropdownW1, shopDropdownW2, shopDropdownW3
-    local eggDropdownW1, eggDropdownW2, eggDropdownW3
+    local wallDropdownW1, wallDropdownW2, wallDropdownW3, wallDropdownW4
+    local shopDropdownW1, shopDropdownW2, shopDropdownW3, shopDropdownW4
+    local eggDropdownW1, eggDropdownW2, eggDropdownW3, eggDropdownW4
 
     local function updateWorldVisibility()
         local isW1 = (selectedWorld == "World 1")
         local isW2 = (selectedWorld == "World 2")
         local isW3 = (selectedWorld == "World 3")
+        local isW4 = (selectedWorld == "World 4")
 
         if wallDropdownW1 then wallDropdownW1.Visible = isW1 end
         if wallDropdownW2 then wallDropdownW2.Visible = isW2 end
         if wallDropdownW3 then wallDropdownW3.Visible = isW3 end
+        if wallDropdownW4 then wallDropdownW4.Visible = isW4 end
 
         if shopDropdownW1 then shopDropdownW1.Visible = isW1 end
         if shopDropdownW2 then shopDropdownW2.Visible = isW2 end
         if shopDropdownW3 then shopDropdownW3.Visible = isW3 end
+        if shopDropdownW4 then shopDropdownW4.Visible = isW4 end
 
         if eggDropdownW1 then eggDropdownW1.Visible = isW1 end
         if eggDropdownW2 then eggDropdownW2.Visible = isW2 end
         if eggDropdownW3 then eggDropdownW3.Visible = isW3 end
+        if eggDropdownW4 then eggDropdownW4.Visible = isW4 end
     end
 
-    elements:Dropdown("Select Active World", parent, {"World 1", "World 2", "World 3"}, selectedWorld, function(value)
+    elements:Dropdown("Select Active World", parent, {"World 1", "World 2", "World 3", "World 4"}, selectedWorld, function(value)
         selectedWorld = value
         if value == "World 1" then
             selectedWall = "Wall1"
@@ -261,6 +275,10 @@ return function(parent, config)
             selectedWall = "Wall1"
             selectedShopItem = "SnowFlake"
             selectedEgg = "Egg7"
+        elseif value == "World 4" then
+            selectedWall = "Wall1"
+            selectedShopItem = "Chains"
+            selectedEgg = "Egg10"
         end
         updateWorldVisibility()
     end)
@@ -300,6 +318,12 @@ return function(parent, config)
 
     -- World 3 Wall Dropdown
     wallDropdownW3 = elements:Dropdown("Select Training Wall (W3)", parent, wallOptionsW3, "Wall1 (+850)", function(value)
+        local baseWallName = value:match("^(Wall%d+)")
+        if baseWallName then selectedWall = baseWallName end
+    end)
+
+    -- World 4 Wall Dropdown
+    wallDropdownW4 = elements:Dropdown("Select Training Wall (W4)", parent, wallOptionsW4, "Wall1 (+6.5k)", function(value)
         local baseWallName = value:match("^(Wall%d+)")
         if baseWallName then selectedWall = baseWallName end
     end)
@@ -351,6 +375,11 @@ return function(parent, config)
 
     -- World 3 Shop Dropdown
     shopDropdownW3 = elements:Dropdown("Select Shop Item (W3)", parent, shopItemsW3, "SnowFlake", function(value)
+        selectedShopItem = value
+    end)
+
+    -- World 4 Shop Dropdown
+    shopDropdownW4 = elements:Dropdown("Select Shop Item (W4)", parent, shopItemsW4, "Chains", function(value)
         selectedShopItem = value
     end)
 
@@ -439,6 +468,11 @@ return function(parent, config)
 
     -- World 3 Egg Dropdown
     eggDropdownW3 = elements:Dropdown("Select Egg (W3)", parent, eggOptionsW3, "Egg7", function(value)
+        selectedEgg = value
+    end)
+
+    -- World 4 Egg Dropdown
+    eggDropdownW4 = elements:Dropdown("Select Egg (W4)", parent, eggOptionsW4, "Egg10", function(value)
         selectedEgg = value
     end)
 
