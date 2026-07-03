@@ -1,97 +1,3 @@
---[=[
-    -- World 1: 
-
-    -- Walls:
-
-    -- Wall1 = +3 Strength
-    -- Wall2 = +6 Strength (350 Required Strength or 1 Rebirth)
-    -- Wall3 = +8 Strength (1,500 Required Strength or 2 Rebirths)
-    -- Wall4 = +12 Strength (4,000 Required Strength or 3 Rebirths)
-    -- Wall5 = +15 Strength (15,000 Required Strength or 4 Rebirths)
-    -- Wall6 = +20 Strength (40,000 Required Strength or 5 Rebirths)
-    -- Wall7 = +25 Strength (100,000 Required Strength or 6 Rebirths)
-    -- Wall8 = +30 Strength (300,000 Required Strength or 7 Rebirths)
-    -- Wall9 = +35 Strength (500,000 Required Strength or 8 Rebirths)
-    -- Wall10 = +45 Strength (850,000 Required Strength or 9 Rebirths)
-    -- Wall11 = +60 Strength (1,500,000 Required Strength or 10 Rebirths)
-    -- Wall12 = +85 Strength (3,000,000 Required Strength or 11 Rebirths)
-
-    -- Eggs:
-
-    -- Egg1 = 50 Cash
-    -- Egg2 = 2.7K Cash
-    -- Egg3 = 250K Cash
-
-    -- Shop:
-
-    --[[
-    Example:
-
-    local Event = game:GetService("ReplicatedStorage").Network["ItemShop/Purchase"]
-    Event:InvokeServer(
-        "Balloon"
-    )
-
-    And:
-
-    local Event = game:GetService("ReplicatedStorage").Network["ItemShop/Equip"]
-    Event:InvokeServer(
-        "Paper Airplane"
-    )
-
-    --]]
-
-    "Paper Airplane", "Balloon", "Kite",
-    -- Paper Airplane:
-    -- Balloon: 1K Cash
-    -- Kite: 2.5K Cash
-    "Umbrella", "Fan", "Leaf Blower",
-    -- Umbrella: 6K Cash
-    -- Fan: 20K Cash
-    -- Leaf Blower: 80K Cash
-    "Hang Glider", "WindTurbine", "Parachute",
-    -- Hang Glider: 350K Cash
-    -- Wind Turbine: 1M Cash
-    -- Parachute: 1.5M Cash
-    "Firework", "Triple Balloon", "Blimp",
-    -- Firework: 2.2M Cash
-    -- Triple Balloon: 3.5M Cash
-    -- Blimp: 5M Cash
-    "Hot Air Balloon", "Airplane Turbine", "Jetpack",
-    -- Hot Air Balloon: 8.5M Cash
-    -- Airplane Turbine: 15M Cash
-    -- Jetpack: 30M Cash
-    "Rocket"
-    -- Rocket: 50M Cash
-
-
-    --[[
-
-    local Event = game:GetService("ReplicatedStorage").Network["Pets/Delete"]
-    Event:FireServer(
-        {
-            "{2433e8d1-a936-4ed2-9a9a-8b635406d238}",
-            "{740f8cf4-31ac-4681-be7d-91463eeb6d2c}",
-            "{edebcce7-7dd4-4241-8b88-124feb6918ba}"
-        }
-    )
-    
-    --]]
-
-    --[[
-    
-    Add a function to delete pets lower from Common:
-        `game:GetService("Players").LocalPlayer.PlayerGui.PetsInventory.Holder.main.Petcontent["{e659d0b8-b18e-43d5-9bbd-22acf5e87a5d}"].main.UIGradient` You need to check if the UIGradiant matches the `0 0.317647 1 0 0 1 0.0745098 0.745098 0.00392157 0`
-         -- {e659d0b8-b18e-43d5-9bbd-22acf5e87a5d} Can be anything random please use scripts to check it...
-         
-        `0 0.317647 1 0 0 1 0.0745098 0.745098 0.00392157 0` = Common
-        `0 0 0.662745 0.996078 0 1 0.0823529 0.419608 0.733333 0` = Rare
-        `0 0.984314 0.207843 0.92549 0 1 0.682353 0.32549 0.996078 0` = Epic
-        `0 0.960784 0.976471 0.403922 0 1 1 0.8 0 0` = Legendary
-    --]]
-
---]=]
-
 return function(parent, config)
     -- 1. Import TaperUI's elements helper module
     local taperImport = getgenv().taperImport or function(path)
@@ -157,16 +63,45 @@ return function(parent, config)
     local autoRebirthActive = false
     local rebirthInterval = 2.0
 
-    -- ===== ANTI-AFK INITIALIZATION =====
-    -- Captures and handles idle state to prevent standard 20-minute disconnects
-    local idledConnection = LocalPlayer.Idled:Connect(function()
-        pcall(function()
-            VirtualUser:CaptureController()
-            VirtualUser:ClickButton2(Vector2.new(0, 0))
-        end)
-    end)
+    -- Safety & AFK Settings
+    local autoAntiAfkActive = true -- Active by default
+    local idledConnection = nil
 
     -- ===== AUTOMATION HELPER FUNCTIONS =====
+    
+    -- Safety AFK Connection Handler
+    local function setupAntiAfk()
+        if idledConnection then
+            idledConnection:Disconnect()
+            idledConnection = nil
+        end
+        
+        if autoAntiAfkActive then
+            idledConnection = LocalPlayer.Idled:Connect(function()
+                pcall(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new(0, 0))
+                end)
+            end)
+        end
+    end
+
+    -- Active redundant background loop (keeps client active every 60s as a backup)
+    task.spawn(function()
+        while true do
+            task.wait(60)
+            if autoAntiAfkActive then
+                pcall(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.new(0, 0))
+                end)
+            end
+        end
+    end)
+
+    -- Initialize AFK protection on startup
+    setupAntiAfk()
+
     local function fireThrowSequence()
         if not Network then 
             warn("[TaperUI Warning] Throw sequence cancelled: 'Network' folder is missing.")
@@ -526,6 +461,13 @@ return function(parent, config)
         end
     end)
 
+    elements:Label("🛡️ Safety & AFK Utilities", parent)
+
+    elements:Toggle("Anti-AFK Keep-Alive", parent, autoAntiAfkActive, function(state)
+        autoAntiAfkActive = state
+        setupAntiAfk()
+    end)
+
     -- Cleanup active threads and connections when UI is destroyed
     parent.Destroying:Connect(function()
         autoThrowActive = false
@@ -534,6 +476,7 @@ return function(parent, config)
         autoRebirthActive = false
         autoBuyEquipActive = false
         autoDeleteActive = false
+        autoAntiAfkActive = false
         
         if idledConnection then
             idledConnection:Disconnect()
