@@ -883,7 +883,6 @@ function TaperUILibrary:CreateWindow(options)
             return elements:Label(text, scrollContainer)
         end
 
-        // ... Keep all other visual element methods unchanged ...
         function Tab:CreateButton(text, callback)
             return elements:Button(text, scrollContainer, callback)
         end
