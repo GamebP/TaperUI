@@ -139,7 +139,73 @@ errorConnection = GuiService.ErrorMessageChanged:Connect(function()
 end)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
--- File-level local upvalue for safe notification parenting
+-- ==========================================
+-- 1. DEFINE IN-MEMORY CACHE & MODULE LOADER
+-- ==========================================
+local moduleCache = {}
+local function import(path)
+    if moduleCache[path] then
+        return moduleCache[path]
+    end
+    
+    local gitUrl = env.getgitpath("src") .. path .. ".lua"
+    local ok, content = pcall(game.HttpGet, game, gitUrl)
+    if ok and content and #content > 0 and content ~= "404: Not Found" then
+        local func, err = loadstring(content)
+        if func then
+            local result = func()
+            moduleCache[path] = result
+            return result
+        else
+            error("[TaperUI] Loadstring compilation failed for " .. path .. ": " .. tostring(err))
+        end
+    else
+        error("[TaperUI] Module HTTP fetch failed: " .. path)
+    end
+end
+getgenv().taperImport = import
+
+local jsonCache = {}
+local function importJson(path)
+    if jsonCache[path] then
+        return jsonCache[path]
+    end
+    
+    local gitUrl = env.getgitpath("src") .. path .. ".json"
+    local ok, content = pcall(game.HttpGet, game, gitUrl)
+    if ok and content and #content > 0 and content ~= "404: Not Found" then
+        local result = HttpService:JSONDecode(content)
+        jsonCache[path] = result
+        return result
+    else
+        error("[TaperUI] JSON HTTP fetch failed: " .. path)
+    end
+end
+
+-- ==========================================
+-- 2. IMPORT MODULES & EXTRACT LAYOUT BUILDERS
+-- ==========================================
+local creator = import("helper/creator")
+local elements = import("helper/elements")
+local data = importJson("helper/data")
+
+local create = creator.create
+local dragify = creator.dragify
+local convertToScrolling = creator.convertToScrolling
+
+local gameList = data.gameList
+local creditsList = data.creditsList
+
+local configSettings = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
+if not configSettings.settings.toggle_keybind then
+    configSettings.settings.toggle_keybind = "K"
+    writefile("TaperUI/Config.json", HttpService:JSONEncode(configSettings))
+end
+local activeKeybind = configSettings.settings.toggle_keybind or "K"
+
+-- ==========================================
+-- 3. DEFINE FILE-LEVEL TOAST VARIABLES
+-- ==========================================
 local ToastContainer = nil
 
 -- Changed to a global function to resolve executor environment & upvalue isolation bugs
@@ -244,8 +310,8 @@ function showToast(title, message, iconAsset, duration)
 
     task.delay(duration, function()
         if not Toast or not Toast.Parent then return end
-        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
-        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 1 }):Play()
+        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 1 }):Play()
         
         local slideOut = TweenService:Create(Toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
             Position = UDim2.new(1.5, 0, 0, 0),
@@ -272,66 +338,8 @@ function showToast(title, message, iconAsset, duration)
 end
 getgenv().showToast = showToast
 
-local moduleCache = {}
-local function import(path)
-    if moduleCache[path] then
-        return moduleCache[path]
-    end
-    
-    local gitUrl = env.getgitpath("src") .. path .. ".lua"
-    local ok, content = pcall(game.HttpGet, game, gitUrl)
-    if ok and content and #content > 0 and content ~= "404: Not Found" then
-        local func, err = loadstring(content)
-        if func then
-            local result = func()
-            moduleCache[path] = result
-            return result
-        else
-            error("[TaperUI] Loadstring compilation failed for " .. path .. ": " .. tostring(err))
-        end
-    else
-        error("[TaperUI] Module HTTP fetch failed: " .. path)
-    end
-end
-getgenv().taperImport = import
-
-local jsonCache = {}
-local function importJson(path)
-    if jsonCache[path] then
-        return jsonCache[path]
-    end
-    
-    local gitUrl = env.getgitpath("src") .. path .. ".json"
-    local ok, content = pcall(game.HttpGet, game, gitUrl)
-    if ok and content and #content > 0 and content ~= "404: Not Found" then
-        local result = HttpService:JSONDecode(content)
-        jsonCache[path] = result
-        return result
-    else
-        error("[TaperUI] JSON HTTP fetch failed: " .. path)
-    end
-end
-
-local creator = import("helper/creator")
-local elements = import("helper/elements")
-local data = importJson("helper/data")
-
-local create = creator.create
-local dragify = creator.dragify
-local convertToScrolling = creator.convertToScrolling
-
-local gameList = data.gameList
-local creditsList = data.creditsList
-
-local configSettings = HttpService:JSONDecode(readfile("TaperUI/Config.json"))
-if not configSettings.settings.toggle_keybind then
-    configSettings.settings.toggle_keybind = "K"
-    writefile("TaperUI/Config.json", HttpService:JSONEncode(configSettings))
-end
-local activeKeybind = configSettings.settings.toggle_keybind or "K"
-
 -- ==========================================
--- TAPERUI LIBRARY API OBJECT
+-- 4. TAPERUI LIBRARY API OBJECT
 -- ==========================================
 local TaperUILibrary = {}
 
@@ -551,7 +559,7 @@ function TaperUILibrary:CreateWindow(options)
                 Position = UDim2.new(0, 12, 0.5, -8),
                 BackgroundTransparency = 1,
                 Image = iconAsset,
-                ImageColor3 = layoutOrder == 1 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185)
+                ImageColor3 = layoutOrder == 1 parks Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185)
             }),
             create("TextLabel", {
                 Name = "LabelText",
