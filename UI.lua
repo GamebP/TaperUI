@@ -195,7 +195,7 @@ local ToastContainer = create("Frame", {
 
 local function showToast(title, message, duration)
     duration = duration or 3
-
+    
     local Holder = create("Frame", {
         Name = "ToastHolder",
         Size = UDim2.new(1, 0, 0, 0),
@@ -207,8 +207,8 @@ local function showToast(title, message, duration)
     
     local Toast = create("Frame", {
         Name = "Toast",
-        Size = UDim2.new(1, 0, 1, 0),
-        Position = UDim2.new(1, 100, 0, 0),
+        Size = UDim2.new(1, 0, 0, 60),
+        Position = UDim2.new(1.5, 0, 0, 0),
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -245,17 +245,17 @@ local function showToast(title, message, duration)
 
     local stroke = Toast:FindFirstChild("Stroke")
 
-    TweenService:Create(Holder, TweenInfo.new(0.35, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+    TweenService:Create(Holder, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
         Size = UDim2.new(1, 0, 0, 60)
     }):Play()
-
-    TweenService:Create(Toast, TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+    
+    TweenService:Create(Toast, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 0.05
     }):Play()
 
     if stroke then
-        TweenService:Create(stroke, TweenInfo.new(0.45, Enum.EasingStyle.Exponential), { Transparency = 0.5 }):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), { Transparency = 0.5 }):Play()
     end
 
     task.delay(0.05, function()
@@ -264,11 +264,11 @@ local function showToast(title, message, duration)
     end)
 
     task.delay(duration, function()
-        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
-        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
-
+        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        
         local slideOut = TweenService:Create(Toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = UDim2.new(1.2, 0, 0, 0),
+            Position = UDim2.new(1.5, 0, 0, 0),
             BackgroundTransparency = 1
         })
         if stroke then
@@ -276,14 +276,14 @@ local function showToast(title, message, duration)
         end
         slideOut:Play()
 
-        task.delay(0.1, function()
-            TweenService:Create(Holder, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Size = UDim2.new(1, 0, 0, 0)
-            }):Play()
-        end)
-        
         slideOut.Completed:Connect(function()
-            Holder:Destroy()
+            local collapse = TweenService:Create(Holder, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(1, 0, 0, 0)
+            })
+            collapse:Play()
+            collapse.Completed:Connect(function()
+                Holder:Destroy()
+            end)
         end)
     end)
 end
