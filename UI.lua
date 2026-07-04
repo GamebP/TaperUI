@@ -15,9 +15,8 @@ local hui = gethui or get_hidden_gui
 local getexec = identifyexecutor or function() return "Unknown Executor" end
 
 if not isfolder("TaperUI") then makefolder("TaperUI") end
-if not isfolder("TaperUI/helper") then makefolder("TaperUI/helper") end
-if not isfolder("TaperUI/scripts") then makefolder("TaperUI/scripts") end
-if not isfolder("TaperUI/games") then makefolder("TaperUI/games") end
+if not isfolder("TaperUI/images") then makefolder("TaperUI/images") end
+if not isfolder("TaperUI/images/icons") then makefolder("TaperUI/images/icons") end
 
 if not isfile("TaperUI/Config.json") then
     writefile("TaperUI/Config.json", HttpService:JSONEncode({
@@ -139,54 +138,43 @@ errorConnection = GuiService.ErrorMessageChanged:Connect(function()
 end)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
+local moduleCache = {}
 local function import(path)
-    local localPath = "TaperUI/" .. path .. ".lua"
-    local isFolderSupported = typeof(isfolder) == "function"
-    local isDirectory = isFolderSupported and isfolder(localPath)
+    if moduleCache[path] then
+        return moduleCache[path]
+    end
     
-    local needsDownload = forceUpdate or not isfile(localPath) or isDirectory
-    
-    if not needsDownload then
-        return loadstring(readfile(localPath))()
-    else
-        local gitUrl = env.getgitpath("src") .. path .. ".lua"
-        local ok, content = pcall(game.HttpGet, game, gitUrl)
-        if ok and content and #content > 0 and content ~= "404: Not Found" then
-            pcall(writefile, localPath, content)
-            return loadstring(content)()
+    local gitUrl = env.getgitpath("src") .. path .. ".lua"
+    local ok, content = pcall(game.HttpGet, game, gitUrl)
+    if ok and content and #content > 0 and content ~= "404: Not Found" then
+        local func, err = loadstring(content)
+        if func then
+            local result = func()
+            moduleCache[path] = result
+            return result
         else
-            if isfile(localPath) and not isDirectory then
-                return loadstring(readfile(localPath))()
-            else
-                error("[TaperUI] Module file not found: " .. localPath)
-            end
+            error("[TaperUI] Loadstring compilation failed for " .. path .. ": " .. tostring(err))
         end
+    else
+        error("[TaperUI] Module HTTP fetch failed: " .. path)
     end
 end
 getgenv().taperImport = import
 
+local jsonCache = {}
 local function importJson(path)
-    local localPath = "TaperUI/" .. path .. ".json"
-    local isFolderSupported = typeof(isfolder) == "function"
-    local isDirectory = isFolderSupported and isfolder(localPath)
+    if jsonCache[path] then
+        return jsonCache[path]
+    end
     
-    local needsDownload = forceUpdate or not isfile(localPath) or isDirectory
-    
-    if not needsDownload then
-        return HttpService:JSONDecode(readfile(localPath))
+    local gitUrl = env.getgitpath("src") .. path .. ".json"
+    local ok, content = pcall(game.HttpGet, game, gitUrl)
+    if ok and content and #content > 0 and content ~= "404: Not Found" then
+        local result = HttpService:JSONDecode(content)
+        jsonCache[path] = result
+        return result
     else
-        local gitUrl = env.getgitpath("src") .. path .. ".json"
-        local ok, content = pcall(game.HttpGet, game, gitUrl)
-        if ok and content and #content > 0 and content ~= "404: Not Found" then
-            pcall(writefile, localPath, content)
-            return HttpService:JSONDecode(content)
-        else
-            if isfile(localPath) and not isDirectory then
-                return HttpService:JSONDecode(readfile(localPath))
-            else
-                error("[TaperUI] JSON file not found: " .. localPath)
-            end
-        end
+        error("[TaperUI] JSON HTTP fetch failed: " .. path)
     end
 end
 
@@ -258,7 +246,7 @@ local function showToast(title, message, iconAsset, duration)
         Size = UDim2.new(1, 0, 0, 60),
         Position = UDim2.new(1.5, 0, 0, 0),
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
-        BackgroundTransparency = 1,
+        BackgroundTransparency = 0.05,
         BorderSizePixel = 0,
         ClipsDescendants = true
     }, {
