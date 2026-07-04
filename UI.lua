@@ -142,7 +142,8 @@ GuiService:SetGameplayPausedNotificationEnabled(false)
 -- File-level local upvalue for safe notification parenting
 local ToastContainer = nil
 
-local function showToast(title, message, iconAsset, duration)
+-- Changed to a global function to resolve executor environment & upvalue isolation bugs
+function showToast(title, message, iconAsset, duration)
     -- Guard: Prevent running toast logic if UI window has not loaded yet
     if not ToastContainer then return end
     
