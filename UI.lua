@@ -140,7 +140,7 @@ end)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
 -- ==========================================
--- 1. DEFINE IN-MEMORY CACHE & MODULE LOADER
+-- 1. FILE-LEVEL MODULE CACHE & LOADER DEFINITIONS
 -- ==========================================
 local moduleCache = {}
 local function import(path)
@@ -183,7 +183,7 @@ local function importJson(path)
 end
 
 -- ==========================================
--- 2. IMPORT MODULES & EXTRACT LAYOUT BUILDERS
+-- 2. FILE-LEVEL EXPLICIT IMPORTS (Must be defined before showToast)
 -- ==========================================
 local creator = import("helper/creator")
 local elements = import("helper/elements")
@@ -204,11 +204,10 @@ end
 local activeKeybind = configSettings.settings.toggle_keybind or "K"
 
 -- ==========================================
--- 3. DEFINE FILE-LEVEL TOAST VARIABLES
+-- 3. TOAST SYSTEM & CONTAINER UPVALUES
 -- ==========================================
 local ToastContainer = nil
 
--- Changed to a global function to resolve executor environment & upvalue isolation bugs
 function showToast(title, message, iconAsset, duration)
     -- Guard: Prevent running toast logic if UI window has not loaded yet
     if not ToastContainer then return end
@@ -310,8 +309,8 @@ function showToast(title, message, iconAsset, duration)
 
     task.delay(duration, function()
         if not Toast or not Toast.Parent then return end
-        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 1 }):Play()
-        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { TextTransparency = 1 }):Play()
+        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
         
         local slideOut = TweenService:Create(Toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
             Position = UDim2.new(1.5, 0, 0, 0),
@@ -559,7 +558,7 @@ function TaperUILibrary:CreateWindow(options)
                 Position = UDim2.new(0, 12, 0.5, -8),
                 BackgroundTransparency = 1,
                 Image = iconAsset,
-                ImageColor3 = layoutOrder == 1 parks Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185)
+                ImageColor3 = layoutOrder == 1 and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(180, 180, 185)
             }),
             create("TextLabel", {
                 Name = "LabelText",
