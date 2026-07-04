@@ -211,6 +211,21 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "Make and Sell Weapons",
+      "gameID": "15862090066",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "04.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
