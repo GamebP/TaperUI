@@ -226,6 +226,21 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "Flex Your FPS And Ping!",
+      "gameID": "18667984660",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "04.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true
     }
   ],
   "creditsList": {
