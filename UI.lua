@@ -178,8 +178,8 @@ screenGui.Parent = hui and hui() or CoreGui
 local ToastContainer = create("Frame", {
     Name = "ToastContainer",
     Size = UDim2.new(0, 280, 0, 400),
-    Position = UDim2.new(0, 20, 1, -20),
-    AnchorPoint = Vector2.new(0, 1),
+    Position = UDim2.new(1, -20, 1, -20),
+    AnchorPoint = Vector2.new(1, 1),
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
     ZIndex = 100000,
@@ -188,17 +188,27 @@ local ToastContainer = create("Frame", {
     create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 8),
-        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        HorizontalAlignment = Enum.HorizontalAlignment.Right,
         VerticalAlignment = Enum.VerticalAlignment.Bottom
     })
 })
 
 local function showToast(title, message, duration)
     duration = duration or 3
+
+    local Holder = create("Frame", {
+        Name = "ToastHolder",
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = false
+    })
+    Holder.Parent = ToastContainer
     
     local Toast = create("Frame", {
         Name = "Toast",
-        Size = UDim2.new(0, 0, 0, 60),
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(1, 100, 0, 0),
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -231,17 +241,21 @@ local function showToast(title, message, duration)
             TextTransparency = 1
         })
     })
-    Toast.Parent = ToastContainer
+    Toast.Parent = Holder
 
     local stroke = Toast:FindFirstChild("Stroke")
-    
-    TweenService:Create(Toast, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
-        Size = UDim2.new(1, 0, 0, 60),
+
+    TweenService:Create(Holder, TweenInfo.new(0.35, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, 0, 60)
+    }):Play()
+
+    TweenService:Create(Toast, TweenInfo.new(0.45, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 0.05
     }):Play()
 
     if stroke then
-        TweenService:Create(stroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), { Transparency = 0.5 }):Play()
+        TweenService:Create(stroke, TweenInfo.new(0.45, Enum.EasingStyle.Exponential), { Transparency = 0.5 }):Play()
     end
 
     task.delay(0.05, function()
@@ -252,18 +266,24 @@ local function showToast(title, message, duration)
     task.delay(duration, function()
         TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
         TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.25, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
-        
-        local fadeOut = TweenService:Create(Toast, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {
-            BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 0)
+
+        local slideOut = TweenService:Create(Toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(1.2, 0, 0, 0),
+            BackgroundTransparency = 1
         })
         if stroke then
-            TweenService:Create(stroke, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { Transparency = 1 }):Play()
+            TweenService:Create(stroke, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Transparency = 1 }):Play()
         end
-        fadeOut:Play()
+        slideOut:Play()
+
+        task.delay(0.1, function()
+            TweenService:Create(Holder, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(1, 0, 0, 0)
+            }):Play()
+        end)
         
-        fadeOut.Completed:Connect(function()
-            Toast:Destroy()
+        slideOut.Completed:Connect(function()
+            Holder:Destroy()
         end)
     end)
 end
