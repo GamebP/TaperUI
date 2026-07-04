@@ -381,7 +381,7 @@ return function(parent, config)
                 setToggleVisual(aimbotToggleUI, aimbotEnabled) -- Safely sync visually
                 
                 if getgenv().showToast then
-                    getgenv().showToast("Aimbot", "Aimbot is now " .. (aimbotEnabled and "Enabled" or "Disabled"), 1.5)
+                    getgenv().showToast("Aimbot", "Aimbot is now " .. (aimbotEnabled and "Enabled" or "Disabled"), TaperAssets.eye, 1.5)
                 end
             end
 

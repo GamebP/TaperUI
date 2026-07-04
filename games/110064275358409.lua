@@ -44,14 +44,14 @@ return function(parent, config)
     elements:Button("Claim Best Skin (Once)", parent, function()
         claimBestSkin()
         if getgenv().showToast then
-            getgenv().showToast("Best Skin", "Best skin added to inventory!", 2.0)
+            getgenv().showToast("Best Skin", "Best skin added to inventory!", TaperAssets.done, 2.0)
         end
     end)
 
     elements:Button("Claim 5K Cash (Once)", parent, function()
         claimCash(5000)
         if getgenv().showToast then
-            getgenv().showToast("Cash Claimed", "Claimed 5,000 cash successfully.", 2.0)
+            getgenv().showToast("Cash Claimed", "Claimed 5,000 cash successfully.", TaperAssets.done, 2.0)
         end
     end)
 

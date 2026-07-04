@@ -446,7 +446,7 @@ return function(parent, config)
             local success, err = pcall(function() equipEvent:FireServer() end)
             if success then
                 if getgenv().showToast then
-                    getgenv().showToast("Pets Upgraded", "Best pets equipped!", 2.0)
+                    getgenv().showToast("Pets Upgraded", "Best pets equipped!", TaperAssets.done, 2.0)
                 end
             else
                 warn("[TaperUI Error] Failed to equip best pets: " .. tostring(err))

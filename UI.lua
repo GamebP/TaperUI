@@ -193,22 +193,32 @@ local ToastContainer = create("Frame", {
     })
 })
 
-local function showToast(title, message, duration)
+local function showToast(title, message, iconAsset, duration)
+    -- Fallback handler: If 3rd parameter is a number, treat it as the duration (backward compatibility)
+    if type(iconAsset) == "number" then
+        duration = iconAsset
+        iconAsset = nil
+    end
     duration = duration or 3
     
+    local hasIcon = (iconAsset ~= nil and iconAsset ~= "")
+    local textXOffset = hasIcon and 46 or 12
+    local textWidthOffset = hasIcon and -58 or -24
+
+    -- Holder frame handles vertical stacking collapse smoothly
     local Holder = create("Frame", {
         Name = "ToastHolder",
-        Size = UDim2.new(1, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 0), -- Starts collapsed at 0 height
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ClipsDescendants = false
+        ClipsDescendants = false -- Allows toast to slide out past horizontal boundaries
     })
     Holder.Parent = ToastContainer
     
     local Toast = create("Frame", {
         Name = "Toast",
-        Size = UDim2.new(1, 0, 0, 60),
-        Position = UDim2.new(1.5, 0, 0, 0),
+        Size = UDim2.new(1, 0, 0, 60), -- Fixed pixel height prevents vertical squishing
+        Position = UDim2.new(1.5, 0, 0, 0), -- Starts completely off-screen to the right
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -218,8 +228,8 @@ local function showToast(title, message, duration)
         create("UIStroke", { Name = "Stroke", Color = Color3.fromRGB(45, 45, 50), Thickness = 1, Transparency = 1 }),
         create("TextLabel", {
             Name = "ToastTitle",
-            Size = UDim2.new(1, -24, 0, 20),
-            Position = UDim2.new(0, 12, 0, 8),
+            Size = UDim2.new(1, textWidthOffset, 0, 20),
+            Position = UDim2.new(0, textXOffset, 0, 8),
             BackgroundTransparency = 1,
             Text = title,
             TextColor3 = Color3.fromRGB(240, 240, 245),
@@ -230,8 +240,8 @@ local function showToast(title, message, duration)
         }),
         create("TextLabel", {
             Name = "ToastMessage",
-            Size = UDim2.new(1, -24, 0, 18),
-            Position = UDim2.new(0, 12, 0, 28),
+            Size = UDim2.new(1, textWidthOffset, 0, 18),
+            Position = UDim2.new(0, textXOffset, 0, 28),
             BackgroundTransparency = 1,
             Text = message,
             TextColor3 = Color3.fromRGB(160, 160, 165),
@@ -243,12 +253,30 @@ local function showToast(title, message, duration)
     })
     Toast.Parent = Holder
 
-    local stroke = Toast:FindFirstChild("Stroke")
+    -- Dynamically generate the ImageLabel if an icon is provided
+    if hasIcon then
+        create("ImageLabel", {
+            Name = "Icon",
+            Size = UDim2.new(0, 24, 0, 24),
+            Position = UDim2.new(0, 12, 0.5, -12),
+            BackgroundTransparency = 1,
+            Image = iconAsset,
+            ImageColor3 = Color3.fromRGB(220, 220, 225), -- matches the title text color
+            ImageTransparency = 1, -- Start invisible for transition
+            ZIndex = 2,
+            Parent = Toast
+        })
+    end
 
+    local stroke = Toast:FindFirstChild("Stroke")
+    local icon = Toast:FindFirstChild("Icon")
+    
+    -- 1. Animate Holder height open
     TweenService:Create(Holder, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
         Size = UDim2.new(1, 0, 0, 60)
     }):Play()
     
+    -- 2. Slide the Toast in from the right & fade background/icon in
     TweenService:Create(Toast, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 0.05
@@ -257,6 +285,9 @@ local function showToast(title, message, duration)
     if stroke then
         TweenService:Create(stroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), { Transparency = 0.5 }):Play()
     end
+    if icon then
+        TweenService:Create(icon, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), { ImageTransparency = 0 }):Play()
+    end
 
     task.delay(0.05, function()
         TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { TextTransparency = 0 }):Play()
@@ -264,9 +295,11 @@ local function showToast(title, message, duration)
     end)
 
     task.delay(duration, function()
+        -- Fade texts out
         TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
         TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
         
+        -- 3. Slide Toast completely out to the right & fade background/icon out
         local slideOut = TweenService:Create(Toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
             Position = UDim2.new(1.5, 0, 0, 0),
             BackgroundTransparency = 1
@@ -274,8 +307,12 @@ local function showToast(title, message, duration)
         if stroke then
             TweenService:Create(stroke, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Transparency = 1 }):Play()
         end
+        if icon then
+            TweenService:Create(icon, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { ImageTransparency = 1 }):Play()
+        end
         slideOut:Play()
-
+        
+        -- 4. Collapse the vertical Holder spacing only AFTER the slide out is fully finished
         slideOut.Completed:Connect(function()
             local collapse = TweenService:Create(Holder, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 Size = UDim2.new(1, 0, 0, 0)
@@ -656,10 +693,10 @@ end
 local function toggleUI()
     if MainFrame.Visible then
         MainFrame.Visible = false
-        showToast("TaperUI", "Interface hidden. Press [" .. activeKeybind .. "] to show again.", 2.5)
+        showToast("TaperUI", "Interface hidden. Press [" .. activeKeybind .. "] to show again.", TaperAssets.info, 2.5)
     else
         MainFrame.Visible = true
-        showToast("TaperUI", "Interface opened successfully.", 2.5)
+        showToast("TaperUI", "Interface opened successfully.", TaperAssets.done, 2.5)
     end
 end
 
@@ -787,15 +824,15 @@ end
 
 elements:Label("⚙️ Workspace & Diagnostics Utilities", Sections.Scripts.Content)
 
-elements:Button("Copy ReplicatedStorage Tree", Sections.Scripts.Content, function()
+elements:Button("Copy Full Game Tree", Sections.Scripts.Content, function()
     local success, err = pcall(function()
         import("scripts/replicated-tree")
     end)
     if not success then
-        warn("Failed to run replicated-tree: " .. tostring(err))
-        showToast("Error", "Failed to run tree-dumper script.", 2.5)
+        warn("Failed to run full-game-tree: " .. tostring(err))
+        showToast("Error", "Failed to run script.", TaperAssets.error, 2.5)
     else
-        showToast("Success", "📋 ReplicatedStorage tree dumped.", 2.5)
+        showToast("Success", "Full Game tree dumped.", TaperAssets.clipboard, 2.5)
     end
 end)
 
@@ -805,9 +842,9 @@ elements:Button("Copy Game ID", Sections.Scripts.Content, function()
     end)
     if not success then
         warn("Failed to run game-id: " .. tostring(err))
-        showToast("Error", "Failed to run game-id script.", 2.5)
+        showToast("Error", "Failed to run script.", TaperAssets.error, 2.5)
     else
-        showToast("Success", "📋 Game Place ID copied.", 2.5)
+        showToast("Success", "Game Place ID copied.", TaperAssets.clipboard, 2.5)
     end
 end)
 
@@ -829,7 +866,7 @@ end)
 
 elements:Keybind("Toggle UI Keybind", Sections.Settings.Content, activeKeybind, function(newKey)
     activeKeybind = newKey
-    showToast("Keybind Updated", "New open/close key: [" .. newKey .. "]", 2.5)
+    showToast("Keybind Updated", "New open/close key: [" .. newKey .. "]", TaperAssets.info, 2.5)
 end)
 
 local LoadingFrame = create("Frame", {

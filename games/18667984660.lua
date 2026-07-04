@@ -75,7 +75,7 @@ return function(parent, config)
         if enabled then
             setupSpoofer()
             if getgenv().showToast then
-                getgenv().showToast("Spoofer Active", "Intercepting metric pings.", 2.5)
+                getgenv().showToast("Spoofer Active", "Intercepting metric pings.", TaperAssets.eye, 2.5)
             end
         else
             if meowConnection then
