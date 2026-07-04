@@ -203,6 +203,18 @@ local activeKeybind = configSettings.settings.toggle_keybind or "K"
 -- ==========================================
 local TaperUILibrary = {}
 
+-- Helper to safely build structural panels
+local function createSectionFrame(name, visible, parent)
+    return create("Frame", {
+        Name = name,
+        Size = UDim2.new(1, 0, 1, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        Visible = visible,
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+end
+
 function TaperUILibrary:CreateWindow(options)
     options = options or {}
     local windowName = options.Name or "TaperUI"
@@ -260,7 +272,8 @@ function TaperUILibrary:CreateWindow(options)
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = Color3.fromRGB(18, 18, 22),
         BorderSizePixel = 0,
-        Visible = false
+        Visible = false,
+        Parent = MainFrame
     }, {
         create("UICorner", { CornerRadius = UDim.new(0, 12) }),
         create("Frame", {
@@ -280,7 +293,7 @@ function TaperUILibrary:CreateWindow(options)
             Size = UDim2.new(1, -20, 0, 40),
             Position = UDim2.new(0, 20, 0, 10),
             BackgroundTransparency = 1,
-            Text = windowName, -- Custom sidebar title
+            Text = windowName,
             TextColor3 = Color3.fromRGB(240, 240, 245),
             TextSize = 18,
             Font = Enum.Font.GothamBold,
@@ -289,7 +302,6 @@ function TaperUILibrary:CreateWindow(options)
             TextTransparency = 1
         })
     })
-    Sidebar.Parent = MainFrame
 
     local TabButtonContainer = create("Frame", {
         Name = "TabButtonContainer",
@@ -345,7 +357,7 @@ function TaperUILibrary:CreateWindow(options)
             Size = UDim2.new(1, -56, 0, 16),
             Position = UDim2.new(0, 52, 0.5, 3),
             BackgroundTransparency = 1,
-            Text = profileSubtitle, -- Custom profile subtitle
+            Text = profileSubtitle,
             TextColor3 = Color3.fromRGB(150, 150, 155),
             TextSize = 12,
             Font = Enum.Font.GothamMedium,
@@ -662,7 +674,7 @@ function TaperUILibrary:CreateWindow(options)
         local tabBtn = createTabBtn(name, icon or TaperAssets.home, tabCount)
         tabBtn.Parent = TabButtonContainer
 
-        local container = createSectionFrame(name .. "Frame", isFirst)
+        local container = createSectionFrame(name .. "Frame", isFirst, SectionContainers)
         container.Parent = SectionContainers
 
         local scrollContainer = convertToScrolling(container)
