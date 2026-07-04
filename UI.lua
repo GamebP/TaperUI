@@ -139,7 +139,138 @@ errorConnection = GuiService.ErrorMessageChanged:Connect(function()
 end)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
--- In-memory module cache
+-- File-level local upvalue for safe notification parenting
+local ToastContainer = nil
+
+local function showToast(title, message, iconAsset, duration)
+    -- Guard: Prevent running toast logic if UI window has not loaded yet
+    if not ToastContainer then return end
+    
+    if type(iconAsset) == "number" then
+        duration = iconAsset
+        iconAsset = nil
+    end
+    duration = duration or 3
+    
+    local hasIcon = (iconAsset ~= nil and iconAsset ~= "")
+    local textXOffset = hasIcon and 46 or 12
+    local textWidthOffset = hasIcon and -58 or -24
+
+    local Holder = create("Frame", {
+        Name = "ToastHolder",
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ClipsDescendants = false
+    })
+    Holder.Parent = ToastContainer
+    
+    local Toast = create("Frame", {
+        Name = "Toast",
+        Size = UDim2.new(1, 0, 0, 60),
+        Position = UDim2.new(1.5, 0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        BackgroundTransparency = 0.05,
+        BorderSizePixel = 0,
+        ClipsDescendants = true
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Name = "Stroke", Color = Color3.fromRGB(45, 45, 50), Thickness = 1, Transparency = 1 }),
+        create("TextLabel", {
+            Name = "ToastTitle",
+            Size = UDim2.new(1, textWidthOffset, 0, 20),
+            Position = UDim2.new(0, textXOffset, 0, 8),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = Color3.fromRGB(240, 240, 245),
+            TextSize = 13,
+            Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTransparency = 1
+        }),
+        create("TextLabel", {
+            Name = "ToastMessage",
+            Size = UDim2.new(1, textWidthOffset, 0, 18),
+            Position = UDim2.new(0, textXOffset, 0, 28),
+            BackgroundTransparency = 1,
+            Text = message,
+            TextColor3 = Color3.fromRGB(160, 160, 165),
+            TextSize = 11,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextTransparency = 1
+        })
+    })
+    Toast.Parent = Holder
+
+    if hasIcon then
+        create("ImageLabel", {
+            Name = "Icon",
+            Size = UDim2.new(0, 24, 0, 24),
+            Position = UDim2.new(0, 12, 0.5, -12),
+            BackgroundTransparency = 1,
+            Image = iconAsset,
+            ImageColor3 = Color3.fromRGB(220, 220, 225),
+            ImageTransparency = 1,
+            ZIndex = 2,
+            Parent = Toast
+        })
+    end
+
+    local stroke = Toast:FindFirstChild("Stroke")
+    local icon = Toast:FindFirstChild("Icon")
+
+    TweenService:Create(Holder, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        Size = UDim2.new(1, 0, 0, 60)
+    }):Play()
+    
+    TweenService:Create(Toast, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundTransparency = 0.05
+    }):Play()
+
+    if stroke then
+        TweenService:Create(stroke, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), { Transparency = 0.5 }):Play()
+    end
+    if icon then
+        TweenService:Create(icon, TweenInfo.new(0.4, Enum.EasingStyle.Exponential), { ImageTransparency = 0 }):Play()
+    end
+
+    task.delay(0.05, function()
+        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { TextTransparency = 0 }):Play()
+        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.3, Enum.EasingStyle.Quad), { TextTransparency = 0 }):Play()
+    end)
+
+    task.delay(duration, function()
+        if not Toast or not Toast.Parent then return end
+        TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
+        
+        local slideOut = TweenService:Create(Toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+            Position = UDim2.new(1.5, 0, 0, 0),
+            BackgroundTransparency = 1
+        })
+        if stroke then
+            TweenService:Create(stroke, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { Transparency = 1 }):Play()
+        end
+        if icon then
+            TweenService:Create(icon, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { ImageTransparency = 1 }):Play()
+        end
+        slideOut:Play()
+
+        slideOut.Completed:Connect(function()
+            local collapse = TweenService:Create(Holder, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Size = UDim2.new(1, 0, 0, 0)
+            })
+            collapse:Play()
+            collapse.Completed:Connect(function()
+                Holder:Destroy()
+            end)
+        end)
+    end)
+end
+getgenv().showToast = showToast
+
 local moduleCache = {}
 local function import(path)
     if moduleCache[path] then
@@ -203,7 +334,6 @@ local activeKeybind = configSettings.settings.toggle_keybind or "K"
 -- ==========================================
 local TaperUILibrary = {}
 
--- Helper to safely build structural panels
 local function createSectionFrame(name, visible, parent)
     return create("Frame", {
         Name = name,
@@ -230,7 +360,8 @@ function TaperUILibrary:CreateWindow(options)
     })
     screenGui.Parent = hui and hui() or CoreGui
 
-    local ToastContainer = create("Frame", {
+    -- Reference outer file upvalue (Removed 'local' to assign properly)
+    ToastContainer = create("Frame", {
         Name = "ToastContainer",
         Size = UDim2.new(0, 280, 0, 400),
         Position = UDim2.new(1, -20, 1, -20),
@@ -272,8 +403,7 @@ function TaperUILibrary:CreateWindow(options)
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = Color3.fromRGB(18, 18, 22),
         BorderSizePixel = 0,
-        Visible = false,
-        Parent = MainFrame
+        Visible = false
     }, {
         create("UICorner", { CornerRadius = UDim.new(0, 12) }),
         create("Frame", {
@@ -293,7 +423,7 @@ function TaperUILibrary:CreateWindow(options)
             Size = UDim2.new(1, -20, 0, 40),
             Position = UDim2.new(0, 20, 0, 10),
             BackgroundTransparency = 1,
-            Text = windowName,
+            Text = windowName, -- Custom sidebar title
             TextColor3 = Color3.fromRGB(240, 240, 245),
             TextSize = 18,
             Font = Enum.Font.GothamBold,
@@ -302,6 +432,7 @@ function TaperUILibrary:CreateWindow(options)
             TextTransparency = 1
         })
     })
+    Sidebar.Parent = MainFrame
 
     local TabButtonContainer = create("Frame", {
         Name = "TabButtonContainer",
@@ -357,7 +488,7 @@ function TaperUILibrary:CreateWindow(options)
             Size = UDim2.new(1, -56, 0, 16),
             Position = UDim2.new(0, 52, 0.5, 3),
             BackgroundTransparency = 1,
-            Text = profileSubtitle,
+            Text = profileSubtitle, -- Custom profile subtitle
             TextColor3 = Color3.fromRGB(150, 150, 155),
             TextSize = 12,
             Font = Enum.Font.GothamMedium,
