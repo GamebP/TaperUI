@@ -178,8 +178,8 @@ screenGui.Parent = hui and hui() or CoreGui
 local ToastContainer = create("Frame", {
     Name = "ToastContainer",
     Size = UDim2.new(0, 280, 0, 400),
-    Position = UDim2.new(1, -20, 1, -20),
-    AnchorPoint = Vector2.new(1, 1),
+    Position = UDim2.new(0, 20, 1, -20),
+    AnchorPoint = Vector2.new(0, 1),
     BackgroundTransparency = 1,
     BorderSizePixel = 0,
     ZIndex = 100000,
@@ -188,7 +188,8 @@ local ToastContainer = create("Frame", {
     create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 8),
-        HorizontalAlignment = Enum.HorizontalAlignment.Center
+        HorizontalAlignment = Enum.HorizontalAlignment.Left,
+        VerticalAlignment = Enum.VerticalAlignment.Bottom
     })
 })
 
