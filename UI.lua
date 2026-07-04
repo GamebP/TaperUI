@@ -15,6 +15,10 @@ local hui = gethui or get_hidden_gui
 local getexec = identifyexecutor or function() return "Unknown Executor" end
 
 if not isfolder("TaperUI") then makefolder("TaperUI") end
+if not isfolder("TaperUI/helper") then makefolder("TaperUI/helper") end
+if not isfolder("TaperUI/scripts") then makefolder("TaperUI/scripts") end
+if not isfolder("TaperUI/games") then makefolder("TaperUI/games") end
+
 if not isfile("TaperUI/Config.json") then
     writefile("TaperUI/Config.json", HttpService:JSONEncode({
         settings = {
@@ -36,9 +40,31 @@ function env.getgitpath(where)
     end
 end
 
+local forceUpdate = false
+local remoteData = nil
+pcall(function()
+    local rawData = game:HttpGet(env.getgitpath("src") .. "helper/data.json")
+    remoteData = HttpService:JSONDecode(rawData)
+end)
+
+local localData = nil
+if isfile("TaperUI/helper/data.json") then
+    pcall(function()
+        localData = HttpService:JSONDecode(readfile("TaperUI/helper/data.json"))
+    end)
+end
+
+if remoteData then
+    if not localData or remoteData.version ~= localData.version or remoteData.updatedDate ~= localData.updatedDate then
+        forceUpdate = true
+    end
+end
+
 local function getAsset(path)
     local localPath = "TaperUI/" .. path
-    if not isfile(localPath) then
+    local needsDownload = forceUpdate or not isfile(localPath)
+    
+    if needsDownload then
         local dirParts = string.split(localPath, "/")
         local currentDir = ""
         for i = 1, #dirParts - 1 do
@@ -53,7 +79,9 @@ local function getAsset(path)
         if ok and content and #content > 0 and content ~= "404: Not Found" then
             writefile(localPath, content)
         else
-            return ""
+            if not isfile(localPath) then
+                return ""
+            end
         end
     end
 
@@ -65,11 +93,9 @@ local function getAsset(path)
 end
 
 local assetPaths = {
-    -- Images path
     logo_transparent = "images/logo-transparent.png",
     logo_img = "images/logo.png",
     
-    -- Icons path
     home = "images/icons/home.png",
     game = "images/icons/game.png",
     list = "images/icons/list.png",
@@ -118,15 +144,22 @@ local function import(path)
     local isFolderSupported = typeof(isfolder) == "function"
     local isDirectory = isFolderSupported and isfolder(localPath)
     
-    if isfile(localPath) and not isDirectory then
+    local needsDownload = forceUpdate or not isfile(localPath) or isDirectory
+    
+    if not needsDownload then
         return loadstring(readfile(localPath))()
     else
         local gitUrl = env.getgitpath("src") .. path .. ".lua"
         local ok, content = pcall(game.HttpGet, game, gitUrl)
         if ok and content and #content > 0 and content ~= "404: Not Found" then
+            pcall(writefile, localPath, content)
             return loadstring(content)()
         else
-            error("[TaperUI] Module file not found: " .. localPath)
+            if isfile(localPath) and not isDirectory then
+                return loadstring(readfile(localPath))()
+            else
+                error("[TaperUI] Module file not found: " .. localPath)
+            end
         end
     end
 end
@@ -137,15 +170,22 @@ local function importJson(path)
     local isFolderSupported = typeof(isfolder) == "function"
     local isDirectory = isFolderSupported and isfolder(localPath)
     
-    if isfile(localPath) and not isDirectory then
+    local needsDownload = forceUpdate or not isfile(localPath) or isDirectory
+    
+    if not needsDownload then
         return HttpService:JSONDecode(readfile(localPath))
     else
         local gitUrl = env.getgitpath("src") .. path .. ".json"
         local ok, content = pcall(game.HttpGet, game, gitUrl)
         if ok and content and #content > 0 and content ~= "404: Not Found" then
+            pcall(writefile, localPath, content)
             return HttpService:JSONDecode(content)
         else
-            error("[TaperUI] JSON file not found: " .. localPath)
+            if isfile(localPath) and not isDirectory then
+                return HttpService:JSONDecode(readfile(localPath))
+            else
+                error("[TaperUI] JSON file not found: " .. localPath)
+            end
         end
     end
 end
@@ -194,7 +234,6 @@ local ToastContainer = create("Frame", {
 })
 
 local function showToast(title, message, iconAsset, duration)
-    -- Fallback handler: If 3rd parameter is a number, treat it as the duration (backward compatibility)
     if type(iconAsset) == "number" then
         duration = iconAsset
         iconAsset = nil
@@ -205,20 +244,19 @@ local function showToast(title, message, iconAsset, duration)
     local textXOffset = hasIcon and 46 or 12
     local textWidthOffset = hasIcon and -58 or -24
 
-    -- Holder frame handles vertical stacking collapse smoothly
     local Holder = create("Frame", {
         Name = "ToastHolder",
-        Size = UDim2.new(1, 0, 0, 0), -- Starts collapsed at 0 height
+        Size = UDim2.new(1, 0, 0, 0),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
-        ClipsDescendants = false -- Allows toast to slide out past horizontal boundaries
+        ClipsDescendants = false
     })
     Holder.Parent = ToastContainer
     
     local Toast = create("Frame", {
         Name = "Toast",
-        Size = UDim2.new(1, 0, 0, 60), -- Fixed pixel height prevents vertical squishing
-        Position = UDim2.new(1.5, 0, 0, 0), -- Starts completely off-screen to the right
+        Size = UDim2.new(1, 0, 0, 60),
+        Position = UDim2.new(1.5, 0, 0, 0),
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
@@ -253,7 +291,6 @@ local function showToast(title, message, iconAsset, duration)
     })
     Toast.Parent = Holder
 
-    -- Dynamically generate the ImageLabel if an icon is provided
     if hasIcon then
         create("ImageLabel", {
             Name = "Icon",
@@ -261,8 +298,8 @@ local function showToast(title, message, iconAsset, duration)
             Position = UDim2.new(0, 12, 0.5, -12),
             BackgroundTransparency = 1,
             Image = iconAsset,
-            ImageColor3 = Color3.fromRGB(220, 220, 225), -- matches the title text color
-            ImageTransparency = 1, -- Start invisible for transition
+            ImageColor3 = Color3.fromRGB(220, 220, 225),
+            ImageTransparency = 1,
             ZIndex = 2,
             Parent = Toast
         })
@@ -270,13 +307,11 @@ local function showToast(title, message, iconAsset, duration)
 
     local stroke = Toast:FindFirstChild("Stroke")
     local icon = Toast:FindFirstChild("Icon")
-    
-    -- 1. Animate Holder height open
+
     TweenService:Create(Holder, TweenInfo.new(0.3, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
         Size = UDim2.new(1, 0, 0, 60)
     }):Play()
     
-    -- 2. Slide the Toast in from the right & fade background/icon in
     TweenService:Create(Toast, TweenInfo.new(0.4, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
         Position = UDim2.new(0, 0, 0, 0),
         BackgroundTransparency = 0.05
@@ -295,11 +330,9 @@ local function showToast(title, message, iconAsset, duration)
     end)
 
     task.delay(duration, function()
-        -- Fade texts out
         TweenService:Create(Toast.ToastTitle, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
         TweenService:Create(Toast.ToastMessage, TweenInfo.new(0.2, Enum.EasingStyle.Quad), { TextTransparency = 1 }):Play()
         
-        -- 3. Slide Toast completely out to the right & fade background/icon out
         local slideOut = TweenService:Create(Toast, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
             Position = UDim2.new(1.5, 0, 0, 0),
             BackgroundTransparency = 1
@@ -311,8 +344,7 @@ local function showToast(title, message, iconAsset, duration)
             TweenService:Create(icon, TweenInfo.new(0.35, Enum.EasingStyle.Quad), { ImageTransparency = 1 }):Play()
         end
         slideOut:Play()
-        
-        -- 4. Collapse the vertical Holder spacing only AFTER the slide out is fully finished
+
         slideOut.Completed:Connect(function()
             local collapse = TweenService:Create(Holder, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 Size = UDim2.new(1, 0, 0, 0)
@@ -537,7 +569,6 @@ local homeContainer = create("Frame", {
         TextSize = 13,
         Font = Enum.Font.GothamMedium
     }),
-    -- Added Information Card
     create("Frame", {
         Name = "infoCard",
         Size = UDim2.new(0.9, 0, 0, 95),
@@ -555,7 +586,7 @@ local homeContainer = create("Frame", {
         create("TextLabel", {
             Size = UDim2.new(1, 0, 0, 18),
             BackgroundTransparency = 1,
-            Text = "💡 Quick Tip: Alt. Join",
+            Text = "Quick Tip: Alt. Join",
             TextColor3 = Color3.fromRGB(220, 220, 225),
             TextSize = 13,
             Font = Enum.Font.GothamBold,
@@ -822,7 +853,7 @@ for sect, c in pairs(creditsList) do
     end
 end
 
-elements:Label("⚙️ Workspace & Diagnostics Utilities", Sections.Scripts.Content)
+elements:Label("Workspace & Diagnostics Utilities", Sections.Scripts.Content)
 
 elements:Button("Copy Full Game Tree", Sections.Scripts.Content, function()
     local success, err = pcall(function()
