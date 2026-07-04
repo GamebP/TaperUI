@@ -1,17 +1,59 @@
 -- UI.lua
 if not game:IsLoaded() then game.Loaded:Wait() end
 
+-- ==========================================
+-- 0. AUTOMATED CLEANUP ROUTINE
+-- ==========================================
+if getgenv().TaperUI_Cleanup then
+    pcall(getgenv().TaperUI_Cleanup)
+end
+
+local CoreGui = game:GetService("CoreGui")
+local hui = gethui or get_hidden_gui
+
+local function destroyOldGuis()
+    local targets = {CoreGui}
+    if hui then
+        pcall(function() table.insert(targets, hui()) end)
+    end
+    for _, parent in ipairs(targets) do
+        local old = parent:FindFirstChild("TaperUI")
+        if old then
+            pcall(function() old:Destroy() end)
+        end
+    end
+end
+destroyOldGuis()
+
+-- Track connection references for disposal
+local fileConnections = {}
+
+getgenv().TaperUI_Cleanup = function()
+    for _, conn in ipairs(fileConnections) do
+        if conn then
+            pcall(function() conn:Disconnect() end)
+        end
+    end
+    pcall(function() game:GetService("RunService"):Set3dRenderingEnabled(true) end)
+    destroyOldGuis()
+    getgenv().TaperAssets = nil
+    getgenv().taperImport = nil
+    getgenv().autorejoin = nil
+    getgenv().TaperUI_Cleanup = nil
+end
+
+-- ==========================================
+-- 1. SERVICE & UTILITY INITIALIZATION
+-- ==========================================
 local Players = game:GetService("Players")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local CoreGui = game:GetService("CoreGui")
 local GuiService = game:GetService("GuiService")
 local TweenService = game:GetService("TweenService")
 local ExperienceService = game:GetService("ExperienceService")
 
-local hui = gethui or get_hidden_gui
 local getexec = identifyexecutor or function() return "Unknown Executor" end
 
 -- Only manage directories for TaperUI and its images
@@ -131,16 +173,16 @@ end
 
 env.autorejoin = false
 
-local errorConnection
-errorConnection = GuiService.ErrorMessageChanged:Connect(function()
+local errorConnection = GuiService.ErrorMessageChanged:Connect(function()
     if env.autorejoin then
         TeleportService:Teleport(game.PlaceId)
     end
 end)
+table.insert(fileConnections, errorConnection)
 GuiService:SetGameplayPausedNotificationEnabled(false)
 
 -- ==========================================
--- 1. FILE-LEVEL MODULE CACHE & LOADER DEFINITIONS
+-- 2. FILE-LEVEL MODULE CACHE & LOADER DEFINITIONS
 -- ==========================================
 local moduleCache = {}
 local function import(path)
@@ -183,7 +225,7 @@ local function importJson(path)
 end
 
 -- ==========================================
--- 2. FILE-LEVEL EXPLICIT IMPORTS (Must be defined before showToast)
+-- 3. FILE-LEVEL EXPLICIT IMPORTS (Must be defined before showToast)
 -- ==========================================
 local creator = import("helper/creator")
 local elements = import("helper/elements")
@@ -204,7 +246,7 @@ end
 local activeKeybind = configSettings.settings.toggle_keybind or "K"
 
 -- ==========================================
--- 3. TOAST SYSTEM & CONTAINER UPVALUES
+-- 4. TOAST SYSTEM & CONTAINER UPVALUES
 -- ==========================================
 local ToastContainer = nil
 
@@ -338,7 +380,7 @@ end
 getgenv().showToast = showToast
 
 -- ==========================================
--- 4. TAPERUI LIBRARY API OBJECT
+-- 5. TAPERUI LIBRARY API OBJECT
 -- ==========================================
 local TaperUILibrary = {}
 
@@ -368,7 +410,7 @@ function TaperUILibrary:CreateWindow(options)
     })
     screenGui.Parent = hui and hui() or CoreGui
 
-    -- Reference outer file upvalue (Removed 'local' to assign properly)
+    -- Reference outer file upvalue
     ToastContainer = create("Frame", {
         Name = "ToastContainer",
         Size = UDim2.new(0, 280, 0, 400),
@@ -431,7 +473,7 @@ function TaperUILibrary:CreateWindow(options)
             Size = UDim2.new(1, -20, 0, 40),
             Position = UDim2.new(0, 20, 0, 10),
             BackgroundTransparency = 1,
-            Text = windowName, -- Custom sidebar title
+            Text = windowName,
             TextColor3 = Color3.fromRGB(240, 240, 245),
             TextSize = 18,
             Font = Enum.Font.GothamBold,
@@ -496,7 +538,7 @@ function TaperUILibrary:CreateWindow(options)
             Size = UDim2.new(1, -56, 0, 16),
             Position = UDim2.new(0, 52, 0.5, 3),
             BackgroundTransparency = 1,
-            Text = profileSubtitle, -- Custom profile subtitle
+            Text = profileSubtitle,
             TextColor3 = Color3.fromRGB(150, 150, 155),
             TextSize = 12,
             Font = Enum.Font.GothamMedium,
@@ -591,8 +633,7 @@ function TaperUILibrary:CreateWindow(options)
         end
     end)
 
-    local keybindConnection
-    keybindConnection = UserInputService.InputBegan:Connect(function(input, processed)
+    local keybindConnection = UserInputService.InputBegan:Connect(function(input, processed)
         if processed then return end
         if input.UserInputType == Enum.UserInputType.Keyboard then
             if input.KeyCode.Name == activeKeybind then
@@ -600,6 +641,7 @@ function TaperUILibrary:CreateWindow(options)
             end
         end
     end)
+    table.insert(fileConnections, keybindConnection)
 
     local LoadingFrame = create("Frame", {
         Name = "LoadingFrame",
@@ -832,8 +874,8 @@ function TaperUILibrary:CreateWindow(options)
 
         local Tab = {
             Content = scrollContainer,
-            TabBtn = tabBtn,       -- Expose Button for script customization
-            Container = container  -- Expose Container for script customization
+            TabBtn = tabBtn,
+            Container = container
         }
 
         -- Element wrappers
@@ -841,6 +883,7 @@ function TaperUILibrary:CreateWindow(options)
             return elements:Label(text, scrollContainer)
         end
 
+        // ... Keep all other visual element methods unchanged ...
         function Tab:CreateButton(text, callback)
             return elements:Button(text, scrollContainer, callback)
         end
@@ -908,13 +951,9 @@ function TaperUILibrary:CreateWindow(options)
         end)
 
         SettingsTab:CreateButton("Uninject UI", function()
-            if errorConnection then errorConnection:Disconnect() end
-            if keybindConnection then keybindConnection:Disconnect() end
-            pcall(function() RunService:Set3dRenderingEnabled(true) end)
-            if screenGui then screenGui:Destroy() end
-            getgenv().TaperAssets = nil
-            getgenv().taperImport = nil
-            getgenv().autorejoin = nil
+            if getgenv().TaperUI_Cleanup then
+                pcall(getgenv().TaperUI_Cleanup)
+            end
         end)
         
         return SettingsTab
@@ -994,7 +1033,6 @@ if not getgenv().TaperUI_DeveloperMode then
 
         if ok and #gamePath > 0 and gamePath ~= "404: Not Found" then
             local gameModule = loadstring(gamePath)()
-            -- We pass parent, config, Window, and GameTab objects directly to game scripts!
             gameModule(GameTab.Content, HttpService:JSONDecode(readfile("TaperUI/Config.json")), Window, GameTab)
         else
             elements:Unsupported(GameTab.Content, function()
