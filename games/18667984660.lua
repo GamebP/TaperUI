@@ -14,7 +14,9 @@ return function(parent, config)
     local sendToServer = true -- Controls the boolean to allow/disallow firing the server
     local randomize = false   -- Controls whether values fluctuate dynamically
     local spoofedFps = "999"
-    local spoofedMem = "1032322" -- Configurable Memory usage
+    local spoofedMem = "1032322"
+    local spoofedResX = "132232"  -- Custom Resolution X coordinate
+    local spoofedResY = "1323232" -- Custom Resolution Y coordinate
 
     -- ===== NETWORK LISTENER =====
     local meowConnection = nil
@@ -36,14 +38,16 @@ return function(parent, config)
 
             local baseFps = tonumber(spoofedFps) or 60
             local baseMem = tonumber(spoofedMem) or 1032322
+            local baseResX = tonumber(spoofedResX) or 132232
+            local baseResY = tonumber(spoofedResY) or 1323232
 
             local finalFps = baseFps
             local finalMem = baseMem
 
             -- Apply organic fluctuations if dynamic randomization is active
             if randomize then
-                finalFps = baseFps + math.random(-3, 3)         -- Fluctuates FPS by +/- 3
-                finalMem = baseMem + math.random(-5000, 5000)   -- Fluctuates Memory slightly
+                finalFps = baseFps + math.random(-3, 3)       -- Fluctuates FPS by +/- 3
+                finalMem = baseMem + math.random(-15, 15)     -- Subtle, low-range Memory fluctuation
             end
 
             -- Ensure we don't accidentally send negative values
@@ -56,7 +60,7 @@ return function(parent, config)
                 fps = finalFps,
                 mem = finalMem,
                 t = "metrics",
-                res = Vector2.new(132232, 1323232),
+                res = Vector2.new(baseResX, baseResY),
                 gfx = Enum.SavedQualitySetting.QualityLevel10
             })
         end)
@@ -93,15 +97,23 @@ return function(parent, config)
         spoofedFps = text
     end)
 
-    elements:Textbox("Spoofed Memory (Bytes)", parent, spoofedMem, function(text)
+    elements:Textbox("Spoofed Memory", parent, spoofedMem, function(text)
         spoofedMem = text
+    end)
+
+    elements:Textbox("Spoofed Resolution X", parent, spoofedResX, function(text)
+        spoofedResX = text
+    end)
+
+    elements:Textbox("Spoofed Resolution Y", parent, spoofedResY, function(text)
+        spoofedResY = text
     end)
 
     elements:Spacer(8, parent)
 
     elements:Paragraph(
-        "ℹ️ Metric Settings Details", 
-        "• Send to Server: If disabled, TaperUI blocks your clients metrics payload from sending to the server entirely.\n• Organic Fluctuation: Gently fluctuates your metrics up and down on each ping to simulate authentic game performance rather than static numbers.", 
+        "Metric Settings Details", 
+        "• Send to Server: If disabled, TaperUI blocks your clients metrics payload from sending to the server entirely.\n• Organic Fluctuation: Gently fluctuates your metrics up and down on each ping to simulate authentic game performance.\n• Resolution X/Y: Configures the Vector2 screen size resolution metrics reported to the leaderboard.", 
         parent
     )
 
