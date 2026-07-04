@@ -292,7 +292,7 @@ function elements:Slider(str, parent, min, max, def, decimals, cb)
                 Name = "Knob",
                 Size = UDim2.new(0, 12, 0, 12),
                 Position = UDim2.new(0, 0, 0.5, -6),
-                BackgroundColor3 = Color3.fromRGB(240, 240, 245),
+                BackgroundColor3 = Color3.fromRGB(24, 24, 28),
                 BorderSizePixel = 0
             }, {
                 create("UICorner", { CornerRadius = UDim.new(1, 0) }),
@@ -825,7 +825,8 @@ function elements:Searchbar(parent, gameList)
         })
     })
 
-    searchBar.searchbar.Inp:GetPropertyChangedSignal("Text"):Connect(function()
+    -- Enclose filtering logic so we can call it on startup as well
+    local function updateList()
         for _, child in ipairs(parent:GetChildren()) do
             if child.Name == "GameElement" or child.Name == "NoGamesLabel" then
                 child:Destroy()
@@ -880,7 +881,12 @@ function elements:Searchbar(parent, gameList)
                 Parent = parent
             })
         end
-    end)
+    end
+
+    searchBar.searchbar.Inp:GetPropertyChangedSignal("Text"):Connect(updateList)
+    
+    -- Populate the games list immediately on creation
+    task.defer(updateList)
 
     return searchBar
 end
