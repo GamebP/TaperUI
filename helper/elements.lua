@@ -644,7 +644,7 @@ function elements:Dropdown(str, parent, options, def, cb)
             selectedLabel.Text = currentSelected
 
             isOpened = false
-            icon.Image = TaperAssets.expand
+            icon.Image = TaperAssets.expand,
             
             TweenService:Create(dropdownFrame, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 Size = UDim2.new(0.98, 0, 0, closedHeight)
@@ -907,6 +907,179 @@ function elements:CredPerson(parent, txt)
         TextSize = 13,
         Font = Enum.Font.GothamMedium,
         TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = parent
+    })
+end
+
+function elements:Paragraph(title, desc, parent)
+    return create("Frame", {
+        Name = "ParagraphElement",
+        Size = UDim2.new(0.98, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        Parent = parent
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
+        create("UIPadding", {
+            PaddingTop = UDim.new(0, 10),
+            PaddingBottom = UDim.new(0, 10),
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12)
+        }),
+        create("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 4)
+        }),
+        create("TextLabel", {
+            Name = "Title",
+            Size = UDim2.new(1, 0, 0, 18),
+            BackgroundTransparency = 1,
+            Text = title,
+            TextColor3 = Color3.fromRGB(220, 220, 225),
+            TextSize = 13,
+            Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            LayoutOrder = 1
+        }),
+        create("TextLabel", {
+            Name = "Desc",
+            Size = UDim2.new(1, 0, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundTransparency = 1,
+            Text = desc,
+            TextColor3 = Color3.fromRGB(150, 150, 155),
+            TextSize = 12,
+            Font = Enum.Font.GothamMedium,
+            TextWrapped = true,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top,
+            LayoutOrder = 2
+        })
+    })
+end
+
+function elements:DualButton(str1, cb1, str2, cb2, parent)
+    local container = create("Frame", {
+        Name = "DualButtonContainer",
+        Size = UDim2.new(0.98, 0, 0, 40),
+        BackgroundTransparency = 1,
+        Parent = parent
+    }, {
+        create("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 8)
+        })
+    })
+    
+    local btn1 = self:Button(str1, container, cb1)
+    btn1.Size = UDim2.new(0.485, -4, 1, 0)
+    btn1.LayoutOrder = 1
+    
+    local btn2 = self:Button(str2, container, cb2)
+    btn2.Size = UDim2.new(0.485, -4, 1, 0)
+    btn2.LayoutOrder = 2
+    
+    return container
+end
+
+function elements:Selector(str, parent, options, def, cb)
+    local currentSelected = def or options[1]
+    local numOptions = #options
+    
+    local selectorFrame = create("Frame", {
+        Name = "SelectorElement",
+        Size = UDim2.new(0.98, 0, 0, 44),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 24),
+        Parent = parent
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 8) }),
+        create("UIStroke", { Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
+        create("TextLabel", {
+            Name = "TextLabel",
+            Size = UDim2.new(0.4, 0, 1, 0),
+            Position = UDim2.new(0, 12, 0, 0),
+            BackgroundTransparency = 1,
+            Text = str,
+            TextColor3 = Color3.fromRGB(210, 210, 215),
+            TextSize = 13,
+            Font = Enum.Font.GothamMedium,
+            TextXAlignment = Enum.TextXAlignment.Left
+        }),
+        create("Frame", {
+            Name = "container",
+            Size = UDim2.new(0.55, 0, 0, 28),
+            Position = UDim2.new(0.45, -12, 0.5, -14),
+            BackgroundColor3 = Color3.fromRGB(12, 12, 14),
+            BorderSizePixel = 0
+        }, {
+            create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+            create("UIStroke", { Color = Color3.fromRGB(28, 28, 32), Thickness = 1 }),
+            create("UIListLayout", {
+                FillDirection = Enum.FillDirection.Horizontal,
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                Padding = UDim.new(0, 2)
+            }),
+            create("UIPadding", {
+                PaddingTop = UDim.new(0, 2),
+                PaddingBottom = UDim.new(0, 2),
+                PaddingLeft = UDim.new(0, 2),
+                PaddingRight = UDim.new(0, 2)
+            })
+        })
+    })
+    
+    local optContainer = selectorFrame.container
+    local buttons = {}
+    
+    for idx, opt in ipairs(options) do
+        local isSelected = (opt == currentSelected)
+        local btn = create("TextButton", {
+            Name = opt,
+            Size = UDim2.new(1 / numOptions, -((numOptions - 1) * 2) / numOptions, 1, 0),
+            BackgroundColor3 = isSelected and Color3.fromRGB(32, 32, 38) or Color3.fromRGB(20, 20, 24),
+            BackgroundTransparency = isSelected and 0 or 1,
+            AutoButtonColor = false,
+            Text = opt,
+            TextColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 155),
+            TextSize = 11,
+            Font = Enum.Font.GothamBold,
+            LayoutOrder = idx,
+            Parent = optContainer
+        }, {
+            create("UICorner", { CornerRadius = UDim.new(0, 4) })
+        })
+        
+        btn.MouseButton1Click:Connect(function()
+            if currentSelected == opt then return end
+            currentSelected = opt
+            
+            for _, b in ipairs(buttons) do
+                local selected = (b.Name == currentSelected)
+                TweenService:Create(b, TweenInfo.new(0.15), {
+                    BackgroundColor3 = selected and Color3.fromRGB(32, 32, 38) or Color3.fromRGB(20, 20, 24),
+                    BackgroundTransparency = selected and 0 or 1,
+                    TextColor3 = selected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 155)
+                }):Play()
+            end
+            
+            cb(currentSelected)
+        end)
+        
+        table.insert(buttons, btn)
+    end
+    
+    task.defer(function() cb(currentSelected) end)
+    return selectorFrame
+end
+
+function elements:Spacer(height, parent)
+    return create("Frame", {
+        Name = "SpacerElement",
+        Size = UDim2.new(0.98, 0, 0, height),
+        BackgroundTransparency = 1,
         Parent = parent
     })
 end

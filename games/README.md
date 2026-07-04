@@ -128,3 +128,62 @@ Creates an interactive horizontal dragging slider element.
   elements:Slider("Gravity", parent, 0, 196.2, 196.2, 1, function(val)
       workspace.Gravity = val
   end)
+
+### 8. `elements:Paragraph(title, desc, parent)`
+Creates an informational card containing a bold, clean title and a wrapping, multi-line paragraph block. The element automatically adjusts its height dynamically to fit any string length without clipping.
+* **Parameters:**
+  * `title` (`string`): The header text for the information card.
+  * `desc` (`string`): The detailed, wrapping description body text.
+  * `parent` (`Instance`): The container frame.
+* **Example:**
+  ```lua
+  elements:Paragraph("💡 Dynamic Autofarm Info", "Please select your target zone inside the selector below. Setting lower loop values may trigger server rate-limits on certain executors.", parent)
+  ```
+
+---
+
+### 9. `elements:DualButton(str1, cb1, str2, cb2, parent)`
+Creates two equal half-width interactive buttons arranged horizontally on a single row. This element reuses the standard button logic, ensuring that full hover effects, sound cues, and press animations are preserved while optimizing visual workspace.
+* **Parameters:**
+  * `str1` (`string`): Display label of the left button.
+  * `cb1` (`function`): Callback trigger for the left button click.
+  * `str2` (`string`): Display label of the right button.
+  * `cb2` (`function`): Callback trigger for the right button click.
+  * `parent` (`Instance`): The container frame.
+* **Example:**
+  ```lua
+  elements:DualButton("Claim Cash", function()
+      print("Cash claimed!")
+  end, "Claim Weapon", function()
+      print("Weapon added!")
+  end, parent)
+  ```
+
+---
+
+### 10. `elements:Selector(str, parent, options, def, cb)`
+Creates a horizontal segmented tab control panel containing multiple select choices styled side-by-side. It features snappy transition animations and dynamically manages uniform item sizes relative to the options list size. Excellent alternative to dropdowns for simple option lists of 2–4 choices.
+* **Parameters:**
+  * `str` (`string`): The label text on the left side of the row.
+  * `parent` (`Instance`): The container frame.
+  * `options` (`table`): An array of strings representing the select choices (e.g. `{"1x", "3x", "8x"}`).
+  * `def` (`string`): The default starting select choice.
+  * `cb` (`function`): Callback executed when modified, receiving the select choice string `function(selectedOption)`.
+* **Example:**
+  ```lua
+  elements:Selector("Hatch Quantity", parent, {"1x", "3x", "8x"}, "1x", function(choice)
+      print("Hatch mode updated to: " .. choice)
+  end)
+  ```
+
+---
+
+### 11. `elements:Spacer(height, parent)`
+Creates a non-interactive, transparent padding layout block to adjust spacing margins and clean up vertical UI layouts dynamically.
+* **Parameters:**
+  * `height` (`number`): The vertical size of the padding space in pixels.
+  * `parent` (`Instance`): The container frame.
+* **Example:**
+  ```lua
+  elements:Spacer(15, parent)
+  ```

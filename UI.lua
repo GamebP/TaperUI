@@ -68,6 +68,7 @@ local assetPaths = {
     -- Images path
     logo_transparent = "images/logo-transparent.png",
     logo_img = "images/logo.png",
+    
     -- Icons path
     home = "images/icons/home.png",
     game = "images/icons/game.png",
@@ -82,7 +83,12 @@ local assetPaths = {
     checkmark = "images/icons/check-mark.png",
     done = "images/icons/done.png",
     error = "images/icons/error.png",
-    info = "images/icons/info.png"
+    info = "images/icons/info.png",
+    clipboard = "images/icons/clipboard.png",
+    eye = "images/icons/eye.png",
+    lock = "images/icons/lock.png",
+    trash = "images/icons/trash.png",
+    unlock = "images/icons/unlock.png"
 }
 
 getgenv().TaperAssets = {}
@@ -182,8 +188,7 @@ local ToastContainer = create("Frame", {
     create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
         Padding = UDim.new(0, 8),
-        HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        VerticalAlignment = Enum.VerticalAlignment.Bottom
+        HorizontalAlignment = Enum.HorizontalAlignment.Center
     })
 })
 
