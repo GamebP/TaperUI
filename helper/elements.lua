@@ -994,7 +994,7 @@ end
 function elements:Selector(str, parent, options, def, cb)
     local currentSelected = def or options[1]
     local numOptions = #options
-
+    
     local selectorFrame = create("Frame", {
         Name = "SelectorElement",
         Size = UDim2.new(0.98, 0, 0, 0),
@@ -1010,54 +1010,90 @@ function elements:Selector(str, parent, options, def, cb)
             PaddingLeft = UDim.new(0, 12),
             PaddingRight = UDim.new(0, 12)
         }),
+        create("UIListLayout", {
+            FillDirection = Enum.FillDirection.Horizontal,
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            VerticalAlignment = Enum.VerticalAlignment.Center,
+            Padding = UDim.new(0, 8)
+        }),
         create("TextLabel", {
             Name = "TextLabel",
-            Size = UDim2.new(0.4, -6, 0, 26),
-            Position = UDim2.new(0, 0, 0.5, 0),
-            AnchorPoint = Vector2.new(0, 0.5),
+            Size = UDim2.new(0.35, 0, 0, 26),
             BackgroundTransparency = 1,
             Text = str,
             TextColor3 = Color3.fromRGB(210, 210, 215),
             TextSize = 13,
             Font = Enum.Font.GothamMedium,
             TextXAlignment = Enum.TextXAlignment.Left,
-            TextYAlignment = Enum.TextYAlignment.Center
-        }),
-        create("Frame", {
-            Name = "container",
-            Size = UDim2.new(0.6, -6, 0, 0),
-            Position = UDim2.new(0.4, 6, 0, 0),
-            AutomaticSize = Enum.AutomaticSize.Y,
-            BackgroundColor3 = Color3.fromRGB(12, 12, 14),
-            BorderSizePixel = 0
-        }, {
-            create("UICorner", { CornerRadius = UDim.new(0, 6) }),
-            create("UIStroke", { Color = Color3.fromRGB(28, 28, 32), Thickness = 1 }),
-            create("UIGridLayout", {
-                CellSize = UDim2.new(0.33, -3, 0, 26),
-                CellPadding = UDim2.new(0, 4, 0, 4),
-                SortOrder = Enum.SortOrder.LayoutOrder,
-                HorizontalAlignment = Enum.HorizontalAlignment.Center,
-                VerticalAlignment = Enum.VerticalAlignment.Center
-            }),
-            create("UIPadding", {
-                PaddingTop = UDim.new(0, 4),
-                PaddingBottom = UDim.new(0, 4),
-                PaddingLeft = UDim.new(0, 4),
-                PaddingRight = UDim.new(0, 4)
-            })
+            TextYAlignment = Enum.TextYAlignment.Center,
+            LayoutOrder = 1
         })
     })
     
-    local optContainer = selectorFrame.container
+    local rightWrapper = create("Frame", {
+        Name = "right_wrapper",
+        Size = UDim2.new(0.65, -8, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        LayoutOrder = 2,
+        Parent = selectorFrame
+    })
+    
+    local indicatorHolder = create("Frame", {
+        Name = "indicator_holder",
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        BorderSizePixel = 0,
+        ZIndex = 2,
+        Parent = rightWrapper
+    })
+    
+    local selectionIndicator = create("Frame", {
+        Name = "SelectionIndicator",
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0, 0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(32, 32, 38),
+        ZIndex = 2,
+        Parent = indicatorHolder
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 4) }),
+        create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 })
+    })
+    
+    local optContainer = create("Frame", {
+        Name = "container",
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundColor3 = Color3.fromRGB(12, 12, 14),
+        BorderSizePixel = 0,
+        ZIndex = 3,
+        Parent = rightWrapper
+    }, {
+        create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+        create("UIStroke", { Color = Color3.fromRGB(28, 28, 32), Thickness = 1 }),
+        create("UIGridLayout", {
+            CellSize = UDim2.new(0.33, -3, 0, 26),
+            CellPadding = UDim2.new(0, 4, 0, 4),
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            HorizontalAlignment = Enum.HorizontalAlignment.Center,
+            VerticalAlignment = Enum.VerticalAlignment.Center
+        }),
+        create("UIPadding", {
+            PaddingTop = UDim.new(0, 4),
+            PaddingBottom = UDim.new(0, 4),
+            PaddingLeft = UDim.new(0, 4),
+            PaddingRight = UDim.new(0, 4)
+        })
+    })
+    
     local buttons = {}
     
     for idx, opt in ipairs(options) do
         local isSelected = (opt == currentSelected)
         local btn = create("TextButton", {
             Name = opt,
-            BackgroundColor3 = isSelected and Color3.fromRGB(32, 32, 38) or Color3.fromRGB(20, 20, 24),
-            BackgroundTransparency = isSelected and 0 or 1,
+            BackgroundTransparency = 1,
             AutoButtonColor = false,
             Text = opt,
             TextColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 155),
@@ -1067,6 +1103,7 @@ function elements:Selector(str, parent, options, def, cb)
             TextYAlignment = Enum.TextYAlignment.Center,
             TextWrapped = true,
             LayoutOrder = idx,
+            ZIndex = 3,
             Parent = optContainer
         }, {
             create("UICorner", { CornerRadius = UDim.new(0, 4) })
@@ -1076,11 +1113,14 @@ function elements:Selector(str, parent, options, def, cb)
             if currentSelected == opt then return end
             currentSelected = opt
             
+            TweenService:Create(selectionIndicator, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Position = btn.Position,
+                Size = btn.Size
+            }):Play()
+            
             for _, b in ipairs(buttons) do
                 local selected = (b.Name == currentSelected)
-                TweenService:Create(b, TweenInfo.new(0.15), {
-                    BackgroundColor3 = selected and Color3.fromRGB(32, 32, 38) or Color3.fromRGB(20, 20, 24),
-                    BackgroundTransparency = selected and 0 or 1,
+                TweenService:Create(b, TweenInfo.new(0.2), {
                     TextColor3 = selected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 155)
                 }):Play()
             end
@@ -1090,6 +1130,14 @@ function elements:Selector(str, parent, options, def, cb)
         
         table.insert(buttons, btn)
     end
+
+    task.defer(function()
+        local defaultBtn = optContainer:FindFirstChild(currentSelected)
+        if defaultBtn then
+            selectionIndicator.Position = defaultBtn.Position
+            selectionIndicator.Size = defaultBtn.Size
+        end
+    end)
     
     task.defer(function() cb(currentSelected) end)
     return selectorFrame
