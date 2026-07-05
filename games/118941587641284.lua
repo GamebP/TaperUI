@@ -871,7 +871,7 @@ ShopTab:CreateToggle("Auto Rebirth", false, function(state)
     end
 end)
 
-ShopTab:CreateDropdown("Rebirth Amount", {"1", "5", "20", "50", "100", "250", "500", "1000", "2500", "10000", "50000", "250000", "500000"}, "1", function(choice)
+ShopTab:CreateDropdown("Rebirth Amount", {"1", "5", "20", "50", "100", "250", "500", "1000", "2500", "10000", "50000", "250000", "500000", "1000000"}, "1", function(choice)
     rebirthAmount = tonumber(choice) or 1
 end)
 
