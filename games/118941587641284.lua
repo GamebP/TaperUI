@@ -68,6 +68,17 @@ local selectedEggW5 = "Ocean"
 local selectedEggW6 = "Molten Lava"
 local selectedEggW7 = "Enchanted"
 
+-- Auto-Delete state variables
+local deleteCommon = false
+local deleteUncommon = false
+local deleteRare = false
+local deleteEpic = false
+local keepMultiplierThreshold = 1.5
+local autoDeleteActive = false
+
+-- Forward declaration for visual UI alignment
+local updateEggDropdownVisibility
+
 local autoRebirthActive = false
 local rebirthAmount = 1
 
@@ -154,7 +165,7 @@ local function getRebirthCost(amount)
         and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
         and LocalPlayer.PlayerGui:FindFirstChild("Menus")
         and LocalPlayer.PlayerGui.MainUI.Menus:FindFirstChild("Rebirths")
-        and LocalPlayer.PlayerGui.MainUI.Menus.Rebirths:FindFirstChild("ScrollingFrameContainer")
+        and LocalPlayer.PlayerGui.MainUI.Menus:FindFirstChild("ScrollingFrameContainer")
         and LocalPlayer.PlayerGui.MainUI.Menus.Rebirths.ScrollingFrameContainer:FindFirstChild("ScrollingFrame")
         
     if path then
@@ -285,144 +296,106 @@ local function getBestHoopID(world, power)
     end
 end
 
--- Egg cost mappings
-local eggMapW1 = {
-    ["Basic ($250)"] = "Basic",
-    ["Flower ($25K)"] = "Flower",
-    ["Tree ($1M)"] = "Tree"
-}
-local eggMapW2 = {
-    ["Cactus ($10M)"] = "Cactus",
-    ["Floatie ($1.25B)"] = "Floatie",
-    ["Pirate ($10B)"] = "Pirate"
-}
-local eggMapW3 = {
-    ["Nut ($15B)"] = "Nut",
-    ["Snowflake ($5T)"] = "Snowflake",
-    ["Snowman ($50T)"] = "Snowman"
-}
-local eggMapW4 = {
-    ["Hot Chocolate ($75T)"] = "Hot Chocolate",
-    ["Coctail ($12.5Qa)"] = "Coctail",
-    ["Candy Basket ($250Qa)"] = "Candy Basket"
-}
-local eggMapW5 = {
-    ["Ocean ($500Qa)"] = "Ocean",
-    ["Aqua ($75Qi)"] = "Aqua",
-    ["Silver Spire ($500Qi)"] = "Silver Spire"
-}
-local eggMapW6 = {
-    ["Molten Lava ($1Sx)"] = "Molten Lava",
-    ["Volcano ($125Sx)"] = "Volcano",
-    ["Dragon ($1Sp)"] = "Dragon"
-}
-local eggMapW7 = {
-    ["Enchanted ($125Sp)"] = "Enchanted",
-    ["Voidspike ($15Oc)"] = "Voidspike",
-    ["Serpent Amethyst ($1No)"] = "Serpent Amethyst"
-}
+-- Safe retrieval of local player inventory UI folder
+local function getPetsFolder()
+    local mainUI = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
+    local menus = mainUI and mainUI:FindFirstChild("Menus")
+    local petsInventory = menus and menus:FindFirstChild("PetsInventory")
+    local main = petsInventory and petsInventory:FindFirstChild("Main")
+    local pets = main and main:FindFirstChild("Pets")
+    return pets and pets:FindFirstChild("Pets")
+end
 
--- Target World Opponent Maps
-local dunkOpponents = {
-    [1] = "Punk Kid",
-    [2] = "Korblox Deathspeaker",
-    [3] = "Snow Gentleman",
-    [4] = "Wizard",
-    [5] = "Aquaman",
-    [6] = "Magma Slammer",
-    [7] = "TechnoWizard"
-}
+-- Rarity analyzer based on color sequence gradient matching
+local function getPetRarityAndMultiplier(petFrame)
+    local scribble = petFrame:FindFirstChild("Scribble")
+    local tierGradient = scribble and scribble:FindFirstChild("Tier Gradient")
+    local rarity = nil
 
--- Consolidated Tool Shop Data mappings for World 1 to 7
-local toolList = {
-    [1] = {
-        {name = "Tide", price = 5e3}, {name = "Ice", price = 170e3}, {name = "Wooden Theme", price = 302e3},
-        {name = "Sweets", price = 472e3}, {name = "Ocean", price = 680e3}, {name = "Lava", price = 926e3},
-        {name = "Enchanted", price = 1.2e6}, {name = "Hologramic", price = 1.53e6}, {name = "Halloween", price = 1.89e6},
-        {name = "Nuclear", price = 2.28e6}, {name = "Crystal", price = 2.72e6}, {name = "Spectrum", price = 3.19e6},
-        {name = "Pool", price = 3.7e6}, {name = "Glass", price = 4.25e6}, {name = "Pixel Art", price = 4.83e6},
-        {name = "Comic", price = 5.46e6}, {name = "Swirl", price = 6.12e6}, {name = "Swirly Wirly", price = 6.82e6},
-        {name = "White Swirls", price = 7.56e6}, {name = "Translucent", price = 8.33e6}, {name = "Slime", price = 9.14e6},
-        {name = "Nurato", price = 10e6}
-    },
-    [2] = {
-        {name = "Splashwater", price = 10e6}, {name = "Coral", price = 28.8e6}, {name = "Candy", price = 85.5e6},
-        {name = "Candy Cane", price = 179e6}, {name = "Honeycomb", price = 312e6}, {name = "Marble", price = 482e6},
-        {name = "Metallic", price = 689e6}, {name = "Gold", price = 935e6}, {name = "Black", price = 1.21e9},
-        {name = "Street", price = 1.53e9}, {name = "Scrap", price = 1.89e9}, {name = "Money", price = 2.29e9},
-        {name = "Floor", price = 2.72e9}, {name = "Desert Camo", price = 3.2e9}, {name = "Snake Scales", price = 3.71e9},
-        {name = "Carbon Fibre", price = 4.25e9}, {name = "Cat", price = 4.84e9}, {name = "Blue Crystals", price = 5.46e9},
-        {name = "Diamond", price = 6.12e9}, {name = "Neon Circuit", price = 6.82e9}, {name = "Ruby", price = 7.56e9},
-        {name = "Cyberpunk", price = 8.33e9}, {name = "Futuristic", price = 9.15e9}, {name = "Futuristic Neon", price = 10e9}
-    },
-    [3] = {
-        {name = "Plasma", price = 50e9}, {name = "DNA", price = 68.8e9}, {name = "Ice Shards", price = 125e9},
-        {name = "Infested", price = 219e9}, {name = "Toxic", price = 350e9}, {name = "Molten", price = 520e9},
-        {name = "Charred", price = 971e9}, {name = "Dark Storm", price = 1.25e12}, {name = "Dark Matter", price = 1.57e12},
-        {name = "Void Lightning", price = 1.93e12}, {name = "Void Lover", price = 2.32e12}, {name = "Emojis", price = 2.75e12},
-        {name = "News", price = 3.22e12}, {name = "Bandages", price = 3.73e12}, {name = "Ghost", price = 4.28e12},
-        {name = "Holo", price = 4.86e12}, {name = "Vibrant", price = 5.48e12}, {name = "Shiny Floor", price = 6.14e12},
-        {name = "Vibrant Prism", price = 6.84e12}, {name = "Prism Aurora", price = 7.57e12}, {name = "Pink Aurora", price = 8.34e12},
-        {name = "Sun", price = 9.15e12}, {name = "Sunset Horizon", price = 10e12}
-    },
-    [4] = {
-        {name = "Twilight Sky", price = 250e12}, {name = "Stars Theme", price = 722e12}, {name = "Sky", price = 2.12e15},
-        {name = "Earth", price = 4.49e15}, {name = "Moon", price = 7.8e15}, {name = "Mars", price = 12e15},
-        {name = "Mercury", price = 17.2e15}, {name = "Venus", price = 23.3e15}, {name = "Neptune", price = 30.4e15},
-        {name = "Saturn", price = 38.4e15}, {name = "Jupiter", price = 47.4e15}, {name = "Fantasy", price = 57.3e15},
-        {name = "Corrupted", price = 68.2e15}, {name = "Paint", price = 80e15}, {name = "Ink", price = 92.7e15},
-        {name = "Cactus", price = 106e15}, {name = "Dragon Scale", price = 121e15}, {name = "Kraken", price = 136e15},
-        {name = "Pirate", price = 153e15}, {name = "Samurai", price = 170e15}, {name = "Konoha", price = 189e15},
-        {name = "Honoured", price = 208e15}, {name = "Disgraced", price = 228e15}, {name = "Demonic", price = 250e15}
-    },
-    [5] = {
-        {name = "HellFire", price = 300e15}, {name = "Industrial Sphere", price = 340e15},
-        {name = "BubbleGum", price = 385e15}, {name = "Frost Spike", price = 435e15},
-        {name = "Mohogony", price = 490e15}, {name = "Parchment", price = 550e15},
-        {name = "Space", price = 620e15}, {name = "Gold Map", price = 700e15},
-        {name = "Leopard", price = 790e15}, {name = "Lemon", price = 890e15},
-        {name = "Watermelon", price = 1e18}, {name = "Golf Ball", price = 1.15e18},
-        {name = "Anciant Scribbles", price = 1.32e18}, {name = "Matrix", price = 1.5e18},
-        {name = "Marble Scribble", price = 1.7e18}, {name = "Ringmesh", price = 1.93e18},
-        {name = "Radar", price = 2.17e18}, {name = "Swirls", price = 2.43e18},
-        {name = "Toxic Paint", price = 2.71e18}, {name = "Graffiti", price = 3.02e18},
-        {name = "Perforated", price = 3.36e18}, {name = "Plaid", price = 3.73e18},
-        {name = "Colorful", price = 4.13e18}, {name = "CyberGlitch", price = 4.56e18}
-    },
-    [6] = {
-        {name = "Broken Porcelin", price = 5e18}, {name = "Topography Heigh", price = 5.5e18},
-        {name = "Broken CDs", price = 6.05e18}, {name = "Melted Plastic", price = 6.65e18},
-        {name = "Spilled Ink", price = 7.3e18}, {name = "Subway Routes", price = 8e18},
-        {name = "Curropted VHS", price = 8.8e18}, {name = "Candy Pop", price = 9.7e18},
-        {name = "Neon Strikes", price = 10.7e18}, {name = "Natural Call", price = 11.8e18},
-        {name = "Graffiti Spam", price = 13e18}, {name = "Color Vomit", price = 14.3e18},
-        {name = "Funky Draws", price = 15.7e18}, {name = "Color Pop", price = 17.2e18},
-        {name = "Caution", price = 18.9e18}, {name = "Pink Bacteria", price = 20.8e18},
-        {name = "Galvanised Glass", price = 22.7e18}, {name = "Violence", price = 24.9e18},
-        {name = "Moai Funk", price = 27.3e18}, {name = "Toxicity", price = 29.9e18},
-        {name = "Bar Party", price = 32.7e18}, {name = "Galactic Impact", price = 35.8e18},
-        {name = "Holographic Disks", price = 39.2e18}, {name = "Neo Waves", price = 43e18}
-    },
-    [7] = {
-        {name = "Red Life", price = 47e18}, {name = "Color Blobs", price = 51.5e18}, {name = "Night Life", price = 56.5e18},
-        {name = "DreamCore", price = 62e18}, {name = "Aesthetic Mode", price = 68e18}, {name = "CityScape", price = 74.5e18},
-        {name = "Flame and Ice", price = 81.5e18}, {name = "Spray Dance", price = 89e18}, {name = "Blue Pop", price = 97.5e18},
-        {name = "Flame gone wrong", price = 107e18}, {name = "Mis Configured", price = 117e18}, {name = "Bismuth", price = 128e18},
-        {name = "Evil", price = 140e18}, {name = "Rug", price = 153e18}, {name = "Binary", price = 167e18},
-        {name = "Me when japan", price = 182e18}, {name = "Circuit Breaker", price = 198e18}, {name = "Gym Fit", price = 215e18},
-        {name = "Green Roller", price = 234e18}, {name = "Gold Plated", price = 255e18}, {name = "Tattoo", price = 278e18},
-        {name = "Creeps Over", price = 303e18}, {name = "City Delusion", price = 330e18}, {name = "Impact Frame", price = 360e18}
-    }
-}
+    if tierGradient then
+        if tierGradient.Rotation == -135 then
+            rarity = "Legendary"
+        else
+            local colStr = tostring(tierGradient.Color)
+            if colStr:find("0.796078") or colStr:find("0.592157") then
+                rarity = "Common"
+            elseif colStr:find("0.819608") or colStr:find("0.74902") then
+                rarity = "Uncommon"
+            elseif colStr:find("0.917647") or colStr:find("0.380392") then
+                rarity = "Rare"
+            elseif colStr:find("0.854902") or colStr:find("0.619608") then
+                rarity = "Epic"
+            end
+        end
+    end
 
-local upgradesList = {
-    "More Rebirth Skips",
-    "More Inventory Space",
-    "More Egg Luck",
-    "More Power",
-    "More Money",
-    "More Equips"
-}
+    local infoContainer = petFrame:FindFirstChild("InfoContainer")
+    local boost = infoContainer and infoContainer:FindFirstChild("Boost")
+    local multiplier = 1.0
+    if boost and boost:IsA("TextLabel") then
+        local numText = boost.Text:match("[%d%.]+")
+        if numText then
+            multiplier = tonumber(numText) or 1.0
+        end
+    end
+
+    return rarity, multiplier
+end
+
+-- Auto-delete scanner loop
+local function runAutoDeleteLoop()
+    task.spawn(function()
+        while autoDeleteActive do
+            local petsFolder = getPetsFolder()
+            if petsFolder then
+                local uuidsToDelete = {}
+                for _, petFrame in ipairs(petsFolder:GetChildren()) do
+                    if petFrame:IsA("Frame") or petFrame:IsA("GuiObject") then
+                        local uuid = petFrame.Name
+                        if #uuid >= 20 then -- Verify valid UUID string length
+                            local rarity, multiplier = getPetRarityAndMultiplier(petFrame)
+                            if rarity then
+                                local shouldDelete = false
+                                if rarity == "Common" and deleteCommon then
+                                    shouldDelete = true
+                                elseif rarity == "Uncommon" and deleteUncommon then
+                                    shouldDelete = true
+                                elseif rarity == "Rare" and deleteRare then
+                                    shouldDelete = true
+                                elseif rarity == "Epic" and deleteEpic then
+                                    shouldDelete = true
+                                end
+
+                                -- Check multiplier threshold safety limits
+                                if shouldDelete and multiplier >= keepMultiplierThreshold then
+                                    shouldDelete = false
+                                end
+
+                                if shouldDelete then
+                                    table.insert(uuidsToDelete, uuid)
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if #uuidsToDelete > 0 then
+                    -- Fire bulk delete remote action
+                    pcall(function()
+                        InvokeServerAction:InvokeServer("Pets", "Delete", uuidsToDelete)
+                    end)
+                    -- Redundant fallback for single-target deletion
+                    for _, uuid in ipairs(uuidsToDelete) do
+                        pcall(function()
+                            InvokeServerAction:InvokeServer("Pets", "Delete", uuid)
+                        end)
+                    end
+                end
+            end
+            task.wait(1.5)
+        end
+    end)
+end
 
 -- ============================================================
 --  TAB 1: AUTOFARM CONTROLS
@@ -435,6 +408,11 @@ FarmTab:CreateSelector("Active World", {"World 1", "World 2", "World 3", "World 
         ["World 4"] = 4, ["World 5"] = 5, ["World 6"] = 6, ["World 7"] = 7
     }
     activeWorldID = worldMap[choice] or 1
+    
+    -- Sync egg dropdown visibility if defined
+    if updateEggDropdownVisibility then
+        updateEggDropdownVisibility()
+    end
 end)
 
 FarmTab:CreateSpacer(5)
@@ -529,45 +507,59 @@ end)
 -- ============================================================
 --  TAB 2: EGGS & PETS CONTROLS
 -- ============================================================
-EggTab:CreateLabel("🥚 World 1-3 Hatching")
+EggTab:CreateLabel("🥚 Select Egg to Open")
+
+-- Storing dropdown references for visual toggle synchronization
+local eggW1Dropdown, eggW2Dropdown, eggW3Dropdown, eggW4Dropdown, eggW5Dropdown, eggW6Dropdown, eggW7Dropdown
 
 -- Select World 1 Egg Dropdown
-EggTab:CreateDropdown("Select World 1 Egg", {"Basic ($250)", "Flower ($25K)", "Tree ($1M)"}, "Basic ($250)", function(choice)
+eggW1Dropdown = EggTab:CreateDropdown("Select World 1 Egg", {"Basic ($250)", "Flower ($25K)", "Tree ($1M)"}, "Basic ($250)", function(choice)
     selectedEggW1 = eggMapW1[choice] or "Basic"
 end)
 
 -- Select World 2 Egg Dropdown
-EggTab:CreateDropdown("Select World 2 Egg", {"Cactus ($10M)", "Floatie ($1.25B)", "Pirate ($10B)"}, "Cactus ($10M)", function(choice)
+eggW2Dropdown = EggTab:CreateDropdown("Select World 2 Egg", {"Cactus ($10M)", "Floatie ($1.25B)", "Pirate ($10B)"}, "Cactus ($10M)", function(choice)
     selectedEggW2 = eggMapW2[choice] or "Cactus"
 end)
 
 -- Select World 3 Egg Dropdown
-EggTab:CreateDropdown("Select World 3 Egg", {"Nut ($15B)", "Snowflake ($5T)", "Snowman ($50T)"}, "Nut ($15B)", function(choice)
+eggW3Dropdown = EggTab:CreateDropdown("Select World 3 Egg", {"Nut ($15B)", "Snowflake ($5T)", "Snowman ($50T)"}, "Nut ($15B)", function(choice)
     selectedEggW3 = eggMapW3[choice] or "Nut"
 end)
 
-EggTab:CreateSpacer(5)
-EggTab:CreateLabel("🌵 World 4-7 Hatching")
-
 -- Select World 4 Egg Dropdown
-EggTab:CreateDropdown("Select World 4 Egg", {"Hot Chocolate ($75T)", "Coctail ($12.5Qa)", "Candy Basket ($250Qa)"}, "Hot Chocolate ($75T)", function(choice)
+eggW4Dropdown = EggTab:CreateDropdown("Select World 4 Egg", {"Hot Chocolate ($75T)", "Coctail ($12.5Qa)", "Candy Basket ($250Qa)"}, "Hot Chocolate ($75T)", function(choice)
     selectedEggW4 = eggMapW4[choice] or "Hot Chocolate"
 end)
 
 -- Select World 5 Egg Dropdown
-EggTab:CreateDropdown("Select World 5 Egg", {"Ocean ($500Qa)", "Aqua ($75Qi)", "Silver Spire ($500Qi)"}, "Ocean ($500Qa)", function(choice)
+eggW5Dropdown = EggTab:CreateDropdown("Select World 5 Egg", {"Ocean ($500Qa)", "Aqua ($75Qi)", "Silver Spire ($500Qi)"}, "Ocean ($500Qa)", function(choice)
     selectedEggW5 = eggMapW5[choice] or "Ocean"
 end)
 
 -- Select World 6 Egg Dropdown
-EggTab:CreateDropdown("Select World 6 Egg", {"Molten Lava ($1Sx)", "Volcano ($125Sx)", "Dragon ($1Sp)"}, "Molten Lava ($1Sx)", function(choice)
+eggW6Dropdown = EggTab:CreateDropdown("Select World 6 Egg", {"Molten Lava ($1Sx)", "Volcano ($125Sx)", "Dragon ($1Sp)"}, "Molten Lava ($1Sx)", function(choice)
     selectedEggW6 = eggMapW6[choice] or "Molten Lava"
 end)
 
 -- Select World 7 Egg Dropdown
-EggTab:CreateDropdown("Select World 7 Egg", {"Enchanted ($125Sp)", "Voidspike ($15Oc)", "Serpent Amethyst ($1No)"}, "Enchanted ($125Sp)", function(choice)
+eggW7Dropdown = EggTab:CreateDropdown("Select World 7 Egg", {"Enchanted ($125Sp)", "Voidspike ($15Oc)", "Serpent Amethyst ($1No)"}, "Enchanted ($125Sp)", function(choice)
     selectedEggW7 = eggMapW7[choice] or "Enchanted"
 end)
+
+-- UI Visual Sync Handler
+function updateEggDropdownVisibility()
+    if eggW1Dropdown then eggW1Dropdown.Visible = (activeWorldID == 1) end
+    if eggW2Dropdown then eggW2Dropdown.Visible = (activeWorldID == 2) end
+    if eggW3Dropdown then eggW3Dropdown.Visible = (activeWorldID == 3) end
+    if eggW4Dropdown then eggW4Dropdown.Visible = (activeWorldID == 4) end
+    if eggW5Dropdown then eggW5Dropdown.Visible = (activeWorldID == 5) end
+    if eggW6Dropdown then eggW6Dropdown.Visible = (activeWorldID == 6) end
+    if eggW7Dropdown then eggW7Dropdown.Visible = (activeWorldID == 7) end
+end
+
+-- Run initial sync alignment
+updateEggDropdownVisibility()
 
 EggTab:CreateSpacer(10)
 
@@ -614,6 +606,41 @@ EggTab:CreateButton("Equip Best Pets", function()
         if getgenv().showToast then
             getgenv().showToast("Pets Equipped", "Your best pets have been equipped!", TaperAssets.done, 2.0)
         end
+    end
+end)
+
+EggTab:CreateSpacer(5)
+EggTab:CreateLabel("🧹 Auto Delete Pets (Trash Inventory)")
+
+EggTab:CreateToggle("Delete Common", false, function(state)
+    deleteCommon = state
+end)
+
+EggTab:CreateToggle("Delete Uncommon", false, function(state)
+    deleteUncommon = state
+end)
+
+EggTab:CreateToggle("Delete Rare", false, function(state)
+    deleteRare = state
+end)
+
+EggTab:CreateToggle("Delete Epic", false, function(state)
+    deleteEpic = state
+end)
+
+EggTab:CreateTextbox("Keep if Multiplier >= ", tostring(keepMultiplierThreshold), function(text)
+    local val = tonumber(text)
+    if val then
+        keepMultiplierThreshold = val
+    else
+        warn("[TaperUI Warning] Please enter a valid number for multiplier protection.")
+    end
+end)
+
+EggTab:CreateToggle("Auto Delete Loop", false, function(state)
+    autoDeleteActive = state
+    if autoDeleteActive then
+        runAutoDeleteLoop()
     end
 end)
 
@@ -804,6 +831,7 @@ Window.ScreenGui.Destroying:Connect(function()
     autoRebirthActive = false
     autoBuyToolsActive = false
     autoUpgradeActive = false
+    autoDeleteActive = false
 end)
 
 -- 6. Trigger play intro sequence
