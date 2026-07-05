@@ -264,7 +264,6 @@ local deleteCommon = false
 local deleteUncommon = false
 local deleteRare = false
 local deleteEpic = false
-local keepMultiplierThreshold = 1.5
 local autoDeleteActive = false
 
 -- Forward declaration for visual UI alignment
@@ -553,10 +552,6 @@ local function runAutoDeleteLoop()
                                     shouldDelete = true
                                 end
 
-                                if shouldDelete and multiplier >= keepMultiplierThreshold then
-                                    shouldDelete = false
-                                end
-
                                 if shouldDelete then
                                     table.insert(uuidsToDelete, uuid)
                                 end
@@ -728,17 +723,23 @@ end
 
 updateEggDropdownVisibility()
 
--- Add this local state variable at the top of your script (or just above the toggle)
+-- 1. State variables to track the delay and the amount
+local hatchInterval = 1.5
 local hatchMax = true 
 
--- 1. This is your new boolean switch to enable/disable "Max" hatching
+-- 2. Slider to dynamically adjust the purchase delay
+EggTab:CreateSlider("Hatch Delay (s)", 0.1, 5.0, hatchInterval, 1, function(val)
+    hatchInterval = val
+end)
+
+-- Toggle for Hatch Max
 EggTab:CreateToggle("Hatch Max (Disable for Single)", true, function(state)
     hatchMax = state
 end)
 
 EggTab:CreateSpacer(5)
 
--- 2. Your Auto Hatch toggle now respects the "Hatch Max" switch state
+-- 3. Auto Hatch loop now dynamically uses "hatchInterval"
 EggTab:CreateToggle("Auto Hatch Selected Egg", false, function(state)
     autoHatchActive = state
     if autoHatchActive then
@@ -758,13 +759,12 @@ EggTab:CreateToggle("Auto Hatch Selected Egg", false, function(state)
                     pcall(function()
                         InvokeServerAction:InvokeServer("Eggs", "RequestPurchase", {
                             PetsToAutoDelete = {},
-                            -- If hatchMax is true, it buys "max". If false, it buys 1.
                             EggAmount = hatchMax and "max" or 1, 
                             EggName = eggName
                         })
                     end)
                 end
-                task.wait(1.5)
+                task.wait(hatchInterval) -- Dynamic speed control
             end
         end)
     end
@@ -801,15 +801,6 @@ end)
 
 EggTab:CreateToggle("Delete Epic", false, function(state)
     deleteEpic = state
-end)
-
-EggTab:CreateTextbox("Keep if Multiplier >= ", tostring(keepMultiplierThreshold), function(text)
-    local val = tonumber(text)
-    if val then
-        keepMultiplierThreshold = val
-    else
-        warn("[TaperUI Warning] Please enter a valid number for multiplier protection.")
-    end
 end)
 
 EggTab:CreateToggle("Auto Delete Loop", false, function(state)
