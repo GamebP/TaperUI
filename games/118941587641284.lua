@@ -344,21 +344,25 @@ local function parsePriceText(text)
     return num
 end
 
+-- Safe centralized helper to resolve the ScrollingFrame path
+local function getRebirthScrollingFrame()
+    local playerGui = LocalPlayer:FindFirstChild("PlayerGui")
+    local mainUI = playerGui and playerGui:FindFirstChild("MainUI")
+    local menus = mainUI and mainUI:FindFirstChild("Menus")
+    local rebirths = menus and menus:FindFirstChild("Rebirths")
+    local container = rebirths and rebirths:FindFirstChild("ScrollingFrameContainer")
+    return container and container:FindFirstChild("ScrollingFrame")
+end
+
 -- Read & Cache rebirth costs dynamically
 local function getRebirthCost(amount)
     if cachedCosts[amount] then
         return cachedCosts[amount]
     end
     
-    local path = LocalPlayer:FindFirstChild("PlayerGui")
-        and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-        and LocalPlayer.PlayerGui:FindFirstChild("Menus")
-        and LocalPlayer.PlayerGui.MainUI.Menus:FindFirstChild("Rebirths")
-        and LocalPlayer.PlayerGui.MainUI.Menus:FindFirstChild("ScrollingFrameContainer")
-        and LocalPlayer.PlayerGui.MainUI.Menus.Rebirths.ScrollingFrameContainer:FindFirstChild("ScrollingFrame")
-        
-    if path then
-        local targetFrame = path:FindFirstChild(tostring(amount))
+    local scroller = getRebirthScrollingFrame()
+    if scroller then
+        local targetFrame = scroller:FindFirstChild(tostring(amount))
         if targetFrame and targetFrame:FindFirstChild("Price") and targetFrame.Price:FindFirstChild("TextLabel") then
             local text = targetFrame.Price.TextLabel.Text
             local parsed = parsePriceText(text)
@@ -373,17 +377,12 @@ end
 
 -- Validate high rebirth options availability
 local function checkRebirthAvailability(amount)
+    -- Standard baseline options are always assumed available
     if amount < 2500 then return true end
     
-    local path = LocalPlayer:FindFirstChild("PlayerGui")
-        and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
-        and LocalPlayer.PlayerGui:FindFirstChild("Menus")
-        and LocalPlayer.PlayerGui.MainUI.Menus:FindFirstChild("Rebirths")
-        and LocalPlayer.PlayerGui.MainUI.Menus.Rebirths:FindFirstChild("ScrollingFrameContainer")
-        and LocalPlayer.PlayerGui.MainUI.Menus.Rebirths.ScrollingFrameContainer:FindFirstChild("ScrollingFrame")
-        
-    if path then
-        return path:FindFirstChild(tostring(amount)) ~= nil
+    local scroller = getRebirthScrollingFrame()
+    if scroller then
+        return scroller:FindFirstChild(tostring(amount)) ~= nil
     end
     return false
 end
@@ -561,14 +560,10 @@ local function runAutoDeleteLoop()
                 end
 
                 if #uuidsToDelete > 0 then
+                    -- Fire only the bulk delete request to prevent double-deletion errors
                     pcall(function()
                         InvokeServerAction:InvokeServer("Pets", "Delete", uuidsToDelete)
                     end)
-                    for _, uuid in ipairs(uuidsToDelete) do
-                        pcall(function()
-                            InvokeServerAction:InvokeServer("Pets", "Delete", uuid)
-                        end)
-                    end
                 end
             end
             task.wait(1.5)
@@ -876,7 +871,7 @@ ShopTab:CreateToggle("Auto Rebirth", false, function(state)
     end
 end)
 
-ShopTab:CreateDropdown("Rebirth Amount", {"1", "5", "20", "50", "100", "250", "500", "1000", "2500", "10000", "50000"}, "1", function(choice)
+ShopTab:CreateDropdown("Rebirth Amount", {"1", "5", "20", "50", "100", "250", "500", "1000", "2500", "10000", "50000", "250000", "500000"}, "1", function(choice)
     rebirthAmount = tonumber(choice) or 1
 end)
 
