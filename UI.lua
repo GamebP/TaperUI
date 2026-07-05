@@ -117,7 +117,7 @@ local function getAsset(path)
         end
 
         local gitUrl = env.getgitpath("src") .. path
-        local ok, content = pcall(game.HttpGet, game, gitUrl)
+        local ok, content = pcall(function() return game:HttpGet(gitUrl) end)
         if ok and content and #content > 0 and content ~= "404: Not Found" then
             writefile(localPath, content)
         else
@@ -191,7 +191,7 @@ local function import(path)
     end
     
     local gitUrl = env.getgitpath("src") .. path .. ".lua"
-    local ok, content = pcall(game.HttpGet, game, gitUrl)
+    local ok, content = pcall(function() return game:HttpGet(gitUrl) end)
     if ok and content and #content > 0 and content ~= "404: Not Found" then
         local func, err = loadstring(content)
         if func then
@@ -214,7 +214,7 @@ local function importJson(path)
     end
     
     local gitUrl = env.getgitpath("src") .. path .. ".json"
-    local ok, content = pcall(game.HttpGet, game, gitUrl)
+    local ok, content = pcall(function() return game:HttpGet(gitUrl) end)
     if ok and content and #content > 0 and content ~= "404: Not Found" then
         local result = HttpService:JSONDecode(content)
         jsonCache[path] = result
@@ -433,7 +433,7 @@ function TaperUILibrary:CreateWindow(options)
         Name = "MainFrame",
         Size = UDim2.new(0, 420, 0, 100),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Position = UDim2.new(0, 0, 0, 0),
         BackgroundColor3 = Color3.fromRGB(15, 15, 17),
         BackgroundTransparency = 1,
         BorderSizePixel = 0,
