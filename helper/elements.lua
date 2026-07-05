@@ -997,42 +997,53 @@ function elements:Selector(str, parent, options, def, cb)
     
     local selectorFrame = create("Frame", {
         Name = "SelectorElement",
-        Size = UDim2.new(0.98, 0, 0, 44),
+        Size = UDim2.new(0.98, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         Parent = parent
     }, {
         create("UICorner", { CornerRadius = UDim.new(0, 8) }),
         create("UIStroke", { Color = Color3.fromRGB(35, 35, 40), Thickness = 1 }),
+        create("UIPadding", {
+            PaddingTop = UDim.new(0, 10),
+            PaddingBottom = UDim.new(0, 10),
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12)
+        }),
         create("TextLabel", {
             Name = "TextLabel",
-            Size = UDim2.new(0.4, 0, 1, 0),
-            Position = UDim2.new(0, 12, 0, 0),
+            Size = UDim2.new(0.4, -6, 0, 26),
+            Position = UDim2.new(0, 0, 0, 0),
             BackgroundTransparency = 1,
             Text = str,
             TextColor3 = Color3.fromRGB(210, 210, 215),
             TextSize = 13,
             Font = Enum.Font.GothamMedium,
-            TextXAlignment = Enum.TextXAlignment.Left
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Center
         }),
         create("Frame", {
             Name = "container",
-            Size = UDim2.new(0.55, 0, 0, 28),
-            Position = UDim2.new(0.45, -12, 0.5, -14),
+            Size = UDim2.new(0.6, -6, 0, 0),
+            Position = UDim2.new(0.4, 6, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
             BackgroundColor3 = Color3.fromRGB(12, 12, 14),
             BorderSizePixel = 0
         }, {
             create("UICorner", { CornerRadius = UDim.new(0, 6) }),
             create("UIStroke", { Color = Color3.fromRGB(28, 28, 32), Thickness = 1 }),
-            create("UIListLayout", {
-                FillDirection = Enum.FillDirection.Horizontal,
+            create("UIGridLayout", {
+                CellSize = UDim2.new(0.33, -3, 0, 26),
+                CellPadding = UDim2.new(0, 4, 0, 4),
                 SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 2)
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                VerticalAlignment = Enum.VerticalAlignment.Center
             }),
             create("UIPadding", {
-                PaddingTop = UDim.new(0, 2),
-                PaddingBottom = UDim.new(0, 2),
-                PaddingLeft = UDim.new(0, 2),
-                PaddingRight = UDim.new(0, 2)
+                PaddingTop = UDim.new(0, 4),
+                PaddingBottom = UDim.new(0, 4),
+                PaddingLeft = UDim.new(0, 4),
+                PaddingRight = UDim.new(0, 4)
             })
         })
     })
@@ -1044,14 +1055,16 @@ function elements:Selector(str, parent, options, def, cb)
         local isSelected = (opt == currentSelected)
         local btn = create("TextButton", {
             Name = opt,
-            Size = UDim2.new(1 / numOptions, -((numOptions - 1) * 2) / numOptions, 1, 0),
             BackgroundColor3 = isSelected and Color3.fromRGB(32, 32, 38) or Color3.fromRGB(20, 20, 24),
             BackgroundTransparency = isSelected and 0 or 1,
             AutoButtonColor = false,
             Text = opt,
             TextColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 155),
-            TextSize = 11,
+            TextSize = 10,
             Font = Enum.Font.GothamBold,
+            TextXAlignment = Enum.TextXAlignment.Center,
+            TextYAlignment = Enum.TextYAlignment.Center,
+            TextWrapped = true,
             LayoutOrder = idx,
             Parent = optContainer
         }, {
