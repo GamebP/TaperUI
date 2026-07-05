@@ -11,11 +11,11 @@ local TaperUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Gameb
 
 -- 3. Create a Custom Window
 local Window = TaperUI:CreateWindow({
-    Name = "Basketball Hub v5.1",
+    Name = "Basketball",
     LoadingTitle = "Basketball Simulator",
-    LoadingSubtitle = "Worlds 1-7 Unified Farm",
-    LoadingVersion = "v5.1.0",
-    ProfileSubtitle = "Active Session"
+    LoadingSubtitle = getexec(),
+    LoadingVersion = "v5.1",
+    ProfileSubtitle = "bum lad"
 })
 
 -- 4. Create custom tabs
@@ -765,12 +765,12 @@ end)
 -- ============================================================
 --  TAB 5: SOCIALS & CREDITS CONTROLS
 -- ============================================================
-SocialTab:CreateLabel("👥 Credits")
-SocialTab:CreateParagraph("Script Author", "This unified game hub was created by SkyDash.\nSpecial thanks to the TaperUI framework dev for the visual UI interface.")
+SocialTab:CreateLabel("Credits")
+SocialTab:CreateParagraph("Script Author", "This unified game hub and the TaperUI framework were both created by SkyDash.")
 
 SocialTab:CreateSpacer(5)
-SocialTab:CreateLabel("🎮 Play Other Games")
-SocialTab:CreateParagraph("Discover More Hacks", "Click on any of the games below to instantly teleport and check out their respective script features.")
+SocialTab:CreateLabel("Play Other Games")
+SocialTab:CreateParagraph("Discover More Scripts", "Click on any of the games below to instantly teleport and check out their respective script features.")
 
 -- Dynamically generate standard launch buttons for all active games loaded from data.json
 local dynamicCount = 0
@@ -790,7 +790,7 @@ end
 
 -- Fallback card if the network request fails or returns no options
 if dynamicCount == 0 then
-    SocialTab:CreateParagraph("Data Offline", "Could not fetch dynamic directory listings. Please ensure your executor has HTTP permissions active.")
+    SocialTab:CreateParagraph("Connection Error", "Unable to load the game directory. Please check your internet connection and verify that HTTP requests are enabled in your executor settings.")
 end
 
 -- ============================================================
