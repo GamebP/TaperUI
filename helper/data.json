@@ -241,6 +241,22 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true
+    },
+    {
+      "gameName": "Basketball Training!",
+      "gameID": "118941587641284",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "05.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true,
+      "isStandalone": true
     }
   ],
   "creditsList": {

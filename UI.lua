@@ -966,6 +966,28 @@ end
 -- ==========================================
 if not getgenv().TaperUI_DeveloperMode then
     task.spawn(function()
+        local currentPlaceStr = tostring(game.PlaceId)
+        local isStandalone = false
+
+        for _, g in ipairs(gameList) do
+            if tostring(g.gameID) == currentPlaceStr and g.isStandalone == true then
+                isStandalone = true
+                break
+            end
+        end
+
+        if isStandalone then
+            local ok, gamePath = pcall(function()
+                return game:HttpGet(env.getgitpath("games") .. currentPlaceStr .. ".lua")
+            end)
+            if ok and #gamePath > 0 and gamePath ~= "404: Not Found" then
+                local gameModule = loadstring(gamePath)()
+                pcall(gameModule, TaperUILibrary)
+                return
+            end
+        end
+
+        -- Default Multi-Game Hub fallback
         local Window = TaperUILibrary:CreateWindow({
             Name = "TaperUI",
             LoadingTitle = "Taper UI Multi-Cheat",
@@ -981,7 +1003,6 @@ if not getgenv().TaperUI_DeveloperMode then
         local SettingsTab = Window:CreateSettingsTab()
         local CreditsTab = Window:CreateTab("Credits", TaperAssets.user)
 
-        -- Home Setup
         local function replaceRedacted()
             HomeTab:CreateLabel("Ver: " .. (data.version or "N/A") .. " | Updated: " .. (data.updatedDate or "N/A"))
             HomeTab:CreateLabel("Executor: " .. getexec())
@@ -989,14 +1010,12 @@ if not getgenv().TaperUI_DeveloperMode then
         end
         replaceRedacted()
 
-        -- Games List Setup
         local activeGames = {}
         for _, g in ipairs(gameList) do
             if g.isActiveInUI then table.insert(activeGames, g) end
         end
         elements:Searchbar(GamesListTab.Content, activeGames)
 
-        -- Credits Setup
         for sect, c in pairs(creditsList) do
             if #c > 0 then
                 elements:CredHead(CreditsTab.Content, sect)
@@ -1006,7 +1025,6 @@ if not getgenv().TaperUI_DeveloperMode then
             end
         end
 
-        -- Scripts Setup
         ScriptsTab:CreateLabel("Workspace & Diagnostics Utilities")
         ScriptsTab:CreateButton("Copy Full Game Tree", function()
             local success, err = pcall(function() import("scripts/replicated-tree") end)
@@ -1025,7 +1043,6 @@ if not getgenv().TaperUI_DeveloperMode then
             end
         end)
 
-        -- Run game specific script
         local ok, gamePath = pcall(function()
             return game:HttpGet(env.getgitpath("games") .. tostring(game.PlaceId) .. ".lua")
         end)
@@ -1034,9 +1051,7 @@ if not getgenv().TaperUI_DeveloperMode then
             local gameModule = loadstring(gamePath)()
             gameModule(GameTab.Content, HttpService:JSONDecode(readfile("TaperUI/Config.json")), Window, GameTab)
         else
-            elements:Unsupported(GameTab.Content, function()
-                -- Switch tab fallback
-            end)
+            elements:Unsupported(GameTab.Content, function() end)
         end
 
         Window:PlayIntro()
