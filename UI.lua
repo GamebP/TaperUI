@@ -111,7 +111,11 @@ local function getAsset(path)
         local dirParts = string.split(localPath, "/")
         local currentDir = ""
         for i = 1, #dirParts - 1 do
-            currentDir = currentDir .. dirParts[i] .. "/"
+            if i == 1 then
+                currentDir = dirParts[i]
+            else
+                currentDir = currentDir .. "/" .. dirParts[i]
+            end
             if not isfolder(currentDir) then
                 makefolder(currentDir)
             end
