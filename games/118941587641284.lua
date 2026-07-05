@@ -12,7 +12,7 @@ local TaperUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Gameb
 -- 3. Create a Custom Window
 local Window = TaperUI:CreateWindow({
     Name = "Basketball",
-    LoadingTitle = "🏀⛹️",
+    LoadingTitle = "Just plating the game",
     LoadingSubtitle = "Basketball Trainer",
     LoadingVersion = "v5.1",
     ProfileSubtitle = "bum lad"
