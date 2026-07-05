@@ -3,6 +3,8 @@
 --  Place ID: 118941587641284 | World 1 - 7 Unified Edition
 -- ============================================================
 
+local getexec = identifyexecutor or function() return "Unknown Executor" end
+
 -- 1. Enable Developer Mode to bypass the automatic multi-game hub loader
 getgenv().TaperUI_DeveloperMode = true
 
@@ -12,8 +14,8 @@ local TaperUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/Gameb
 -- 3. Create a Custom Window
 local Window = TaperUI:CreateWindow({
     Name = "Basketball",
-    LoadingTitle = "Just plating the game",
-    LoadingSubtitle = "Basketball Trainer",
+    LoadingTitle = "Basketball Simulator",
+    LoadingSubtitle = "Just playing basketball",
     LoadingVersion = "v5.1",
     ProfileSubtitle = "bum lad"
 })
@@ -29,7 +31,7 @@ local SocialTab = Window:CreateTab("Socials", TaperAssets.user)
 Window:CreateSettingsTab()
 
 -- ============================================================
---  CORE DATA & SETUP
+--  CORE DATA & SETUP (RESTORED CONFIGURATION TABLES)
 -- ============================================================
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -43,10 +45,199 @@ local RequestServerAction = Events and Events:WaitForChild("RequestServerAction"
 local InvokeServerAction = Events and Events:WaitForChild("InvokeServerAction", 5)
 local ClientAction = Events and Events:WaitForChild("ClientAction", 5)
 
--- Explicitly wait for leaderstats to load to prevent nil errors during early execution
+-- Explicitly wait for leaderstats to load
 local leaderstats = LocalPlayer:WaitForChild("leaderstats", 10)
 local powerObj = leaderstats and leaderstats:WaitForChild("Power", 10)
 local moneyObj = leaderstats and leaderstats:WaitForChild("Money", 10)
+
+-- Egg mappings to match raw server names
+local eggMapW1 = {
+    ["Basic ($250)"] = "Basic",
+    ["Flower ($25K)"] = "Flower",
+    ["Tree ($1M)"] = "Tree"
+}
+local eggMapW2 = {
+    ["Cactus ($10M)"] = "Cactus",
+    ["Floatie ($1.25B)"] = "Floatie",
+    ["Pirate ($10B)"] = "Pirate"
+}
+local eggMapW3 = {
+    ["Nut ($15B)"] = "Nut",
+    ["Snowflake ($5T)"] = "Snowflake",
+    ["Snowman ($50T)"] = "Snowman"
+}
+local eggMapW4 = {
+    ["Hot Chocolate ($75T)"] = "Hot Chocolate",
+    ["Coctail ($12.5Qa)"] = "Coctail",
+    ["Candy Basket ($250Qa)"] = "Candy Basket"
+}
+local eggMapW5 = {
+    ["Ocean ($500Qa)"] = "Ocean",
+    ["Aqua ($75Qi)"] = "Aqua",
+    ["Silver Spire ($500Qi)"] = "Silver Spire"
+}
+local eggMapW6 = {
+    ["Molten Lava ($1Sx)"] = "Molten Lava",
+    ["Volcano ($125Sx)"] = "Volcano",
+    ["Dragon ($1Sp)"] = "Dragon"
+}
+local eggMapW7 = {
+    ["Enchanted ($125Sp)"] = "Enchanted",
+    ["Voidspike ($15Oc)"] = "Voidspike",
+    ["Serpent Amethyst ($1No)"] = "Serpent Amethyst"
+}
+
+-- Opponent mappings per world
+local dunkOpponents = {
+    [1] = "Punk Kid",
+    [2] = "Korblox Deathspeaker",
+    [3] = "Snow Gentleman",
+    [4] = "Wizard",
+    [5] = "Aquaman",
+    [6] = "Magma Slammer",
+    [7] = "TechnoWizard"
+}
+
+-- Upgrades looping list
+local upgradesList = {
+    "More Rebirth Skips",
+    "More Inventory Space",
+    "More Egg Luck",
+    "More Power",
+    "More Money",
+    "More Equips"
+}
+
+-- Tool pricing list for automatic progression buying
+local toolList = {
+    [1] = {
+        { name = "Tide", price = 5000 },
+        { name = "Ice", price = 170000 },
+        { name = "Wooden Theme", price = 302000 },
+        { name = "Sweets", price = 472000 },
+        { name = "Ocean", price = 680000 },
+        { name = "Lava", price = 926000 },
+        { name = "Enchanted", price = 1200000 },
+        { name = "Hologramic", price = 1530000 },
+        { name = "Halloween", price = 1890000 },
+        { name = "Nuclear", price = 2280000 },
+        { name = "Crystal", price = 2720000 },
+        { name = "Spectrum", price = 3190000 },
+        { name = "Pool", price = 3700000 },
+        { name = "Glass", price = 4250000 },
+        { name = "Pixel Art", price = 4830000 },
+        { name = "Comic", price = 5460000 },
+        { name = "Swirl", price = 6120000 },
+        { name = "Swirly Wirly", price = 6820000 },
+        { name = "White Swirls", price = 7560000 },
+        { name = "Translucent", price = 8330000 },
+        { name = "Slime", price = 9140000 },
+        { name = "Nurato", price = 10000000 }
+    },
+    [2] = {
+        { name = "Splashwater", price = 10e6 },
+        { name = "Coral", price = 28.8e6 },
+        { name = "Candy", price = 85.5e6 },
+        { name = "Candy Cane", price = 179e6 },
+        { name = "Honeycomb", price = 312e6 },
+        { name = "Marble", price = 482e6 },
+        { name = "Metallic", price = 689e6 },
+        { name = "Gold", price = 935e6 },
+        { name = "Black", price = 1.21e9 },
+        { name = "Street", price = 1.53e9 },
+        { name = "Scrap", price = 1.89e9 },
+        { name = "Money", price = 2.29e9 },
+        { name = "Floor", price = 2.72e9 },
+        { name = "Desert Camo", price = 3.2e9 },
+        { name = "Snake Scales", price = 3.71e9 },
+        { name = "Carbon Fibre", price = 4.25e9 },
+        { name = "Cat", price = 4.84e9 },
+        { name = "Blue Crystals", price = 5.46e9 },
+        { name = "Diamond", price = 6.12e9 },
+        { name = "Neon Circuit", price = 6.82e9 },
+        { name = "Ruby", price = 7.56e9 },
+        { name = "Cyberpunk", price = 8.33e9 },
+        { name = "Futuristic", price = 9.15e9 },
+        { name = "Futuristic Neon", price = 10e9 }
+    },
+    [3] = {
+        { name = "Plasma", price = 50e9 },
+        { name = "DNA", price = 68.8e9 },
+        { name = "Ice Shards", price = 125e9 },
+        { name = "Infested", price = 219e9 },
+        { name = "Toxic", price = 350e9 },
+        { name = "Molten", price = 520e9 },
+        { name = "Charred", price = 971e9 },
+        { name = "Dark Storm", price = 1.25e12 },
+        { name = "Dark Matter", price = 1.57e12 },
+        { name = "Void Lightning", price = 1.93e12 },
+        { name = "Void Lover", price = 2.32e12 },
+        { name = "Emojis", price = 2.75e12 },
+        { name = "News", price = 3.22e12 },
+        { name = "Bandages", price = 3.73e12 },
+        { name = "Ghost", price = 4.28e12 },
+        { name = "Holo", price = 4.86e12 },
+        { name = "Vibrant", price = 5.48e12 },
+        { name = "Shiny Floor", price = 6.14e12 },
+        { name = "Vibrant Prism", price = 6.84e12 },
+        { name = "Prism Aurora", price = 7.57e12 },
+        { name = "Pink Aurora", price = 8.34e12 },
+        { name = "Sun", price = 9.15e12 },
+        { name = "Sunset Horizon", price = 10e12 }
+    },
+    [4] = {
+        { name = "Twilight Sky", price = 250e12 },
+        { name = "Stars Theme", price = 722e12 },
+        { name = "Sky", price = 2.12e15 },
+        { name = "Earth", price = 4.49e15 },
+        { name = "Moon", price = 7.8e15 },
+        { name = "Mars", price = 12e15 },
+        { name = "Mercury", price = 17.2e15 },
+        { name = "Venus", price = 23.3e15 },
+        { name = "Neptune", price = 30.4e15 },
+        { name = "Saturn", price = 38.4e15 },
+        { name = "Jupiter", price = 47.4e15 },
+        { name = "Fantasy", price = 57.3e15 },
+        { name = "Corrupted", price = 68.2e15 },
+        { name = "Paint", price = 80e15 },
+        { name = "Ink", price = 92.7e15 },
+        { name = "Cactus", price = 106e15 },
+        { name = "Dragon Scale", price = 121e15 },
+        { name = "Kraken", price = 136e15 },
+        { name = "Pirate", price = 153e15 },
+        { name = "Samurai", price = 170e15 },
+        { name = "Konoha", price = 189e15 },
+        { name = "Honoured", price = 208e15 },
+        { name = "Disgraced", price = 228e15 },
+        { name = "Demonic", price = 250e15 }
+    },
+    [5] = {
+        { name = "HellFire", price = 300e15 },
+        { name = "Industrial Sphere", price = 340e15 },
+        { name = "BubbleGum", price = 385e15 },
+        { name = "Frost Spike", price = 435e15 },
+        { name = "Mohogony", price = 490e15 },
+        { name = "Parchment", price = 550e15 },
+        { name = "Space", price = 620e15 },
+        { name = "Gold Map", price = 700e15 },
+        { name = "Leopard", price = 790e15 },
+        { name = "Lemon", price = 790e15 },
+        { name = "Watermelon", price = 1e18 },
+        { name = "Golf Ball", price = 1.15e18 },
+        { name = "Anciant Scribbles", price = 1.32e18 },
+        { name = "Matrix", price = 1.5e18 },
+        { name = "Marble Scribble", price = 1.7e18 },
+        { name = "Ringmesh", price = 1.93e18 },
+        { name = "Radar", price = 2.17e18 },
+        { name = "Swirls", price = 2.43e18 },
+        { name = "Toxic Paint", price = 2.71e18 },
+        { name = "Graffiti", price = 3.02e18 },
+        { name = "Perforated", price = 3.36e18 },
+        { name = "Plaid", price = 3.73e18 },
+        { name = "Colorful", price = 4.13e18 },
+        { name = "CyberGlitch", price = 4.56e18 }
+    }
+}
 
 -- State Variables
 local activeWorldID = 1 -- 1 to 7
@@ -136,7 +327,6 @@ local function parsePriceText(text)
     if not text then return 0 end
     local cleanText = text:gsub("[Mm]oney", ""):gsub("[Cc]ash", ""):gsub("%s+", "")
     
-    -- Evaluate natively if string is already formatted as scientific notation (e.g. 1e+24)
     local maybeNum = tonumber(cleanText)
     if maybeNum then
         return maybeNum
@@ -155,7 +345,7 @@ local function parsePriceText(text)
     return num
 end
 
--- Read & Cache rebirth costs dynamically from local PlayerGui to avoid execution lag
+-- Read & Cache rebirth costs dynamically
 local function getRebirthCost(amount)
     if cachedCosts[amount] then
         return cachedCosts[amount]
@@ -182,9 +372,9 @@ local function getRebirthCost(amount)
     return nil
 end
 
--- Validate high rebirth options availability prior to purchase requests
+-- Validate high rebirth options availability
 local function checkRebirthAvailability(amount)
-    if amount < 2500 then return true end -- Standard tiers are always available
+    if amount < 2500 then return true end
     
     local path = LocalPlayer:FindFirstChild("PlayerGui")
         and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
@@ -199,104 +389,102 @@ local function checkRebirthAvailability(amount)
     return false
 end
 
--- Dynamic hoop selector supporting World 1 through 7 thresholds
+-- Dynamic hoop selector
 local function getBestHoopID(world, power)
     if world == 1 then
-        if power >= 2.5e6 then return 12          -- 2.5M
-        elseif power >= 1.5e6 then return 11      -- 1.5M
-        elseif power >= 650e3 then return 10      -- 650K
-        elseif power >= 250e3 then return 9       -- 250K
-        elseif power >= 125e3 then return 8       -- 125K
-        elseif power >= 70e3 then return 7        -- 70K
-        elseif power >= 50e3 then return 6        -- 50K
-        elseif power >= 25e3 then return 5        -- 25K
-        elseif power >= 10e3 then return 4        -- 10K
-        elseif power >= 2.5e3 then return 3       -- 2.5K
-        elseif power >= 500 then return 2         -- 500
+        if power >= 2.5e6 then return 12
+        elseif power >= 1.5e6 then return 11
+        elseif power >= 650e3 then return 10
+        elseif power >= 250e3 then return 9
+        elseif power >= 125e3 then return 8
+        elseif power >= 70e3 then return 7
+        elseif power >= 50e3 then return 6
+        elseif power >= 25e3 then return 5
+        elseif power >= 10e3 then return 4
+        elseif power >= 2.5e3 then return 3
+        elseif power >= 500 then return 2
         else return 1 end
     elseif world == 2 then
-        if power >= 1.25e9 then return 12         -- 1.25B
-        elseif power >= 750e6 then return 11      -- 750M
-        elseif power >= 500e6 then return 10      -- 500M
-        elseif power >= 350e6 then return 9       -- 350M
-        elseif power >= 250e6 then return 8       -- 250M
-        elseif power >= 175e6 then return 7       -- 175M
-        elseif power >= 100e6 then return 6       -- 100M
-        elseif power >= 50e6 then return 5        -- 50M
-        elseif power >= 25e6 then return 4        -- 25M
-        elseif power >= 5e6 then return 3         -- 5M
-        elseif power >= 2.5e6 then return 2       -- 2.5M
+        if power >= 1.25e9 then return 12
+        elseif power >= 750e6 then return 11
+        elseif power >= 500e6 then return 10
+        elseif power >= 350e6 then return 9
+        elseif power >= 250e6 then return 8
+        elseif power >= 175e6 then return 7
+        elseif power >= 100e6 then return 6
+        elseif power >= 50e6 then return 5
+        elseif power >= 25e6 then return 4
+        elseif power >= 5e6 then return 3
+        elseif power >= 2.5e6 then return 2
         else return 1 end
     elseif world == 3 then
-        if power >= 750e9 then return 12          -- 750B
-        elseif power >= 400e9 then return 11      -- 400B
-        elseif power >= 250e9 then return 10      -- 250B
-        elseif power >= 150e9 then return 9       -- 150B
-        elseif power >= 90e9 then return 8        -- 90B
-        elseif power >= 55e9 then return 7        -- 55B
-        elseif power >= 35e9 then return 6        -- 35B
-        elseif power >= 18e9 then return 5        -- 18B
-        elseif power >= 9e9 then return 4         -- 9B
-        elseif power >= 3e9 then return 3         -- 3B
-        elseif power >= 1.5e9 then return 2       -- 1.5B
+        if power >= 750e9 then return 12
+        elseif power >= 400e9 then return 11
+        elseif power >= 250e9 then return 10
+        elseif power >= 150e9 then return 9
+        elseif power >= 90e9 then return 8
+        elseif power >= 55e9 then return 7
+        elseif power >= 35e9 then return 6
+        elseif power >= 18e9 then return 5
+        elseif power >= 9e9 then return 4
+        elseif power >= 3e9 then return 3
+        elseif power >= 1.5e9 then return 2
         else return 1 end
     elseif world == 4 then
-        if power >= 1e15 then return 12           -- 1Qa
-        elseif power >= 500e12 then return 11     -- 500T
-        elseif power >= 285e12 then return 10     -- 285T
-        elseif power >= 175e12 then return 9      -- 175T
-        elseif power >= 125e12 then return 8      -- 125T
-        elseif power >= 85e12 then return 7       -- 85T
-        elseif power >= 57e12 then return 6       -- 57T
-        elseif power >= 45e12 then return 5       -- 45T
-        elseif power >= 30e12 then return 4       -- 30T
-        elseif power >= 15e12 then return 3       -- 15T
-        elseif power >= 7e12 then return 2        -- 7T
+        if power >= 1e15 then return 12
+        elseif power >= 500e12 then return 11
+        elseif power >= 285e12 then return 10
+        elseif power >= 175e12 then return 9
+        elseif power >= 125e12 then return 8
+        elseif power >= 85e12 then return 7
+        elseif power >= 57e12 then return 6
+        elseif power >= 45e12 then return 5
+        elseif power >= 30e12 then return 4
+        elseif power >= 15e12 then return 3
+        elseif power >= 7e12 then return 2
         else return 1 end
     elseif world == 5 then
-        if power >= 2e18 then return 12           -- 2Qi
-        elseif power >= 1.2e18 then return 11     -- 1.2Qi
-        elseif power >= 700e15 then return 10     -- 700Qa
-        elseif power >= 400e15 then return 9      -- 400Qa
-        elseif power >= 250e15 then return 8      -- 250Qa
-        elseif power >= 150e15 then return 7      -- 150Qa
-        elseif power >= 90e15 then return 6       -- 90Qa
-        elseif power >= 50e15 then return 5       -- 50Qa
-        elseif power >= 25e15 then return 4       -- 25Qa
-        elseif power >= 12.5e15 then return 3     -- 12.5Qa
-        elseif power >= 5e15 then return 2        -- 5Qa
+        if power >= 2e18 then return 12
+        elseif power >= 1.2e18 then return 11
+        elseif power >= 700e15 then return 10
+        elseif power >= 400e15 then return 9
+        elseif power >= 250e15 then return 8
+        elseif power >= 150e15 then return 7
+        elseif power >= 90e15 then return 6
+        elseif power >= 50e15 then return 5
+        elseif power >= 25e15 then return 4
+        elseif power >= 12.5e15 then return 3
+        elseif power >= 5e15 then return 2
         else return 1 end
     elseif world == 6 then
-        if power >= 15e21 then return 12          -- 15Sx
-        elseif power >= 7.5e21 then return 11     -- 7.5Sx
-        elseif power >= 4e21 then return 10       -- 4Sx
-        elseif power >= 2.5e21 then return 9      -- 2.5Sx
-        elseif power >= 1.5e21 then return 8      -- 1.5Sx
-        elseif power >= 850e18 then return 7      -- 850Qi
-        elseif power >= 500e18 then return 6      -- 500Qi
-        elseif power >= 250e18 then return 5      -- 250Qi
-        elseif power >= 120e18 then return 4      -- 120Qi
-        elseif power >= 60e18 then return 3       -- 60Qi
-        elseif power >= 25e18 then return 2       -- 25Qi
+        if power >= 15e21 then return 12
+        elseif power >= 7.5e21 then return 11
+        elseif power >= 4e21 then return 10
+        elseif power >= 2.5e21 then return 9
+        elseif power >= 1.5e21 then return 8
+        elseif power >= 850e18 then return 7
+        elseif power >= 500e18 then return 6
+        elseif power >= 250e18 then return 5
+        elseif power >= 120e18 then return 4
+        elseif power >= 60e18 then return 3
+        elseif power >= 25e18 then return 2
         else return 1 end
     else
-        -- World 7 Thresholds
-        if power >= 175e24 then return 12         -- 175Sp
-        elseif power >= 90e24 then return 11      -- 90Sp
-        elseif power >= 50e24 then return 10      -- 50Sp
-        elseif power >= 30e24 then return 9       -- 30Sp
-        elseif power >= 18e24 then return 8       -- 18Sp
-        elseif power >= 10e24 then return 7       -- 10Sp
-        elseif power >= 6e24 then return 6        -- 6Sp
-        elseif power >= 3.25e24 then return 5     -- 3.25Sp
-        elseif power >= 1.6e24 then return 4      -- 1.6Sp
-        elseif power >= 800e21 then return 3      -- 800Sx
-        elseif power >= 350e21 then return 2      -- 350Sx
+        if power >= 175e24 then return 12
+        elseif power >= 90e24 then return 11
+        elseif power >= 50e24 then return 10
+        elseif power >= 30e24 then return 9
+        elseif power >= 18e24 then return 8
+        elseif power >= 10e24 then return 7
+        elseif power >= 6e24 then return 6
+        elseif power >= 3.25e24 then return 5
+        elseif power >= 1.6e24 then return 4
+        elseif power >= 800e21 then return 3
+        elseif power >= 350e21 then return 2
         else return 1 end
     end
 end
 
--- Safe retrieval of local player inventory UI folder
 local function getPetsFolder()
     local mainUI = LocalPlayer:FindFirstChild("PlayerGui") and LocalPlayer.PlayerGui:FindFirstChild("MainUI")
     local menus = mainUI and mainUI:FindFirstChild("Menus")
@@ -306,7 +494,6 @@ local function getPetsFolder()
     return pets and pets:FindFirstChild("Pets")
 end
 
--- Rarity analyzer based on color sequence gradient matching
 local function getPetRarityAndMultiplier(petFrame)
     local scribble = petFrame:FindFirstChild("Scribble")
     local tierGradient = scribble and scribble:FindFirstChild("Tier Gradient")
@@ -352,7 +539,7 @@ local function runAutoDeleteLoop()
                 for _, petFrame in ipairs(petsFolder:GetChildren()) do
                     if petFrame:IsA("Frame") or petFrame:IsA("GuiObject") then
                         local uuid = petFrame.Name
-                        if #uuid >= 20 then -- Verify valid UUID string length
+                        if #uuid >= 20 then
                             local rarity, multiplier = getPetRarityAndMultiplier(petFrame)
                             if rarity then
                                 local shouldDelete = false
@@ -366,7 +553,6 @@ local function runAutoDeleteLoop()
                                     shouldDelete = true
                                 end
 
-                                -- Check multiplier threshold safety limits
                                 if shouldDelete and multiplier >= keepMultiplierThreshold then
                                     shouldDelete = false
                                 end
@@ -380,11 +566,9 @@ local function runAutoDeleteLoop()
                 end
 
                 if #uuidsToDelete > 0 then
-                    -- Fire bulk delete remote action
                     pcall(function()
                         InvokeServerAction:InvokeServer("Pets", "Delete", uuidsToDelete)
                     end)
-                    -- Redundant fallback for single-target deletion
                     for _, uuid in ipairs(uuidsToDelete) do
                         pcall(function()
                             InvokeServerAction:InvokeServer("Pets", "Delete", uuid)
@@ -409,7 +593,6 @@ FarmTab:CreateSelector("Active World", {"World 1", "World 2", "World 3", "World 
     }
     activeWorldID = worldMap[choice] or 1
     
-    -- Sync egg dropdown visibility if defined
     if updateEggDropdownVisibility then
         updateEggDropdownVisibility()
     end
@@ -418,7 +601,6 @@ end)
 FarmTab:CreateSpacer(5)
 FarmTab:CreateLabel("💪 Training Automation")
 
--- Training Method Selector
 FarmTab:CreateDropdown("Train Method", {
     "Dynamic (Auto)", "Hoop 1", "Hoop 2", "Hoop 3", "Hoop 4", "Hoop 5", 
     "Hoop 6", "Hoop 7", "Hoop 8", "Hoop 9", "Hoop 10", "Hoop 11", "Hoop 12"
@@ -426,7 +608,6 @@ FarmTab:CreateDropdown("Train Method", {
     trainMethod = choice
 end)
 
--- Auto Train Toggle
 FarmTab:CreateToggle("Auto Train Hoop", false, function(state)
     autoTrainActive = state
     if autoTrainActive then
@@ -450,7 +631,6 @@ FarmTab:CreateToggle("Auto Train Hoop", false, function(state)
     end
 end)
 
--- Train Speed Slider
 FarmTab:CreateSlider("Train Speed (s)", 0.01, 1.0, trainInterval, 2, function(val)
     trainInterval = val
 end)
@@ -458,7 +638,6 @@ end)
 FarmTab:CreateSpacer(5)
 FarmTab:CreateLabel("🏆 Wins & Match Farming")
 
--- Auto Win Toggle (Consolidated throw-simulate and win flow)
 FarmTab:CreateToggle("Auto Win Farm", false, function(state)
     autoWinActive = state
     if autoWinActive then
@@ -469,9 +648,9 @@ FarmTab:CreateToggle("Auto Win Farm", false, function(state)
                         InvokeServerAction:InvokeServer(
                             "Win",
                             "Ended",
-                            activeWorldID, -- Dynamic World ID
+                            activeWorldID,
                             99.98,
-                            activeWorldID  -- Dynamic World ID
+                            activeWorldID
                         )
                     end)
                 end
@@ -481,12 +660,10 @@ FarmTab:CreateToggle("Auto Win Farm", false, function(state)
     end
 end)
 
--- Win Speed Slider (Controls the delay between win registers)
 FarmTab:CreateSlider("Win Speed / Delay (s)", 0.1, 5.0, winInterval, 2, function(val)
     winInterval = val
 end)
 
--- Auto Dunk Battle Toggle
 FarmTab:CreateToggle("Auto Dunk Battle Win", false, function(state)
     autoDunkActive = state
     if autoDunkActive then
@@ -509,45 +686,36 @@ end)
 -- ============================================================
 EggTab:CreateLabel("🥚 Select Egg to Open")
 
--- Storing dropdown references for visual toggle synchronization
 local eggW1Dropdown, eggW2Dropdown, eggW3Dropdown, eggW4Dropdown, eggW5Dropdown, eggW6Dropdown, eggW7Dropdown
 
--- Select World 1 Egg Dropdown
 eggW1Dropdown = EggTab:CreateDropdown("Select World 1 Egg", {"Basic ($250)", "Flower ($25K)", "Tree ($1M)"}, "Basic ($250)", function(choice)
     selectedEggW1 = eggMapW1[choice] or "Basic"
 end)
 
--- Select World 2 Egg Dropdown
 eggW2Dropdown = EggTab:CreateDropdown("Select World 2 Egg", {"Cactus ($10M)", "Floatie ($1.25B)", "Pirate ($10B)"}, "Cactus ($10M)", function(choice)
     selectedEggW2 = eggMapW2[choice] or "Cactus"
 end)
 
--- Select World 3 Egg Dropdown
 eggW3Dropdown = EggTab:CreateDropdown("Select World 3 Egg", {"Nut ($15B)", "Snowflake ($5T)", "Snowman ($50T)"}, "Nut ($15B)", function(choice)
     selectedEggW3 = eggMapW3[choice] or "Nut"
 end)
 
--- Select World 4 Egg Dropdown
 eggW4Dropdown = EggTab:CreateDropdown("Select World 4 Egg", {"Hot Chocolate ($75T)", "Coctail ($12.5Qa)", "Candy Basket ($250Qa)"}, "Hot Chocolate ($75T)", function(choice)
     selectedEggW4 = eggMapW4[choice] or "Hot Chocolate"
 end)
 
--- Select World 5 Egg Dropdown
 eggW5Dropdown = EggTab:CreateDropdown("Select World 5 Egg", {"Ocean ($500Qa)", "Aqua ($75Qi)", "Silver Spire ($500Qi)"}, "Ocean ($500Qa)", function(choice)
     selectedEggW5 = eggMapW5[choice] or "Ocean"
 end)
 
--- Select World 6 Egg Dropdown
 eggW6Dropdown = EggTab:CreateDropdown("Select World 6 Egg", {"Molten Lava ($1Sx)", "Volcano ($125Sx)", "Dragon ($1Sp)"}, "Molten Lava ($1Sx)", function(choice)
     selectedEggW6 = eggMapW6[choice] or "Molten Lava"
 end)
 
--- Select World 7 Egg Dropdown
 eggW7Dropdown = EggTab:CreateDropdown("Select World 7 Egg", {"Enchanted ($125Sp)", "Voidspike ($15Oc)", "Serpent Amethyst ($1No)"}, "Enchanted ($125Sp)", function(choice)
     selectedEggW7 = eggMapW7[choice] or "Enchanted"
 end)
 
--- UI Visual Sync Handler
 function updateEggDropdownVisibility()
     if eggW1Dropdown then eggW1Dropdown.Visible = (activeWorldID == 1) end
     if eggW2Dropdown then eggW2Dropdown.Visible = (activeWorldID == 2) end
@@ -558,12 +726,19 @@ function updateEggDropdownVisibility()
     if eggW7Dropdown then eggW7Dropdown.Visible = (activeWorldID == 7) end
 end
 
--- Run initial sync alignment
 updateEggDropdownVisibility()
 
-EggTab:CreateSpacer(10)
+-- Add this local state variable at the top of your script (or just above the toggle)
+local hatchMax = true 
 
--- Combined Auto Hatch Toggle
+-- 1. This is your new boolean switch to enable/disable "Max" hatching
+EggTab:CreateToggle("Hatch Max (Disable for Single)", true, function(state)
+    hatchMax = state
+end)
+
+EggTab:CreateSpacer(5)
+
+-- 2. Your Auto Hatch toggle now respects the "Hatch Max" switch state
 EggTab:CreateToggle("Auto Hatch Selected Egg", false, function(state)
     autoHatchActive = state
     if autoHatchActive then
@@ -583,7 +758,8 @@ EggTab:CreateToggle("Auto Hatch Selected Egg", false, function(state)
                     pcall(function()
                         InvokeServerAction:InvokeServer("Eggs", "RequestPurchase", {
                             PetsToAutoDelete = {},
-                            EggAmount = "max",
+                            -- If hatchMax is true, it buys "max". If false, it buys 1.
+                            EggAmount = hatchMax and "max" or 1, 
                             EggName = eggName
                         })
                     end)
@@ -597,7 +773,6 @@ end)
 EggTab:CreateSpacer(5)
 EggTab:CreateLabel("🐾 Pet Management")
 
--- Equip Best Pets Action
 EggTab:CreateButton("Equip Best Pets", function()
     if InvokeServerAction then
         pcall(function()
@@ -649,7 +824,6 @@ end)
 -- ============================================================
 UpgradeTab:CreateLabel("⚡ Upgrades (World 5+)")
 
--- Auto Upgrade Selection
 UpgradeTab:CreateDropdown("Auto Upgrade Target", {
     "None", "More Rebirth Skips", "More Inventory Space", "More Egg Luck", 
     "More Power", "More Money", "More Equips", "All (Loop)"
@@ -657,7 +831,6 @@ UpgradeTab:CreateDropdown("Auto Upgrade Target", {
     selectedUpgradeTarget = choice
 end)
 
--- Auto Upgrade Toggle
 UpgradeTab:CreateToggle("Auto Upgrade Toggle", false, function(state)
     autoUpgradeActive = state
     if autoUpgradeActive then
@@ -689,7 +862,6 @@ end)
 -- ============================================================
 ShopTab:CreateLabel("👑 Rebirth System")
 
--- Auto Rebirth Toggle with dynamic cost and availability validation
 ShopTab:CreateToggle("Auto Rebirth", false, function(state)
     autoRebirthActive = state
     if autoRebirthActive then
@@ -713,7 +885,6 @@ ShopTab:CreateToggle("Auto Rebirth", false, function(state)
     end
 end)
 
--- Rebirth Quantity Dropdown (Supported exact amounts including high-tier worlds)
 ShopTab:CreateDropdown("Rebirth Amount", {"1", "5", "20", "50", "100", "250", "500", "1000", "2500", "10000", "50000"}, "1", function(choice)
     rebirthAmount = tonumber(choice) or 1
 end)
@@ -721,7 +892,6 @@ end)
 ShopTab:CreateSpacer(5)
 ShopTab:CreateLabel("🏀 Tool Shop (Auto Buy & Equip Balls)")
 
--- Auto Buy Next Tool Toggle (Corrected Server calls and integrated Client Equip)
 ShopTab:CreateToggle("Auto Buy Next Tool", false, function(state)
     autoBuyToolsActive = state
     if autoBuyToolsActive then
@@ -759,7 +929,6 @@ ShopTab:CreateToggle("Auto Buy Next Tool", false, function(state)
     end
 end)
 
--- Purchase delay slider
 ShopTab:CreateSlider("Purchase Delay (s)", 0.5, 10.0, buyToolsInterval, 1, function(val)
     buyToolsInterval = val
 end)
@@ -767,12 +936,10 @@ end)
 ShopTab:CreateSpacer(5)
 ShopTab:CreateLabel("🗺️ Progression & Expansion")
 
--- Target Zone Input Textbox
 ShopTab:CreateTextbox("Target Zone ID", "2", function(text)
     targetZoneID = text
 end)
 
--- Manual Purchase Zone Trigger Button
 ShopTab:CreateButton("Unlock Selected Zone", function()
     if InvokeServerAction then
         local zoneNum = tonumber(targetZoneID) or 2
@@ -799,7 +966,6 @@ SocialTab:CreateSpacer(5)
 SocialTab:CreateLabel("Play Other Games")
 SocialTab:CreateParagraph("Discover More Scripts", "Click on any of the games below to instantly teleport and check out their respective script features.")
 
--- Dynamically generate standard launch buttons for all active games loaded from data.json
 local dynamicCount = 0
 for _, g in ipairs(gameList) do
     if g.isActiveInUI and tostring(g.gameID) ~= tostring(game.PlaceId) then
@@ -815,7 +981,6 @@ for _, g in ipairs(gameList) do
     end
 end
 
--- Fallback card if the network request fails or returns no options
 if dynamicCount == 0 then
     SocialTab:CreateParagraph("Connection Error", "Unable to load the game directory. Please check your internet connection and verify that HTTP requests are enabled in your executor settings.")
 end
