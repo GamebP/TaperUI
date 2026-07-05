@@ -994,13 +994,10 @@ end
 function elements:Selector(str, parent, options, def, cb)
     local currentSelected = def or options[1]
     local numOptions = #options
-    
-    local isMultiRow = numOptions > 4
-    local frameHeight = isMultiRow and 68 or 44
-    
+
     local selectorFrame = create("Frame", {
         Name = "SelectorElement",
-        Size = UDim2.new(0.98, 0, 0, frameHeight),
+        Size = UDim2.new(0.98, 0, 0, 0),
         AutomaticSize = Enum.AutomaticSize.Y,
         BackgroundColor3 = Color3.fromRGB(20, 20, 24),
         Parent = parent
@@ -1025,67 +1022,42 @@ function elements:Selector(str, parent, options, def, cb)
             Font = Enum.Font.GothamMedium,
             TextXAlignment = Enum.TextXAlignment.Left,
             TextYAlignment = Enum.TextYAlignment.Center
-        })
-    })
-    
-    local containerSize = isMultiRow and UDim2.new(1, -24, 0, 28) or UDim2.new(0.55, 0, 0, 28)
-    local containerPos = isMultiRow and UDim2.new(0, 12, 0, 32) or UDim2.new(0.45, -12, 0.5, -14)
-
-    local indicatorHolder = create("Frame", {
-        Name = "indicator_holder",
-        Size = containerSize,
-        Position = containerPos,
-        AutomaticSize = isMultiRow and Enum.AutomaticSize.Y or nil,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = 2,
-        Parent = selectorFrame
-    })
-
-    local selectionIndicator = create("Frame", {
-        Name = "SelectionIndicator",
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = UDim2.new(0, 0, 0, 0),
-        BackgroundColor3 = Color3.fromRGB(32, 32, 38),
-        ZIndex = 2,
-        Parent = indicatorHolder
-    }, {
-        create("UICorner", { CornerRadius = UDim.new(0, 4) }),
-        create("UIStroke", { Color = Color3.fromRGB(45, 45, 50), Thickness = 1 })
-    })
-    
-    local optContainer = create("Frame", {
-        Name = "container",
-        Size = containerSize,
-        Position = containerPos,
-        AutomaticSize = isMultiRow and Enum.AutomaticSize.Y or nil,
-        BackgroundTransparency = 1,
-        BorderSizePixel = 0,
-        ZIndex = 3,
-        Parent = selectorFrame
-    }, {
-        create("UIGridLayout", {
-            CellSize = UDim2.new(0.33, -3, 0, 26),
-            CellPadding = UDim2.new(0, 4, 0, 4),
-            SortOrder = Enum.SortOrder.LayoutOrder,
-            HorizontalAlignment = Enum.HorizontalAlignment.Center,
-            VerticalAlignment = Enum.VerticalAlignment.Center
         }),
-        create("UIPadding", {
-            PaddingTop = UDim.new(0, 4),
-            PaddingBottom = UDim.new(0, 4),
-            PaddingLeft = UDim.new(0, 4),
-            PaddingRight = UDim.new(0, 4)
+        create("Frame", {
+            Name = "container",
+            Size = UDim2.new(0.6, -6, 0, 0),
+            Position = UDim2.new(0.4, 6, 0, 0),
+            AutomaticSize = Enum.AutomaticSize.Y,
+            BackgroundColor3 = Color3.fromRGB(12, 12, 14),
+            BorderSizePixel = 0
+        }, {
+            create("UICorner", { CornerRadius = UDim.new(0, 6) }),
+            create("UIStroke", { Color = Color3.fromRGB(28, 28, 32), Thickness = 1 }),
+            create("UIGridLayout", {
+                CellSize = UDim2.new(0.33, -3, 0, 26),
+                CellPadding = UDim2.new(0, 4, 0, 4),
+                SortOrder = Enum.SortOrder.LayoutOrder,
+                HorizontalAlignment = Enum.HorizontalAlignment.Center,
+                VerticalAlignment = Enum.VerticalAlignment.Center
+            }),
+            create("UIPadding", {
+                PaddingTop = UDim.new(0, 4),
+                PaddingBottom = UDim.new(0, 4),
+                PaddingLeft = UDim.new(0, 4),
+                PaddingRight = UDim.new(0, 4)
+            })
         })
     })
     
+    local optContainer = selectorFrame.container
     local buttons = {}
     
     for idx, opt in ipairs(options) do
         local isSelected = (opt == currentSelected)
         local btn = create("TextButton", {
             Name = opt,
-            BackgroundTransparency = 1,
+            BackgroundColor3 = isSelected and Color3.fromRGB(32, 32, 38) or Color3.fromRGB(20, 20, 24),
+            BackgroundTransparency = isSelected and 0 or 1,
             AutoButtonColor = false,
             Text = opt,
             TextColor3 = isSelected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 155),
@@ -1095,7 +1067,6 @@ function elements:Selector(str, parent, options, def, cb)
             TextYAlignment = Enum.TextYAlignment.Center,
             TextWrapped = true,
             LayoutOrder = idx,
-            ZIndex = 3,
             Parent = optContainer
         }, {
             create("UICorner", { CornerRadius = UDim.new(0, 4) })
@@ -1105,14 +1076,11 @@ function elements:Selector(str, parent, options, def, cb)
             if currentSelected == opt then return end
             currentSelected = opt
             
-            TweenService:Create(selectionIndicator, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                Position = btn.Position,
-                Size = btn.Size
-            }):Play()
-            
             for _, b in ipairs(buttons) do
                 local selected = (b.Name == currentSelected)
-                TweenService:Create(b, TweenInfo.new(0.2), {
+                TweenService:Create(b, TweenInfo.new(0.15), {
+                    BackgroundColor3 = selected and Color3.fromRGB(32, 32, 38) or Color3.fromRGB(20, 20, 24),
+                    BackgroundTransparency = selected and 0 or 1,
                     TextColor3 = selected and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(150, 150, 155)
                 }):Play()
             end
@@ -1122,14 +1090,6 @@ function elements:Selector(str, parent, options, def, cb)
         
         table.insert(buttons, btn)
     end
-
-    task.defer(function()
-        local defaultBtn = optContainer:FindFirstChild(currentSelected)
-        if defaultBtn then
-            selectionIndicator.Position = defaultBtn.Position
-            selectionIndicator.Size = defaultBtn.Size
-        end
-    end)
     
     task.defer(function() cb(currentSelected) end)
     return selectorFrame
