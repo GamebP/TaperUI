@@ -40,6 +40,7 @@ getgenv().TaperUI_Cleanup = function()
     getgenv().taperImport = nil
     getgenv().autorejoin = nil
     getgenv().TaperUI_Cleanup = nil
+    getgenv().TaperUILibrary = nil
 end
 
 -- ==========================================
@@ -383,6 +384,7 @@ getgenv().showToast = showToast
 -- 5. TAPERUI LIBRARY API OBJECT
 -- ==========================================
 local TaperUILibrary = {}
+getgenv().TaperUILibrary = TaperUILibrary -- Cache locally to prevent standalone double-loading
 
 local function createSectionFrame(name, visible, parent)
     return create("Frame", {
@@ -981,8 +983,11 @@ if not getgenv().TaperUI_DeveloperMode then
                 return game:HttpGet(env.getgitpath("games") .. currentPlaceStr .. ".lua")
             end)
             if ok and #gamePath > 0 and gamePath ~= "404: Not Found" then
-                local gameModule = loadstring(gamePath)()
-                pcall(gameModule, TaperUILibrary)
+                -- Set DeveloperMode to true so the re-loaded UI.lua skips the auto-run block
+                getgenv().TaperUI_DeveloperMode = true
+                
+                -- Execute the standalone script directly
+                loadstring(gamePath)()
                 return
             end
         end
