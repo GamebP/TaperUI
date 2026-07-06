@@ -1,7 +1,7 @@
 -- example.lua
 
 -- 1. Enable Developer Mode to bypass the automatic multi-game hub loader
-getgenv().TaperUI_DeveloperMode = true
+getgenv().TaperDev = true
 
 -- 2. Load the TaperUI framework library
 local TaperUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/UI.lua"))()
@@ -88,7 +88,3 @@ end)
 UtilityTab:CreateDropdown("Fast Travel Destination", {"World 1", "World 2", "World 3", "World 4"}, "World 1", function(choice)
     print("Teleport coordinate selected: ", choice)
 end)
-
-
--- 6. Trigger the play intro sequence to reveal the customized UI cleanly
-Window:PlayIntro()

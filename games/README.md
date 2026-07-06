@@ -1,12 +1,74 @@
 # TaperUI Developer API Reference
 
-This document provides a comprehensive API reference for all visual creation functions available in TaperUI's elements module (`helper/elements.lua`) that are designed to populate your custom game scripts (`games/<game_id>.lua`).
+This document provides a comprehensive API reference for TaperUI's elements module (`helper/elements.lua`) and details how to structure custom game scripts (`games/<game_id>.lua`) so they link with the TaperUI core loader.
+
+---
+
+## 🏗 Script Design & Structure
+
+Game scripts in TaperUI are structured in one of two ways. You must format your game script according to whether it is loaded dynamically inside the Multi-Game Hub or runs as a completely independent client.
+
+### 1. Hub Mode (Standard Dynamic Scripts)
+If your game is loaded inside the default TaperUI Multi-Game Hub, your script **must return a function wrapper**. The loader (`UI.lua`) automatically executes this returned function and passes the runtime context as arguments:
+
+```lua
+return function(parent, config, Window, GameTab)
+    -- 1. Import TaperUI's elements helper module
+    local taperImport = getgenv().taperImport or function(path)
+        return loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/" .. path .. ".lua"))()
+    end
+    local elements = taperImport("helper/elements")
+
+    -- 2. Populate the parent scroll container with interactive elements
+    elements:Label("🔥 Game Exploits", parent)
+    
+    elements:Toggle("Enable Auto Clicker", parent, false, function(state)
+        print("Toggled clicker state to: ", state)
+    end)
+end
+```
+
+#### Callback Parameters Explained:
+* **`parent`** (`Instance`): The scrolling content frame assigned to your game's tab. This is the `parent` container you must pass into all visual element functions.
+* **`config`** (`table`): A JSON-decoded Lua table containing local configurations saved under `"TaperUI/Config.json"`.
+* **`Window`** (`table`): The global framework Window object, allowing access to ScreenGuis, custom UI variables, or cleanup routines.
+* **`GameTab`** (`table`): The dynamic Tab object created specifically for this game.
+
+---
+
+### 2. Standalone Mode (Independent Scripts)
+If your game script is flagged as `"isStandalone": true` inside `data.json`, the core loader bypasses the Hub UI entirely and executes your script independently. In this mode, you do **not** use a function wrapper; instead, you bypass the loader and instantiate your own Window object:
+
+```lua
+-- 1. Bypass the automatic Multi-Game loader wrapper
+getgenv().TaperDev = true
+
+-- 2. Load the TaperUI core library
+local TaperUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/UI.lua"))()
+
+-- 3. Create a dedicated Window and Tab hierarchy
+local Window = TaperUI:CreateWindow({
+    Name = "My Game",
+    LoadingTitle = "My Cheat Client",
+    LoadingSubtitle = "Standalone Script Edition",
+    LoadingVersion = "v1.0"
+})
+
+local FarmTab = Window:CreateTab("Autofarm", TaperAssets.list)
+Window:CreateSettingsTab()
+
+-- 4. Standalone scripts have independent elements (they don't use 'helper/elements')
+FarmTab:CreateLabel("🚜 Automation Settings")
+FarmTab:CreateToggle("Enable Farm Loop", false, function(state)
+    print("Farm Loop: ", state)
+end)
+```
 
 ---
 
 ## 🛠 Visual Elements API (`elements.lua`)
 
-To use any of these elements inside a game script, ensure you have imported the elements helper at the top of your file first:
+To create menus inside **Hub Mode** scripts, import the elements module at the top of your returning function wrapper:
 ```lua
 local taperImport = getgenv().taperImport
 local elements = taperImport("helper/elements")
@@ -113,6 +175,8 @@ Creates a dynamic dropdown selection menu. When clicked, it expands its frame ve
   end)
   ```
 
+---
+
 ### 7. `elements:Slider(str, parent, min, max, def, decimals, cb)`
 Creates an interactive horizontal dragging slider element.
 * **Parameters:**
@@ -128,6 +192,9 @@ Creates an interactive horizontal dragging slider element.
   elements:Slider("Gravity", parent, 0, 196.2, 196.2, 1, function(val)
       workspace.Gravity = val
   end)
+  ```
+
+---
 
 ### 8. `elements:Paragraph(title, desc, parent)`
 Creates an informational card containing a bold, clean title and a wrapping, multi-line paragraph block. The element automatically adjusts its height dynamically to fit any string length without clipping.
@@ -137,7 +204,7 @@ Creates an informational card containing a bold, clean title and a wrapping, mul
   * `parent` (`Instance`): The container frame.
 * **Example:**
   ```lua
-  elements:Paragraph("💡 Dynamic Autofarm Info", "Please select your target zone inside the selector below. Setting lower loop values may trigger server rate-limits on certain executors.", parent)
+  elements:Paragraph("💡 Dynamic Autofarm Info", "Please select your target zone inside the selector below.", parent)
   ```
 
 ---

@@ -435,6 +435,7 @@ function TaperUILibrary:CreateWindow(options)
         })
     })
 
+    -- Resets MainFrame back to small and invisible for the intro
     local MainFrame = create("Frame", {
         Name = "MainFrame",
         Size = UDim2.new(0, 420, 0, 100),
@@ -453,6 +454,7 @@ function TaperUILibrary:CreateWindow(options)
 
     dragify(MainFrame)
 
+    -- Sidebar starts hidden for intro
     local Sidebar = create("Frame", {
         Name = "Sidebar",
         Size = UDim2.new(0, 170, 1, 0),
@@ -507,6 +509,7 @@ function TaperUILibrary:CreateWindow(options)
     local userId = player.UserId
     local displayName = player.DisplayName or player.Name
 
+    -- Profile elements start hidden for intro
     local UserProfileWidget = create("Frame", {
         Name = "UserProfileWidget",
         Size = UDim2.new(1, -16, 0, 48),
@@ -554,6 +557,7 @@ function TaperUILibrary:CreateWindow(options)
         })
     })
 
+    -- Content area starts hidden for intro
     local ContentArea = create("Frame", {
         Name = "ContentArea",
         Size = UDim2.new(1, -170, 1, 0),
@@ -649,6 +653,7 @@ function TaperUILibrary:CreateWindow(options)
     end)
     table.insert(fileConnections, keybindConnection)
 
+    -- Re-adds the LoadingFrame element back to the main layout
     local LoadingFrame = create("Frame", {
         Name = "LoadingFrame",
         Size = UDim2.new(1, 0, 1, 0),
@@ -681,6 +686,7 @@ function TaperUILibrary:CreateWindow(options)
             TextSize = 13,
             Font = Enum.Font.GothamMedium,
             TextXAlignment = Enum.TextXAlignment.Left,
+            TextYAlignment = Enum.TextYAlignment.Top,
             TextTransparency = 1,
             LayoutOrder = 2
         }),
@@ -695,13 +701,18 @@ function TaperUILibrary:CreateWindow(options)
             TextSize = 11,
             Font = Enum.Font.GothamMedium,
             TextXAlignment = Enum.TextXAlignment.Right,
+            TextYAlignment = Enum.TextYAlignment.Top,
             TextTransparency = 1,
             LayoutOrder = 3
         })
     })
 
-    -- Play Intro Function
+    -- Original fully-functional Intro transition logic
+    local introPlayed = false
     local function playIntro()
+        if introPlayed then return end
+        introPlayed = true
+
         local mainStroke = MainFrame:FindFirstChild("MainStroke")
         task.wait(0.5)
 
@@ -748,7 +759,9 @@ function TaperUILibrary:CreateWindow(options)
         }):Play()
 
         task.wait(0.1)
-        LoadingFrame:Destroy()
+        if LoadingFrame and LoadingFrame.Parent then
+            LoadingFrame:Destroy()
+        end
 
         local expandTween = TweenService:Create(MainFrame, TweenInfo.new(0.6, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, 620, 0, 420)
@@ -799,6 +812,9 @@ function TaperUILibrary:CreateWindow(options)
             end
         end)
     end
+
+    -- Automatically triggers playIntro deferred (so developer elements load first)
+    task.defer(playIntro)
 
     local Window = {
         MainFrame = MainFrame,
@@ -970,7 +986,7 @@ end
 -- ==========================================
 -- BACKWARD-COMPATIBILITY / AUTO-RUN HUB MODE
 -- ==========================================
-if not getgenv().TaperUI_DeveloperMode then
+if not getgenv().TaperDev then
     task.spawn(function()
         local currentPlaceStr = tostring(game.PlaceId)
         local isStandalone = false

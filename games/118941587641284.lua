@@ -6,7 +6,7 @@
 local getexec = identifyexecutor or function() return "Unknown Executor" end
 
 -- 1. Enable Developer Mode to bypass the automatic multi-game hub loader
-getgenv().TaperUI_DeveloperMode = true
+getgenv().TaperDev = true
 
 -- 2. Load the TaperUI framework library
 local TaperUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/GamebP/TaperUI/main/UI.lua"))()
@@ -984,6 +984,3 @@ Window.ScreenGui.Destroying:Connect(function()
     autoUpgradeActive = false
     autoDeleteActive = false
 end)
-
--- 6. Trigger play intro sequence
-Window:PlayIntro()
