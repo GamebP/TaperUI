@@ -276,7 +276,7 @@
     },
     {
       "gameName": "Drain the Lake",
-      "gameID": "138381251771774",
+      "gameID": "138381251771774", 
       "gameStatus": "🟢",
       "canJoinGame": true,
       "joinAlternativeGameID": null,
@@ -288,6 +288,22 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true,
+      "isStandalone": false
+    },
+    {
+      "gameName": "Drain the Lake (Inside)",
+      "gameID": "124786371598438", 
+      "gameStatus": "🟢",
+      "canJoinGame": false,
+      "joinAlternativeGameID": null,
+      "dateAdded": "06.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": false,
       "isStandalone": true
     }
   ],
