@@ -257,6 +257,38 @@
       "contributors": [],
       "isActiveInUI": true,
       "isStandalone": true
+    },
+    {
+      "gameName": "[FPS] One Tap",
+      "gameID": "90568084448279",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "06.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true,
+      "isStandalone": true
+    },
+    {
+      "gameName": "Drain the Lake",
+      "gameID": "138381251771774",
+      "gameStatus": "🟢",
+      "canJoinGame": true,
+      "joinAlternativeGameID": null,
+      "dateAdded": "06.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true,
+      "isStandalone": true
     }
   ],
   "creditsList": {
