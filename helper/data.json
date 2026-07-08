@@ -288,7 +288,7 @@
       "removedBy": null,
       "contributors": [],
       "isActiveInUI": true,
-      "isStandalone": false
+      "isStandalone": true
     },
     {
       "gameName": "Drain the Lake (Inside)",
