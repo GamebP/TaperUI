@@ -1,6 +1,6 @@
 -- ============================================================
 --  TAPERUI - STANDALONE GAME SCRIPT
---  Verdant Autofarm (AFK Real-Time Timer Edition)
+--  Verdant Autofarm (AFK Crash-Proof Silent Edition)
 -- ============================================================
 
 -- 1. Enable Developer Mode to bypass the automatic multi-game hub loader
@@ -29,10 +29,6 @@ getgenv().AntiAFK_ENV = false
 getgenv().InstantPrompts = false
 getgenv().AutoClearTokens = false -- Controls the automatic clearing behavior
 getgenv().TokenLimit_ENV = 300     -- Dynamic auto-delete limit (Defaults to 300)
-getgenv().AFKTriggerCount = getgenv().AFKTriggerCount or 0
-getgenv().AFKLastTrigger = getgenv().AFKLastTrigger or "N/A"
-getgenv().AFKStatusText = getgenv().AFKStatusText or "Inactive"
-getgenv().AFK_IdleTime = 0
 getgenv().BoughtNodesCache = getgenv().BoughtNodesCache or {}
 
 local checkpointDropdownInitialized = false -- Guard to prevent injection teleport
@@ -49,108 +45,6 @@ local doAfter = remotes and remotes:WaitForChild("VDT_Bucket.Poured", 5)
 local takeToken = remotes and remotes:WaitForChild("VDT_Tokens.Take", 5)
 local openChest = remotes and remotes:WaitForChild("VDT_Chest.Open", 5)
 local SkillTreeBuyThing = remotes and remotes:WaitForChild("VDT_SkillTree.Purchase", 5)
-
--- ============================================================
---  HUD WATERMARK INITIALIZATION (Anti-AFK Monitor)
--- ============================================================
-local ScreenGui = nil
-local StatsLabel = nil
-
-local function createWatermark()
-    -- Safe UI Parent selection (Hides GUI from standard detections when possible)
-    local parentGui = nil
-    pcall(function()
-        parentGui = (getgenv().gethui and getgenv().gethui()) or game:GetService("CoreGui") or Players.LocalPlayer:WaitForChild("PlayerGui")
-    end)
-    if not parentGui then return end
-
-    -- Destroy old watermark if script is re-run
-    local oldGui = parentGui:FindFirstChild("VerdantAFKWatermark")
-    if oldGui then oldGui:Destroy() end
-
-    ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "VerdantAFKWatermark"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.Enabled = false
-    ScreenGui.Parent = parentGui
-
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 240, 0, 100) -- Expanded to accommodate the User State line
-    Frame.Position = UDim2.new(1, -250, 0, 15) -- Placed in top-right corner
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Frame.BorderSizePixel = 0
-    Frame.Active = true
-    Frame.Draggable = true -- Allows user dragging
-    Frame.Parent = ScreenGui
-
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 6)
-    UICorner.Parent = Frame
-
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Color = Color3.fromRGB(50, 50, 50)
-    UIStroke.Thickness = 1
-    UIStroke.Parent = Frame
-
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, -10, 0, 25)
-    Title.Position = UDim2.new(0, 10, 0, 4)
-    Title.Text = "🌾 Verdant AFK Monitor"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.TextSize = 13
-    Title.Font = Enum.Font.GothamBold -- Clean bold header
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.BackgroundTransparency = 1
-    Title.Parent = Frame
-
-    StatsLabel = Instance.new("TextLabel")
-    StatsLabel.Size = UDim2.new(1, -20, 0, 65)
-    StatsLabel.Position = UDim2.new(0, 10, 0, 28)
-    StatsLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    StatsLabel.TextSize = 13
-    StatsLabel.Font = Enum.Font.GothamMedium -- Clean body font
-    StatsLabel.RichText = true -- Enable HTML style tags for optimized readability
-    StatsLabel.TextXAlignment = Enum.TextXAlignment.Left
-    StatsLabel.TextYAlignment = Enum.TextYAlignment.Top
-    StatsLabel.LineHeight = 1.2
-    StatsLabel.BackgroundTransparency = 1
-    StatsLabel.Parent = Frame
-end
-
-local function updateWatermark()
-    if StatsLabel then
-        local statusColor = "rgb(150, 150, 150)" -- Default gray
-        if getgenv().AFKStatusText == "PREVENTING KICK!" then
-            statusColor = "rgb(255, 180, 0)" -- Gold during trigger event
-        elseif getgenv().AFKStatusText == "Monitoring..." then
-            statusColor = "rgb(0, 220, 100)" -- Green when active
-        end
-        
-        -- Resolve active user state dynamically using the idle timer
-        local idleSecs = getgenv().AFK_IdleTime or 0
-        local stateText = "Active"
-        local stateColor = "rgb(0, 220, 100)" -- Green
-        
-        if idleSecs > 5 then
-            stateText = "Away"
-            stateColor = "rgb(255, 100, 100)" -- Red
-        end
-        
-        -- Formatted rich text output
-        StatsLabel.Text = string.format(
-            "<b>Status:</b> <font color='%s'>%s</font>\n<b>User State:</b> <font color='%s'>%s (%ds)</font>\n<b>Triggers:</b> <font color='rgb(255, 255, 255)'>%d</font>\n<b>Last Prevented:</b> <font color='rgb(255, 255, 255)'>%s</font>",
-            statusColor,
-            getgenv().AFKStatusText,
-            stateColor,
-            stateText,
-            idleSecs,
-            getgenv().AFKTriggerCount,
-            getgenv().AFKLastTrigger
-        )
-    end
-end
-
-createWatermark()
 
 -- ============================================================
 --  VERDANT GAME LOGIC HELPERS
@@ -498,71 +392,14 @@ FarmTab:CreateToggle("Instant Proximity Prompts", false, function(state)
     end
 end)
 
-local lastAFKTrigger = 0
-
--- Anti-AFK Sliding Toggle Switch with HUD Monitor integration
+-- Anti-AFK Sliding Toggle Switch (Silent & 100% Stable)
 FarmTab:CreateToggle("Anti-AFK System", false, function(state)
     getgenv().AntiAFK_ENV = state
     
-    if ScreenGui then
-        ScreenGui.Enabled = state
-    end
-    
     if state then
-        getgenv().AFKStatusText = "Monitoring..."
-        getgenv().AFK_IdleTime = 0
-        updateWatermark()
-
-        -- Set up the passive connection if it hasn't been instantiated yet
-        if not getgenv().IdledConnection then
-            local vu = game:GetService("VirtualUser")
-            
-            getgenv().IdledConnection = Players.LocalPlayer.Idled:Connect(function()
-                if getgenv().AntiAFK_ENV then
-                    -- CRITICAL FIX: Only allow execution once every 15 seconds to prevent thread crashes
-                    if tick() - lastAFKTrigger < 15 then 
-                        return 
-                    end
-                    lastAFKTrigger = tick()
-
-                    pcall(function()
-                        -- Update state indicators on trigger
-                        getgenv().AFKTriggerCount = getgenv().AFKTriggerCount + 1
-                        getgenv().AFKLastTrigger = os.date("%X")
-                        getgenv().AFKStatusText = "PREVENTING KICK!"
-                        updateWatermark()
-
-                        -- Robust, non-yielding simulation sequence
-                        vu:CaptureController()
-                        vu:ClickButton2(Vector2.new(100, 100)) -- Clicks on the viewport to simulate interaction
-                        
-                        task.spawn(function()
-                            task.wait(2) -- Safely handle status reset in a detached thread
-                            if getgenv().AntiAFK_ENV then
-                                getgenv().AFKStatusText = "Monitoring..."
-                                updateWatermark()
-                            end
-                        end)
-                    end)
-                end
-            end)
+        if getgenv().showToast then
+            getgenv().showToast("Anti-AFK Active", "Click simulation running silently in the background.", TaperAssets.done, 2.0)
         end
-
-        -- Background loop tracking real-time idle status using UserInputService
-        task.spawn(function()
-            local UIS = game:GetService("UserInputService")
-            while getgenv().AntiAFK_ENV do
-                pcall(function()
-                    getgenv().AFK_IdleTime = math.floor(UIS:GetIdleTime())
-                    updateWatermark()
-                end)
-                task.wait(1)
-            end
-        end)
-    else
-        getgenv().AFKStatusText = "Inactive"
-        getgenv().AFK_IdleTime = 0
-        updateWatermark()
     end
 end)
 
@@ -742,6 +579,34 @@ task.spawn(function()
                     end
                     warn("[Auto-FPS] Automatically cleared " .. tostring(destroyedCount) .. " client-side tokens (Threshold of " .. tostring(currentLimit) .. " met).")
                 end
+            end)
+        end
+    end
+end)
+
+-- ============================================================
+-- Silent Background Anti-AFK Keep-Alive (Zero GUI Overhead, No crashes)
+-- ============================================================
+task.spawn(function()
+    local vu = game:GetService("VirtualUser")
+    
+    -- Attempt to disable client-side Idle connections directly
+    pcall(function()
+        local idled = game:GetService("Players").LocalPlayer.Idled
+        if getconnections then
+            for _, conn in ipairs(getconnections(idled)) do
+                conn:Disable()
+            end
+        end
+    end)
+
+    -- Fallback active click simulation loop running silently every 2 minutes
+    while true do
+        task.wait(120) -- Runs once every 2 minutes (Roblox disconnects at 20)
+        if getgenv().AntiAFK_ENV then
+            pcall(function()
+                vu:CaptureController()
+                vu:ClickButton2(Vector2.new(100, 100)) -- Instantly resets Roblox's idle timer [2]
             end)
         end
     end
