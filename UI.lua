@@ -165,18 +165,8 @@ local assetPaths = {
 }
 
 getgenv().TaperAssets = {}
-
--- 1. Pre-initialize the table with empty strings to prevent nil-index UI errors
-for key, _ in pairs(assetPaths) do
-    TaperAssets[key] = ""
-end
-
--- 2. Download all assets asynchronously in parallel
 for key, path in pairs(assetPaths) do
-    task.spawn(function()
-        local val = getAsset(path)
-        TaperAssets[key] = val -- This automatically updates the image once downloaded
-    end)
+    TaperAssets[key] = getAsset(path)
 end
 
 function env.setconfig(key, value)
@@ -205,23 +195,9 @@ local function import(path)
         return moduleCache[path]
     end
     
-    local localPath = "TaperUI/" .. path .. ".lua"
-    local content
-    
-    -- Check if file is stored locally first
-    if isfile(localPath) then
-        content = readfile(localPath)
-    else
-        -- Fall back to downloading and caching it on disk
-        local gitUrl = env.getgitpath("src") .. path .. ".lua"
-        local ok, webContent = pcall(function() return game:HttpGet(gitUrl) end)
-        if ok and webContent and #webContent > 0 and webContent ~= "404: Not Found" then
-            content = webContent
-            pcall(writefile, localPath, content)
-        end
-    end
-    
-    if content then
+    local gitUrl = env.getgitpath("src") .. path .. ".lua"
+    local ok, content = pcall(function() return game:HttpGet(gitUrl) end)
+    if ok and content and #content > 0 and content ~= "404: Not Found" then
         local func, err = loadstring(content)
         if func then
             local result = func()
@@ -231,7 +207,7 @@ local function import(path)
             error("[TaperUI] Loadstring compilation failed for " .. path .. ": " .. tostring(err))
         end
     else
-        error("[TaperUI] Module fetch failed: " .. path)
+        error("[TaperUI] Module HTTP fetch failed: " .. path)
     end
 end
 getgenv().taperImport = import
