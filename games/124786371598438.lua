@@ -494,17 +494,6 @@ FarmTab:CreateToggle("Instant Proximity Prompts", false, function(state)
 end)
 
 local lastAFKTrigger = 0
-local idleSecs = 0
-local inputConnection = nil
-
--- Standard UserInput tracking to increment/reset active state counters
-pcall(function()
-    inputConnection = game:GetService("UserInputService").InputBegan:Connect(function(_, processed)
-        if not processed then
-            idleSecs = 0
-        end
-    end)
-end)
 
 -- Anti-AFK Sliding Toggle Switch with HUD Monitor integration
 FarmTab:CreateToggle("Anti-AFK System", false, function(state)
@@ -523,10 +512,9 @@ FarmTab:CreateToggle("Anti-AFK System", false, function(state)
         -- Set up the passive connection if it hasn't been instantiated yet
         if not getgenv().IdledConnection then
             local vu = game:GetService("VirtualUser")
-            
             getgenv().IdledConnection = Players.LocalPlayer.Idled:Connect(function()
                 if getgenv().AntiAFK_ENV then
-                    -- CRITICAL PROTECTION: Protects executor from threads piling up
+                    -- CRITICAL FIX: Only allow execution once every 15 seconds to prevent thread crashes
                     if tick() - lastAFKTrigger < 15 then 
                         return 
                     end
@@ -538,13 +526,12 @@ FarmTab:CreateToggle("Anti-AFK System", false, function(state)
                         getgenv().AFKStatusText = "PREVENTING KICK!"
                         updateWatermark()
 
-                        -- Background bypass simulation using Camera CFrame projection
-                        vu:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-                        task.wait(1)
-                        vu:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
+                        -- Robust, non-yielding simulation sequence
+                        vu:CaptureController()
+                        vu:ClickButton2(Vector2.new(100, 100)) -- Clicks on the viewport to simulate interaction
                         
                         task.spawn(function()
-                            task.wait(2)
+                            task.wait(2) -- Safely handle status reset in a detached thread
                             if getgenv().AntiAFK_ENV then
                                 getgenv().AFKStatusText = "Monitoring..."
                                 updateWatermark()
