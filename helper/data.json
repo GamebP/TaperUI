@@ -305,6 +305,22 @@
       "contributors": [],
       "isActiveInUI": false,
       "isStandalone": true
+    },
+    {
+      "gameName": "Climb and Drop a Lucky Block",
+      "gameID": "96401370703274", 
+      "gameStatus": "🟢",
+      "canJoinGame": false,
+      "joinAlternativeGameID": null,
+      "dateAdded": "11.07.2026",
+      "dateRemoved": null,
+      "addedBy": [
+        "SkyDash"
+      ],
+      "removedBy": null,
+      "contributors": [],
+      "isActiveInUI": true,
+      "isStandalone": true
     }
   ],
   "creditsList": {
